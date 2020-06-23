@@ -1,0 +1,1 @@
+" Vim test support script.
