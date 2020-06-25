@@ -10,7 +10,6 @@ from vpe import variables
 __all__ = ('windows',)
 
 
-# TODO: CollectionProxy is not the correct base class.
 class Window(proxies.Proxy):
     """Wrapper around the built-in vim.Window type.
 

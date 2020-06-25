@@ -1,7 +1,7 @@
 import contextlib
 
 
-def test_singletone(name):
+def test_singleton(name):
     a = getattr(vim, name)
     b = getattr(vim, name)
     if id(a) == id(b):
@@ -32,13 +32,13 @@ with test_context('data-out/basic_vim.txt'):
     assert_raises(AttributeError, 'setattr(vim, "current", _vim.current)')
 
     print('- Test-ID: vim-singletons -')
-    test_singletone('buffers')
-    test_singletone('vars')
-    test_singletone('vvars')
-    test_singletone('options')
-    test_singletone('windows')
-    test_singletone('tabpages')
-    test_singletone('current')
+    test_singleton('buffers')
+    test_singleton('vars')
+    test_singleton('vvars')
+    test_singleton('options')
+    test_singleton('windows')
+    test_singleton('tabpages')
+    test_singleton('current')
 
     print('- Test-ID: comma-separated-flag-option -')
     options.whichwrap = ''
