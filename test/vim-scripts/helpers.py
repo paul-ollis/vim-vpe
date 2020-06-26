@@ -1,5 +1,6 @@
 import contextlib
 import inspect
+import pathlib
 import traceback
 
 import vpe
@@ -77,6 +78,17 @@ class AssertRaises(Assertion):
             self.keyvals.pop('error', None)
 
 
+class AssertNoException(Assertion):
+    def __init__(self, expr, **kwargs):
+        super().__init__(expr, **kwargs)
+        self.ok = self.raised is None
+        if not self.ok:
+            self.keyvals['result'] = f'Raised {self.raised.__class__.__name__}'
+            self.keyvals['message'] = str(self.raised)
+            self.keyvals['raised'] = self.raised.__class__.__name__
+            self.keyvals.pop('error', None)
+
+
 def assert_equal(*args, **kwargs):
     AssertEqual(*args, **kwargs).invoke()
 
@@ -93,6 +105,10 @@ def assert_raises(*args, **kwargs):
     AssertRaises(*args, **kwargs).invoke()
 
 
+def assert_no_exception(*args, **kwargs):
+    AssertNoException(*args, **kwargs).invoke()
+
+
 def to_str(s):
     try:
         return s.decode()
@@ -107,21 +123,40 @@ def get_test_buffer(rerun=False, goto=False):
     else:
         if rerun:
             return None
-        vim.command('edit --TEST--')
+        vim.command('silent! edit --TEST--')
         return get_test_buffer(rerun=True)
 
     _buf = buf._proxied
-    _buf[:] = []
+    with dropped_messages():
+        _buf[:] = []
     if goto:
-        _vim.command(f'buffer {_buf.number}')
+        _vim.command(f'silent! buffer {_buf.number}')
     return buf, _buf
 
 
 @contextlib.contextmanager
+def dropped_messages():
+    _vim.command(f'redir >>/dev/null')
+    try:
+        yield
+    finally:
+        _vim.command(f'redir! >{msg_path}')
+
+
+@contextlib.contextmanager
 def test_context(data_path):
+    global msg_path
+
+    msg_path = f'{data_path}.msg'
     with open(data_path, 'wt') as f:
         with contextlib.redirect_stdout(f):
-            yield None
+            _vim.command(f'redir! >{msg_path}')
+            try:
+                yield None
+            finally:
+                _vim.command(f'redir END')
+                sentinel = pathlib.Path(data_path).parent / 'sentinel'
+                sentinel.touch(exist_ok=True)
 
 
 @contextlib.contextmanager

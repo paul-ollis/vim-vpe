@@ -4,6 +4,7 @@ import functools
 import os
 import pathlib
 import subprocess
+import time
 
 from CleverSheep.Test import Tester
 from CleverSheep.Test.Tester import *
@@ -29,16 +30,19 @@ class Base(Suite):
             fail(f'Messages were produced, see {msg_path}')
 
     def suiteSetUp(self):
+        sentinel = pathlib.Path('data-out/sentinel')
         vim = self.vim = support.VimClient()
         with open(f'data-out/{self.name}.txt', 'w'):
             pass
         vim.command(f'cd {os.getcwd()}')
         vim.command(f'source init.vim')
         msg_path = f'data-out/{self.name}.txt.msg'
-        vim.command(f'redir! > {msg_path}')
+        sentinel.unlink(missing_ok=True)
         vim.command(f'py3file vim-scripts/{self.name}.py')
-        vim.sync()
-        vim.command(f'redir END')
+
+        when = time.time() + 1.0
+        while not sentinel.exists() and time.time() < when:
+            time.sleep(0.01)
         vim.sync()
 
     def suiteTearDown(self):
@@ -52,11 +56,6 @@ class VimSuite(Base):
     @test(testID='vim-attr-types')
     def vim_attr_types(self):
         """Verify that Vim returns attributes of the correct type."""
-        self.do_checks()
-
-    @test(testID='vim-singletons')
-    def vim_singletons(self):
-        """Verify that certain Vim attributes are singletons."""
         self.do_checks()
 
     @test(testID='comma-separated-flag-option')
@@ -87,6 +86,16 @@ class VimSuite(Base):
     @test(testID='mod-overrides-functions')
     def mod_overrides_function(self):
         """Vim module attributes are used in preference to Vim functions."""
+        self.do_checks()
+
+    @test(testID='current')
+    def current(self):
+        """The Vim current attributes provides wrapped attributes."""
+        self.do_checks()
+
+    @test(testID='vim-singletons')
+    def vim_singletons(self):
+        """Verify that certain Vim attributes are singletons."""
         self.do_checks()
 
 

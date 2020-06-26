@@ -29,10 +29,7 @@ from . import tabpages
 from . import windows
 
 _wrappers = {
-    type(_vim.buffers): buffers.Buffers,
     type(_vim.options): options.Options,
-    type(_vim.tabpages): tabpages.TabPages,
-    type(_vim.windows): windows.Windows,
     _vim.Buffer: buffers.Buffer,
     _vim.Dictionary:    dictionaries.Dictionary,
     _vim.Range: buffers.Range,
@@ -133,7 +130,67 @@ def script_py_path():
     vim_script = pathlib.Path(vim.eval("expand('<sfile>')"))
     py_script = vim_script.parent / (vim_script.stem + '.py')
     return str(py_script)
+
     
+def highlight(
+        *, group=None, clear=False, default=False, link=None, disable=False,
+        **kwargs):
+    """Python version of the highlight command.
+
+    This provides keyword arguments for all the command parameters. These are
+    generally taken from the |:highlight| command's documentation.
+
+    :group:
+        The name of the group being defined. If omitted then all other
+        arguments except *clear* are ignored.
+
+    :clear:
+        If set then the command ``highlight clear [<group>]`` is generated. All
+        other arguments are ignored.
+
+    :disable:
+        If set then the specified *group* is disabled using the command:
+
+            ``highlight <group> NONE``
+
+    :link:
+        If set then a link command will be generated of the form:
+
+            ``highlight link <group> <link>``.
+
+        Other arguments are ignored.
+
+    :default:
+        If set then the generated command has the form ``highlight default...``.
+
+    :kwargs:
+        The remain keyword arguments act like the |:highlight| command's
+        keyword arguments.
+    """
+    args = []
+    if link:
+        args.append('link')
+        args.append(group)
+        args.append(link)
+        return commands.highlight(*args)
+    if group:
+        args.append(group)
+    if clear:
+        args[:] = ['clear']
+        return commands.highlight(*args)
+
+    if disable:
+        args.append('NONE')
+        return commands.highlight(*args)
+
+    if default:
+        args.append('default')
+
+    for name, value in kwargs.items():
+        args.append(f'{name}={value}')
+
+    return commands.highlight(*args)
+
 
 # Create a Vim instance for module use.
 vim = Vim()

@@ -23,6 +23,8 @@ with test_context('data-out/basic_vim.txt'):
     assert_equal('TabPages', 'vim.tabpages.__class__.__name__')
 
     print('- Test-ID: vim-read-only-attrs -')
+    print(_vim)
+    print(_vim.buffers)
     assert_raises(AttributeError, 'setattr(vim, "buffers", _vim.buffers)')
     assert_raises(AttributeError, 'setattr(vim, "vars", _vim.vars)')
     assert_raises(AttributeError, 'setattr(vim, "vvars", _vim.vvars)')
@@ -30,15 +32,8 @@ with test_context('data-out/basic_vim.txt'):
     assert_raises(AttributeError, 'setattr(vim, "windows", _vim.windows)')
     assert_raises(AttributeError, 'setattr(vim, "tabpages", _vim.tabpages)')
     assert_raises(AttributeError, 'setattr(vim, "current", _vim.current)')
-
-    print('- Test-ID: vim-singletons -')
-    test_singleton('buffers')
-    test_singleton('vars')
-    test_singleton('vvars')
-    test_singleton('options')
-    test_singleton('windows')
-    test_singleton('tabpages')
-    test_singleton('current')
+    assert_raises(
+        AttributeError, 'setattr(vim.current, "range", _vim.current.range)')
 
     print('- Test-ID: comma-separated-flag-option -')
     options.whichwrap = ''
@@ -84,3 +79,28 @@ with test_context('data-out/basic_vim.txt'):
     print('- Test-ID: mod-overrides-functions -')
     assert_true('isinstance(vim.bufnr, vpe.Function)')
     assert_false('isinstance(vim.eval, vpe.Function)')
+
+    print('- Test-ID: current -')
+    assert_true('isinstance(vim.current, vpe.current.Current)')
+    assert_true('isinstance(vim.current.buffer, vpe.buffers.Buffer)')
+    assert_true('isinstance(vim.current.window, vpe.windows.Window)')
+    assert_true('isinstance(vim.current.tabpage, vpe.tabpages.TabPage)')
+    assert_true('isinstance(vim.current.range, vpe.buffers.Range)')
+
+    assert_no_exception(
+        'setattr(vim.current, "buffer", _vim.current.buffer)')
+    assert_no_exception(
+        'setattr(vim.current, "window", _vim.current.window)')
+    assert_no_exception(
+        'setattr(vim.current, "line", _vim.current.line)')
+    assert_no_exception(
+        'setattr(vim.current, "tabpage", _vim.current.tabpage)')
+
+    print('- Test-ID: vim-singletons -')
+    test_singleton('buffers')
+    test_singleton('vars')
+    test_singleton('vvars')
+    test_singleton('options')
+    test_singleton('windows')
+    test_singleton('tabpages')
+    test_singleton('current')
