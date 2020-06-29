@@ -19,17 +19,6 @@ class Range(proxies.CollectionProxy):
         else:
             self._proxied.append(line_or_lines, nr)
 
-    def __getitem__(self, slice_or_index):
-        if not isinstance(slice_or_index, slice):
-            try:
-                return super().__getitem__(slice_or_index)
-            except IndexError:
-                raise IndexError(f'Index ({slice_or_index!r}) out of range')
-
-        if slice.step is None:
-            return super().__getitem__(slice_or_index)
-        return list(self._proxied).__getitem__(slice_or_index)
-
     def __setitem__(self, slice_or_index, value):
         self._proxied.__setitem__(slice_or_index, value)
 

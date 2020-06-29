@@ -56,7 +56,6 @@ with test_context('data-out/basic_range.txt'):
     assert_equal([], 'rng[:]')
     _rng[:] = [f'{i}' for i in range(5)]
     assert_equal(['1', '2'], 'rng[1:3]')
-    assert_equal(['0', '2', '4'], 'rng[::2]')
 
     for i, line in enumerate(rng):
         print(line)
