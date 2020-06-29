@@ -4,6 +4,15 @@ import contextlib
 for buf in vim.buffers:
     break
 
+try:
+    _vim.command('bwipe! --WIBBLE--')
+except _vim.error:
+    pass
+try:
+    _vim.command('bwipe! --TEST--')
+except _vim.error:
+    pass
+
 with test_context('data-out/basic_buffer.txt'):
 
     print('- Test-ID: buffer-attr-types -')
@@ -19,6 +28,17 @@ with test_context('data-out/basic_buffer.txt'):
         assert_true('isinstance(buf.number, int)', info=i)
         assert_true('isinstance(buf.name, str)', info=i)
         assert_true('isinstance(buf.valid, bool)', info=i)
+
+    print('- Test-ID: buffer-read-only-attrs -')
+    assert_raises(AttributeError, 'setattr(buf, "vars", _buf.vars)')
+    assert_raises(AttributeError, 'setattr(buf, "options", _buf.options)')
+    assert_raises(AttributeError, 'setattr(buf, "number", _buf.number)')
+    assert_raises(AttributeError, 'setattr(buf, "valid", _buf.valid)')
+
+    print('- Test-ID: buffer-name-can-be-set -')
+    buf, _buf = get_test_buffer()
+    assert_no_exception('setattr(buf, "name", "--WIBBLE--")')
+    assert_true('_buf.name.endswith("/--WIBBLE--")')
 
     print('- Test-ID: buffer-append -')
     buf, _buf = get_test_buffer()

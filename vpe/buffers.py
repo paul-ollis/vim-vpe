@@ -39,6 +39,8 @@ class Buffer(proxies.CollectionProxy):
 
     This is a proxy that extends the vim.Buffer behaviour in various ways.
     """
+    _writeable = set(('name',))
+
     def __init__(self, buffer):
         super().__init__(buffer)
 
