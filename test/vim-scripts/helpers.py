@@ -127,6 +127,7 @@ def get_test_buffer(rerun=False, goto=False):
         return get_test_buffer(rerun=True)
 
     _buf = buf._proxied
+    _buf.options['modifiable'] = True
     with dropped_messages():
         _buf[:] = []
     if goto:

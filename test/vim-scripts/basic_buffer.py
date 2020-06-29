@@ -94,3 +94,27 @@ with test_context('data-out/basic_buffer.txt'):
     _vim.command('normal ma')
     w.cursor = 4, 5
     assert_equal((2, 3), "buf.mark('a')")
+
+    print('- Test-ID: buffer-list-context -')
+    buf, _buf = get_test_buffer()
+
+    # Just setting the contents.
+    with buf.list() as b:
+        b[:] = ['1', '2']
+    assert_equal(['1', '2'], 'buf[:]')
+
+    # Modifying the contents.
+    with buf.list() as b:
+        b.append('3')
+    assert_equal(['1', '2', '3'], 'buf[:]')
+
+    # Modifying the contents, event when buffer is not modifiable.
+    _buf.options['modifiable'] = False
+    try:
+        buf[:] = ['1', '2'] 
+    except vim.error:
+        pass
+    assert_equal(['1', '2', '3'], 'buf[:]')
+    with buf.list() as b:
+        b.append('4')
+    assert_equal(['1', '2', '3', '4'], 'buf[:]')

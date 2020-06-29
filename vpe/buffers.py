@@ -1,10 +1,28 @@
 """Special support for buffers."""
 
+import weakref
+
 import vim as _vim
 
 from vpe import proxies
 
 __all__ = ('buffers',)
+
+
+class BufferListContext(list):
+    def __init__(self, vim_buffer):
+        super().__init__(vim_buffer)
+        self._vim_buffer = weakref.ref(vim_buffer)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        b = self._vim_buffer()
+        if exc_type is None:
+            with b.temp_options() as o:
+                o['modifiable'] = True
+                b[:] = self
 
 
 # TODO: CollectionProxy is not the correct base class.
@@ -55,9 +73,9 @@ class Buffer(proxies.CollectionProxy):
         else:
             self._proxied.append(line_or_lines, nr)
 
-    def view(self):
+    def list(self):
         """A sequence context for efficient buffer modification."""
-        return BufferView(self)
+        return BufferListContext(self)
 
     def temp_options(self):
         """Context used to temporarily change options."""

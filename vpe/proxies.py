@@ -10,7 +10,14 @@ import vpe
 __all__ = ('Proxy', 'CollectionProxy', 'MutableMappingProxy')
 
 
-class Proxy():
+def _resolve_proxied(obj):
+    try:
+        return _resolve_proxied(obj._proxied)
+    except AttributeError:
+        return obj
+
+
+class Proxy:
     """Base for proxy classes.
 
     Subclasses must support the following protocol:
@@ -33,16 +40,15 @@ class Proxy():
 
     def __init__(self, obj=None):
         if obj is not None:
-            self.__dict__['_proxied'] = obj
+            self.__dict__['_proxied'] = _resolve_proxied(obj)
 
     def __getattr__(self, name):
-        return self._wrap_item(getattr(self._proxied, name))
+        return self._wrap_item(getattr(self._proxied, name), name)
 
     def __setattr__(self, name, value):
         if name in self.__dict__:
             self.__dict__[name] = value
         elif name in self._writeable:
-            print(f'Setting {name} to {value}')
             setattr(self._proxied, name, value)
         else:
             raise AttributeError(
@@ -124,3 +130,27 @@ class MutableMappingProxy(CollectionProxy, collections.abc.MutableMapping):
 
     def has_key(self, key):
         return self._proxied.has_key(key)
+
+
+class TemporaryOptions:
+    def __init__(self, options):
+        self.__dict__.update({
+            '_options': options,
+            '_saved' : {}
+        })
+
+    def __enter__(self):
+        self._saved.clear()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        for name, value in self._saved.items():
+            self._options[name] = value
+
+    def __setattr__(self, name, value):
+        self.__setitem__(name, value)
+
+    def __setitem__(self, name, value):
+        if name not in self._saved:
+            self._saved[name] = self._options[name]
+        self._options.__setattr__(name, value)

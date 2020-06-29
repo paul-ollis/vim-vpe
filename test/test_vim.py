@@ -118,6 +118,16 @@ class BufferSuite(Base):
         """Verify that a vpe.Buffer returns attributes of the correct type."""
         self.do_checks()
 
+    @test(testID='buffer-read-only-attrs')
+    def read_only_attrs(self):
+        """Certain attributes are read-only."""
+        self.do_checks()
+
+    @test(testID='buffer-name-can-be-set')
+    def read_only_attrs(self):
+        """A buffer's name attributes can be set."""
+        self.do_checks()
+
     @test(testID='buffer-append')
     def buf_append(self):
         """Verify that buffers can be appended to."""
@@ -126,6 +136,11 @@ class BufferSuite(Base):
     @test(testID='buffer-marks')
     def buffer_marks(self):
         """Verify that buffers marks work."""
+        self.do_checks()
+
+    @test(testID='buffer-list-context')
+    def buffer_list_context(self):
+        """Verify that a buffer can be modified using a buffer list context."""
         self.do_checks()
 
 
