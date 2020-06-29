@@ -108,7 +108,7 @@ with test_context('data-out/basic_buffer.txt'):
         b.append('3')
     assert_equal(['1', '2', '3'], 'buf[:]')
 
-    # Modifying the contents, event when buffer is not modifiable.
+    # Modifying the contents, even when buffer is not modifiable.
     _buf.options['modifiable'] = False
     try:
         buf[:] = ['1', '2'] 
@@ -118,3 +118,15 @@ with test_context('data-out/basic_buffer.txt'):
     with buf.list() as b:
         b.append('4')
     assert_equal(['1', '2', '3', '4'], 'buf[:]')
+
+    print('- Test-ID: temp-options-context -')
+    buf, _buf = get_test_buffer()
+    pi = _buf.options['preserveindent']
+    with buf.temp_options() as o:
+        o['preserveindent'] = not pi
+        assert_equal(not pi, '_buf.options["preserveindent"]')
+    assert_equal(pi, '_buf.options["preserveindent"]')
+
+    with buf.temp_options(preserveindent=not pi):
+        assert_equal(not pi, '_buf.options["preserveindent"]')
+    assert_equal(pi, '_buf.options["preserveindent"]')

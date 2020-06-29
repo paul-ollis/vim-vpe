@@ -143,6 +143,11 @@ class BufferSuite(Base):
         """Verify that a buffer can be modified using a buffer list context."""
         self.do_checks()
 
+    @test(testID='temp-options-context')
+    def temp_options(self):
+        """The temp_options method modifies options in with block."""
+        self.do_checks()
+
 
 class RangeSuite(Base):
     """Basic behaviour of the Range object."""

@@ -20,8 +20,7 @@ class BufferListContext(list):
     def __exit__(self, exc_type, exc_val, exc_tb):
         b = self._vim_buffer()
         if exc_type is None:
-            with b.temp_options() as o:
-                o['modifiable'] = True
+            with b.temp_options(modifiable=True):
                 b[:] = self
 
 
@@ -77,9 +76,9 @@ class Buffer(proxies.CollectionProxy):
         """A sequence context for efficient buffer modification."""
         return BufferListContext(self)
 
-    def temp_options(self):
+    def temp_options(self, **presets):
         """Context used to temporarily change options."""
-        return proxies.TemporaryOptions(self.options)
+        return proxies.TemporaryOptions(self.options, **presets)
 
 
 class Buffers(proxies.CollectionProxy):

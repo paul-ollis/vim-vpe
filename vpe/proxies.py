@@ -133,14 +133,17 @@ class MutableMappingProxy(CollectionProxy, collections.abc.MutableMapping):
 
 
 class TemporaryOptions:
-    def __init__(self, options):
+    def __init__(self, options, **presets):
         self.__dict__.update({
             '_options': options,
-            '_saved' : {}
+            '_saved' : {},
+            '_presets': presets,
         })
 
     def __enter__(self):
         self._saved.clear()
+        for name, value in self._presets.items():
+            self.__setitem__(name, value)
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
