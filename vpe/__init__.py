@@ -16,10 +16,13 @@ is very unlikely to be compatible with earlier versions. I plan that future
 versions of *vpe* will be backwardly compatible with version 8.1.
 """
 
+import pathlib
+
 import vim as _vim
 
 from . import buffers
 from . import commands
+from . import current
 from . import dictionaries
 from . import options
 from . import tabpages
@@ -41,12 +44,13 @@ _blockedVimFunctions = set((
     "libcallnr",
 ))
 _vim_singletons = {
-    'tabpages': tabpages.tabpages,
     'buffers': buffers.buffers,
-    'windows': windows.windows,
+    'current': current.current,
     'options': options.global_options,
+    'tabpages': tabpages.tabpages,
     'vars': variables.vars,
     'vvars': variables.vvars,
+    'windows': windows.windows,
 }
 
 
@@ -123,6 +127,13 @@ class Vim(
         """Get the underlying built-in vim module."""
         return _vim
 
+
+def script_py_path():
+    vim = Vim()
+    vim_script = pathlib.Path(vim.eval("expand('<sfile>')"))
+    py_script = vim_script.parent / (vim_script.stem + '.py')
+    return str(py_script)
+    
 
 # Create a Vim instance for module use.
 vim = Vim()
