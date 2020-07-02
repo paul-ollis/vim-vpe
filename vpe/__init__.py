@@ -62,12 +62,17 @@ class Function(_vim.Function):
     """Wrapper around a vim.Function.
 
     This provides some minimal cooercion of function return types.
+
+    - A vim.Dictionary is wrapped as a VPE Dictionary.
+    - A bytes instance is decodes to a string.
     """
 
     def __call__ (self, *args, **kwargs):
         v = super().__call__(*args, **kwargs)
         if isinstance(v, _vim.Dictionary):
             return dictionaries.Dictionary(v)
+        elif isinstance(v, bytes):
+            return v.decode()
         return v
 
 

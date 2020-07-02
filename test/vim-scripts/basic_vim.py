@@ -79,6 +79,7 @@ with test_context('data-out/basic_vim.txt'):
     print('- Test-ID: mod-overrides-functions -')
     assert_true('isinstance(vim.bufnr, vpe.Function)')
     assert_false('isinstance(vim.eval, vpe.Function)')
+    assert_true('isinstance(vim.mode(), str)')
 
     print('- Test-ID: current -')
     assert_true('isinstance(vim.current, vpe.current.Current)')
