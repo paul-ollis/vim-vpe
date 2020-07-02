@@ -22,6 +22,10 @@ class Window(proxies.Proxy):
         """The buffar vars wrapped as a Variables instance."""
         return variables.Variables(self._proxied)
 
+    def temp_options(self, **presets):
+        """Context used to temporarily change options."""
+        return proxies.TemporaryOptions(self.options, **presets)
+
 
 class Windows(proxies.CollectionProxy):
     """Wrapper around the built-in vim.windows.

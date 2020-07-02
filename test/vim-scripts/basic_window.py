@@ -38,8 +38,22 @@ with test_context('data-out/basic_window.txt'):
         assert_equal(h + 1, 'win.height')
 
     buf, _buf = get_test_buffer(goto=True)
+    win = vim.current.window
     buf[:] = [f'Line {i + 1}' for i in range(5)]
     r, c = win.cursor
     print(r, c)
     win.cursor = r + 1, c + 1
     assert_equal((r + 1, c + 1), 'win.cursor')
+
+    print('- Test-ID: win-temp-options-context -')
+    buf, _ = get_test_buffer(goto=True)
+    win = vim.current.window
+    cb = win.options['cursorbind']
+    with win.temp_options() as o:
+        o['cursorbind'] = not cb
+        assert_equal(not cb, 'win.options["cursorbind"]')
+    assert_equal(cb, 'win.options["cursorbind"]')
+
+    with win.temp_options(cursorbind=not cb):
+        assert_equal(not cb, 'win.options["cursorbind"]')
+    assert_equal(cb, 'win.options["cursorbind"]')

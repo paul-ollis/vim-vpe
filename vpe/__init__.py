@@ -125,6 +125,10 @@ class Vim(
             cls._myself = super().__new__(cls, *args, **kwargs)
         return cls._myself
 
+    def temp_options(self, **presets):
+        """Context used to temporarily change options."""
+        return proxies.TemporaryOptions(self.options, **presets)
+
     def vim(self):
         """Get the underlying built-in vim module."""
         return _vim

@@ -119,7 +119,7 @@ with test_context('data-out/basic_buffer.txt'):
         b.append('4')
     assert_equal(['1', '2', '3', '4'], 'buf[:]')
 
-    print('- Test-ID: temp-options-context -')
+    print('- Test-ID: buf-temp-options-context -')
     buf, _buf = get_test_buffer()
     pi = _buf.options['preserveindent']
     with buf.temp_options() as o:

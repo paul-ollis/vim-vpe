@@ -105,3 +105,15 @@ with test_context('data-out/basic_vim.txt'):
     test_singleton('windows')
     test_singleton('tabpages')
     test_singleton('current')
+
+    print('- Test-ID: temp-options-context -')
+    bg = vim.options['background']
+    alt_bg = 'dark' if bg == 'light' else 'light'
+    with vim.temp_options() as o:
+        o['background'] = alt_bg
+        assert_equal(alt_bg, 'vim.options["background"]')
+    assert_equal(bg, 'vim.options["background"]')
+
+    with vim.temp_options(background=alt_bg) as o:
+        assert_equal(alt_bg, 'vim.options["background"]')
+    assert_equal(bg, 'vim.options["background"]')

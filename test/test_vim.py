@@ -98,6 +98,11 @@ class VimSuite(Base):
         """Verify that certain Vim attributes are singletons."""
         self.do_checks()
 
+    @test(testID='temp-options-context')
+    def temp_options(self):
+        """The temp_options method modifies options in with block."""
+        self.do_checks()
+
 
 class BuffersSuite(Base):
     """Basic behaviour of the Buffers object."""
@@ -143,7 +148,7 @@ class BufferSuite(Base):
         """Verify that a buffer can be modified using a buffer list context."""
         self.do_checks()
 
-    @test(testID='temp-options-context')
+    @test(testID='buf-temp-options-context')
     def temp_options(self):
         """The temp_options method modifies options in with block."""
         self.do_checks()
@@ -186,6 +191,11 @@ class WindowSuite(Base):
     @test(testID='window-writeable-attrs')
     def writeable_attrs(self):
         """Verify that some window attributes are writeable."""
+        self.do_checks()
+
+    @test(testID='win-temp-options-context')
+    def temp_options(self):
+        """The temp_options method modifies options in with block."""
         self.do_checks()
 
 
