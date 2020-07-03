@@ -76,6 +76,24 @@ class Function(_vim.Function):
         return v
 
 
+class Registers:
+    """Pythonic access to the Vim registers."""
+
+    def __getitem__(self, reg_name):
+        """Allow reading registers as dictionary entries.
+
+        The reg_name may also be an integer value in the range 0-9.
+        """
+        return _vim.eval(f'@{reg_name}')
+
+    def __setitem__(self, reg_name, value):
+        """Allow setting registers as dictionary entries.
+
+        The reg_name may also be an integer value in the range 0-9.
+        """
+        return vim.setreg(f'{reg_name}', value)
+
+
 class _VimDirectFunctions:
     """Transparent access to Vim's functions."""
 
@@ -116,6 +134,7 @@ class Vim(
         _VimDirectFunctions,
     ):
     """A wrapper around and replacement for the *vim* module."""
+    _registers = Registers()
 
     def __new__(cls, *args, **kwargs):
         """Ensure only a single Vim instance ever exists."""
@@ -128,6 +147,10 @@ class Vim(
     def temp_options(self, **presets):
         """Context used to temporarily change options."""
         return proxies.TemporaryOptions(self.options, **presets)
+
+    @property
+    def registers(self):
+        return self._registers
 
     def vim(self):
         """Get the underlying built-in vim module."""

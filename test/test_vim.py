@@ -103,6 +103,11 @@ class VimSuite(Base):
         """The temp_options method modifies options in with block."""
         self.do_checks()
 
+    @test(testID='registers')
+    def registers(self):
+        """The registers attribute provides read/write access."""
+        self.do_checks()
+
 
 class BuffersSuite(Base):
     """Basic behaviour of the Buffers object."""

@@ -117,3 +117,18 @@ with test_context('data-out/basic_vim.txt'):
     with vim.temp_options(background=alt_bg) as o:
         assert_equal(alt_bg, 'vim.options["background"]')
     assert_equal(bg, 'vim.options["background"]')
+
+    print('- Test-ID: registers -')
+    vim.setreg('a', 'spam')
+    assert_equal('spam', 'vim.registers["a"]')
+    vim.setreg('a', 'eggs')
+    assert_equal('eggs', 'vim.registers["a"]')
+    vim.registers['a'] = 'beans'
+    assert_equal('beans', 'vim.registers["a"]')
+
+    vim.setreg('8', 'spam')
+    assert_equal('spam', 'vim.registers[8]')
+    vim.setreg('8', 'eggs')
+    assert_equal('eggs', 'vim.registers[8]')
+    vim.registers[8] = 'beans'
+    assert_equal('beans', 'vim.registers[8]')
