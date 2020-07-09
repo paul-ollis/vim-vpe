@@ -18,6 +18,7 @@ class ImmutableVariables(dictionaries.Dictionary):
     """
     def __getattr__(self, name):
         if name not in self._proxied:
+            return None
             raise AttributeError(
                 f'{self.__class__.__name__} object has no attribute {name!r}')
         return self._wrap_item(self._proxied[name], name)
@@ -26,11 +27,27 @@ class ImmutableVariables(dictionaries.Dictionary):
 class Variables(ImmutableVariables):
     """Wrapper around the various vim variables dictionaries.
 
-    This allows entries to be added and removed.
+    This allows entries to be modified.
     """
     def __setattr__(self, name, value):
         self._proxied[name] = self._resolve_item(value)
 
 
+class VimVariables(ImmutableVariables):
+    """Wrapper around the various vim variables dictionaries.
+
+    This is necessary to allow operations such as vim.vvars.errmsg = ''. The vim.vvars
+    object has locked == FIXED. So we need to set variables using the good old
+    'let' command.
+    """
+    def __setattr__(self, name, value):
+        try:
+            _vim.command(f'let v:{name} = {value!r}')
+        except _vim.error:
+            _vim.command(f'let v:errmsg = ""')
+            raise AttributeError(
+                f'can\'t set attribute {name} for {self.__class__.__name__}')
+
+
 vars = Variables(_vim.vars)
-vvars = Variables(_vim.vvars)
+vvars = VimVariables(_vim.vvars)

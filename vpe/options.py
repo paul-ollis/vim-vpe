@@ -191,9 +191,8 @@ class GlobalOptions(Options):
     standard dictionary style access still works.
     """
     def __getattr__(self, name):
-        try:
-            return super().__getattr__(name)
-        except AttributeError as e:
+        v = super().__getattr__(name)
+        if v is None:
             oname_form = f'+{name}'
             if _vim.eval(f'exists({oname_form!r})') == '0':
                 raise e

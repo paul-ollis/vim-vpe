@@ -158,6 +158,8 @@ class BufferSuite(Base):
         """The temp_options method modifies options in with block."""
         self.do_checks()
 
+    # TODO: Need tests for Buffer.vars
+
 
 class RangeSuite(Base):
     """Basic behaviour of the Range object."""

@@ -17,7 +17,7 @@ with test_context('data-out/basic_vim.txt'):
     assert_equal('module', 'vim.vim().__class__.__name__')
     assert_equal('Buffers', 'vim.buffers.__class__.__name__')
     assert_equal('Variables', 'vim.vars.__class__.__name__')
-    assert_equal('Variables', 'vim.vvars.__class__.__name__')
+    assert_equal('VimVariables', 'vim.vvars.__class__.__name__')
     assert_equal('GlobalOptions', 'vim.options.__class__.__name__')
     assert_equal('Windows', 'vim.windows.__class__.__name__')
     assert_equal('TabPages', 'vim.tabpages.__class__.__name__')
@@ -35,14 +35,19 @@ with test_context('data-out/basic_vim.txt'):
     assert_raises(
         AttributeError, 'setattr(vim.current, "range", _vim.current.range)')
 
+    vim.vvars.errmsg = ''
+    assert_equal(b'', '_vim.vvars["errmsg"]')
+    vim.vvars.errmsg = 'Oops'
+    assert_equal(b'Oops', '_vim.vvars["errmsg"]')
+
     print('- Test-ID: comma-separated-flag-option -')
     options.whichwrap = ''
     assert_equal('', 'options.whichwrap')
     options['whichwrap'] = 'b,s,h'
     assert_equal('b,s,h', 'options.whichwrap')
-    options.whichwrap -='s'
+    options.whichwrap -= 's'
     assert_equal('b,h', 'options.whichwrap')
-    options.whichwrap +='s'
+    options.whichwrap += 's'
     assert_equal('b,h,s', 'options.whichwrap')
 
     print('- Test-ID: flag-option -')
@@ -111,6 +116,13 @@ with test_context('data-out/basic_vim.txt'):
     alt_bg = 'dark' if bg == 'light' else 'light'
     with vim.temp_options() as o:
         o['background'] = alt_bg
+        assert_equal(alt_bg, 'vim.options["background"]')
+        assert_equal(alt_bg, 'o.background')
+        assert_equal(alt_bg, 'o["background"]')
+    assert_equal(bg, 'vim.options["background"]')
+
+    with vim.temp_options() as o:
+        o.background = alt_bg
         assert_equal(alt_bg, 'vim.options["background"]')
     assert_equal(bg, 'vim.options["background"]')
 

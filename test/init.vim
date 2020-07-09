@@ -27,8 +27,9 @@ sys.modules.pop('vpe.windows', None)
 
 EOF
 
+messages clear
 source ~/.vim3/vimrc.vim
 source ~/.vim3/gvimrc.vim
+source ~/.vim3/pack/vim-vpe/start/vpe/plugin/vpe.vim
 
-messages clear
 py3file vim-scripts/helpers.py

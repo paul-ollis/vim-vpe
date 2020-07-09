@@ -16,7 +16,10 @@ is very unlikely to be compatible with earlier versions. I plan that future
 versions of *vpe* will be backwardly compatible with version 8.1.
 """
 
+import contextlib
+import itertools
 import pathlib
+import sys
 
 import vim as _vim
 
@@ -26,6 +29,7 @@ from . import current
 from . import dictionaries
 from . import options
 from . import tabpages
+from . import variables
 from . import windows
 
 _wrappers = {
@@ -50,12 +54,127 @@ _vim_singletons = {
     'windows': windows.windows,
 }
 
+_routed_functions = {}
+_func_id_source = itertools.count()
+
 
 def wrap_item(item):
     wrapper = _wrappers.get(type(item), None)
     if wrapper is not None:
         return wrapper(item)
+    elif isinstance(item, bytes):
+        return item.decode()
     return item
+
+
+class Timer:
+    _timers = {}
+
+    def __init__(self, ms, func, kwargs):
+        vim_func, self._func_uid = _routed_function(self._on_timer)
+        self._id = vim.timer_start(ms, vim_func, kwargs)
+        self._timers[self._id] = self
+        self.callback = func
+
+    @property
+    def id(self):
+        return self._id
+
+    @property
+    def time(self):
+        return self._get_info('time')
+
+    @property
+    def repeat(self):
+        return self._get_info('repeat')
+
+    @property
+    def remaining(self):
+        return self._get_info('remaining')
+
+    @property
+    def paused(self):
+        return bool(self._get_info('paused'))
+
+    def _get_info(self, name):
+        info = vim.timer_info(self.id)
+        if info:
+            return info[0][name]
+        
+    def stop(self):
+        vim.timer_stop(self.id)
+        self._cleanup()
+
+    def pause(self):
+        vim.timer_pause(self.id, True)
+
+    def resume(self):
+        vim.timer_pause(self.id, False)
+
+    def _invoke_self(self):
+        if self.repeat == 1:
+            self._cleanup()
+        self.callback(self)
+
+    def _cleanup(self):
+        _routed_functions.pop(self._func_uid, None)
+        self._timers.pop(self.id, None)
+
+    @classmethod
+    def stop_all(cls):
+        vim.timer_stopall()
+        for timer in list(cls._timers.values()):
+            timer._cleanup()
+        
+    @classmethod
+    def _on_timer(cls, tid):
+        """The callback for all active timers.
+
+        This performs routing to the actual Timer instamce.
+        """
+        timer = cls._timers.get(tid, None)
+        if timer is not None:
+            timer._invoke_self()
+
+
+class PopupWindow:
+    _popups = {}
+
+    def __init__(self, func, content, kwargs):
+        self._filter_callback = kwargs.get('filter', None)
+        self._close_callback = kwargs.get('callback', None)
+        if self._filter_callback:
+            vim_func, self._filter_uid = _routed_function(self._on_filter)
+            kwargs['filter'] = vim_func
+        else:
+            self._filter_uid = None
+        vim_func, self._close_uid = _routed_function(self._on_close)
+        kwargs['callback'] = vim_func
+        self._id = func(content, kwargs)
+        self._popups[self._id] = self
+
+    @property
+    def id(self):
+        return self._id
+
+    def _cleanup(self):
+        _routed_functions.pop(self._filter_uid, None)
+        _routed_functions.pop(self._close_uid, None)
+        self._popups.pop(self._id, None)
+
+    @classmethod
+    def _on_close(cls, id, close_arg):
+        popup = cls._popups.get(id, None)
+        if popup is not None:
+            if popup._close_callback:
+                popup._close_callback(id, close_arg)
+            popup._cleanup()
+
+    @classmethod
+    def _on_filter(cls, id, key_str):
+        popup = cls._popups.get(id, None)
+        if popup is not None:
+            return popup._filter_callback(id, key_str)
 
 
 class Function(_vim.Function):
@@ -222,6 +341,118 @@ def highlight(
         args.append(f'{name}={value}')
 
     return commands.highlight(*args)
+
+
+def error(*args):
+    """A print-like function that writes an error message.
+
+    Unlike using sys.stderr directly, this does not raise a vim.error.
+    """
+    msg = ' '.join(str(a) for a in args)
+    _vim.command(f'echohl ErrorMsg')
+    _vim.command(f'echomsg {msg!r}')
+
+
+def pedit(path, silent=True, noerrors=False):
+    cmd = []
+    if silent or noerrors:
+        if noerrors:
+            cmd.append('silent!')
+        else:
+            cmd.append('silent')
+    cmd.extend(['pedit', path])
+    _vim.command(' '.join(cmd))
+
+
+def _routed_function(func):
+    uid = str(next(_func_id_source))
+    vim_func = _vim.Function('VPE_py_call', args=[uid])
+    _routed_functions[uid] = func
+    return vim_func, uid
+
+
+def dispatch(ident, *args):
+    vim.vars.VPE_ret = ''
+    func = _routed_functions.get(ident.decode(), None)
+    if func is None:
+        print(f'No function for {ident}')
+        return
+    vim.vars.VPE_ret = func(*args) 
+
+
+def _admin_status():
+    print(f'{len(Timer._timers)=}')
+    print(f'{len(PopupWindow._popups)=}')
+    print(f'{len(_routed_functions)=}')
+
+
+def timer_start(ms, func, **kwargs):
+    """Wrapping of vim.timer_start.
+
+    :param ms:
+        The timer period/interval in milliseconds.
+    :param func:
+        A Python callable. It should accept a single *timer* argument, which
+        will be a Timer instance.
+    :kwargs:
+        Remaining keyword arguments provide the options to the underlying
+        vim.timer_start call.
+
+    :return:
+        A Timer instance that can be used to query and control underlying Vim
+        timer.
+    """
+    return Timer(ms, func, kwargs)
+
+
+def call_soon(func):
+    def do_call(timer):
+        func()
+    timer_start(0, do_call)
+
+
+def timer_stopall():
+    Timer.stop_all()
+
+
+def play():
+    def _on_close(wid, close_arg):
+        print(f'Def done! {wid=} {close_arg=}')
+
+    def _on_key(wid, key_str):
+        vim.popup_close(wid)
+
+    popup_atcursor(['Hi', 'Paul'], callback=_on_close, filter=_on_key)
+
+
+def popup_notification(content, **kwargs):
+    """Invoke vim.popup_notification with kwargs as options."""
+    return PopupWindow(vim.popup_notification, content, kwargs)
+
+
+def popup_create(content, **kwargs):
+    """Invoke vim.popup_create with kwargs as options."""
+    return PopupWindow(vim.popup_create, content, kwargs)
+
+
+def popup_atcursor(content, **kwargs):
+    """Invoke vim.popup_atcursor with kwargs as options."""
+    return PopupWindow(vim.popup_atcursor, content, kwargs)
+
+
+def popup_beval(content, **kwargs):
+    """Invoke vim.popup_beval with kwargs as options."""
+    return PopupWindow(vim.popup_beval, content, kwargs)
+
+
+def popup_dialog(content, **kwargs):
+    """Invoke vim.popup_dialog with kwargs as options."""
+    return PopupWindow(vim.popup_dialog, content, kwargs)
+
+
+def popup_menu(content, **kwargs):
+    """Invoke vim.popup_menu with kwargs as options."""
+    return PopupWindow(vim.popup_menu, content, kwargs)
 
 
 # Create a Vim instance for module use.

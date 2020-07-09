@@ -150,6 +150,12 @@ class TemporaryOptions:
         for name, value in self._saved.items():
             self._options[name] = value
 
+    def __getattr__(self, name):
+        return self._options[name]
+
+    def __getitem__(self, name):
+        return self._options[name]
+
     def __setattr__(self, name, value):
         self.__setitem__(name, value)
 

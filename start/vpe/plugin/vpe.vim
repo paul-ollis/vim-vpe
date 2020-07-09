@@ -2,6 +2,19 @@
 " Startup for the Vim Pyth Extensions.
 "
 
+
+function! VPE_py_call(...)
+    let g:VPE_py_args = a:000
+    let g:VPE_ret = ''
+py3 <<EOF
+import vpe
+vim = vpe.Vim()
+vpe.dispatch(*vim.vars.VPE_py_args)
+EOF
+    return g:VPE_ret
+endfunction
+
+
 py3 <<EOF
 def _init_vpe_():
     """Initialise access to the VPE package.

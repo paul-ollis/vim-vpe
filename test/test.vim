@@ -1,19 +1,14 @@
 py3 <<EOF
 import sys
 
+_vpe_modules = (
+    'buffers', 'commands', 'current', 'dictionaries', 'options',
+    'proxies', 'tabpages', 'variables', 'windows',
+]
+for name in _vpe_modules:
+    sys.modules.pop(f'vpe.{name}', None)
+    sys.modules.pop(f'{name}', None)
 sys.modules.pop('vpe', None)
-sys.modules.pop('vpe.buffers', None)
-sys.modules.pop('vpe.commands', None)
-sys.modules.pop('vpe.options', None)
-sys.modules.pop('vpe.proxies', None)
-sys.modules.pop('vpe.dictionaries', None)
-sys.modules.pop('vpe.variables', None)
-sys.modules.pop('buffers', None)
-sys.modules.pop('commands', None)
-sys.modules.pop('options', None)
-sys.modules.pop('proxies', None)
-sys.modules.pop('dictionaries', None)
-sys.modules.pop('variables', None)
 EOF
 
 source ~/.vim3/vimrc.vim
