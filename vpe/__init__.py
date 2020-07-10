@@ -67,6 +67,10 @@ def wrap_item(item):
     return item
 
 
+class Struct:
+    pass
+
+
 class Timer:
     _timers = {}
 
@@ -136,26 +140,60 @@ class Timer:
         if timer is not None:
             timer._invoke_self()
 
+def popup_clear(force=False):
+    PopupWindow.popup_clear(force)
+
 
 class PopupWindow:
     _popups = {}
 
     def __init__(self, func, content, kwargs):
-        self._filter_callback = kwargs.get('filter', None)
-        self._close_callback = kwargs.get('callback', None)
-        if self._filter_callback:
-            vim_func, self._filter_uid = _routed_function(self._on_filter)
+        this = Struct()
+        this._filter_callback = kwargs.get('filter', None)
+        this._close_callback = kwargs.get('callback', None)
+        if this._filter_callback:
+            vim_func, this._filter_uid = _routed_function(self._on_filter)
             kwargs['filter'] = vim_func
         else:
-            self._filter_uid = None
-        vim_func, self._close_uid = _routed_function(self._on_close)
+            this._filter_uid = None
+        vim_func, this._close_uid = _routed_function(self._on_close)
         kwargs['callback'] = vim_func
-        self._id = func(content, kwargs)
+        this._id = func(content, kwargs)
+        self.__dict__.update(this.__dict__)
         self._popups[self._id] = self
 
     @property
     def id(self):
         return self._id
+
+    @property
+    def buffer(self):
+        return vim.buffers[vim.winbufnr(self._id)]
+
+    def hide(self):
+        vim.popup_hide(self._id)
+
+    def show(self):
+        vim.popup_show(self._id)
+
+    def settext(self, content):
+        vim.popup_settext(self._id, content)
+
+    def setoptions(self, **options):
+        vim.popup_setoptions(self._id, options)
+
+    def getoptions(self):
+        return vim.popup_getoptions(self._id)
+
+    def end(self):
+        vim.popup_close(self._id)
+
+    def __getattr__(self, name):
+        options = vim.popup_getoptions(self._id)
+        return options.get(name, None)
+
+    def __setattr__(self, name, value):
+        vim.popup_setoptions(self._id, {name: value})
 
     def _cleanup(self):
         _routed_functions.pop(self._filter_uid, None)
@@ -163,7 +201,16 @@ class PopupWindow:
         self._popups.pop(self._id, None)
 
     @classmethod
+    def popup_clear(cls, force):
+        vim.popup_clear(force)
+        active = set(vim.popup_list())
+        for p in list(cls._popups.values()):
+            if p.id not in active:
+                p._cleanup()
+
+    @classmethod
     def _on_close(cls, id, close_arg):
+        print(f'close {id=}, {close_arg=}')
         popup = cls._popups.get(id, None)
         if popup is not None:
             if popup._close_callback:
@@ -175,6 +222,19 @@ class PopupWindow:
         popup = cls._popups.get(id, None)
         if popup is not None:
             return popup._filter_callback(id, key_str)
+
+
+def popup_filter_yesno(id, key_str):
+    return vim.popup_filter_yesno(id, key_str)
+
+
+def popup_filter_menu(id, key_str):
+    if key_str != b' ':
+        # TODO: In Python land, we seem to get a mysterious initial <space> key
+        #       that immediately causes first item to be selected and the menu
+        #       to close. This work-around simply blocks the <space> key.
+        return vim.popup_filter_menu(id, key_str)
+    return False
 
 
 class Function(_vim.Function):
