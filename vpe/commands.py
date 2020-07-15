@@ -45,7 +45,7 @@ class Command:
     def __init__(self, name):
         self.name = name
 
-    def __call__ (self, /, *args,bang=False, range='', a='', b=''):
+    def __call__ (self, /, *args,bang=False, range='', a='', b='', preview=False):
         exclamation = '!' if bang else ''
         cmd = f'{self.name}{exclamation}'
         arg_expr = ''
@@ -70,7 +70,10 @@ class Command:
             else:
                 range_expr = f'.,{b} '
         cmd = f'{range_expr}{cmd}{arg_expr}'
-        vim.command(cmd)
+        if preview:
+            return cmd
+        else:
+            vim.command(cmd)
 
 
 def __getattr__(name):

@@ -45,10 +45,12 @@ class Buffer(proxies.CollectionProxy):
 
     This is a proxy that extends the vim.Buffer behaviour in various ways.
     """
+    _known = {}
     _writeable = set(('name',))
 
     def __init__(self, buffer):
         super().__init__(buffer)
+        self._known[buffer.number] = self
 
     def range(self, a, b):
         return self._wrap_item(self._proxied.range(a, b))
@@ -58,6 +60,10 @@ class Buffer(proxies.CollectionProxy):
 
     def __setitem__(self, slice_or_index, value):
         self._proxied.__setitem__(slice_or_index, value)
+
+    @classmethod
+    def get_known(cls, buffer):
+        return cls._known.get(buffer.number, None)
 
     @property
     def vars(self):

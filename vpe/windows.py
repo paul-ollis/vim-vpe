@@ -26,15 +26,18 @@ class Window(proxies.Proxy):
         """Context used to temporarily change options."""
         return proxies.TemporaryOptions(self.options, **presets)
 
+    def goto(self):
+        """Switch to this window, if possible."""
+        _vim.command(f'{self.number} wincmd w')
+
 
 class Windows(proxies.CollectionProxy):
     """Wrapper around the built-in vim.windows.
 
     This is a proxy that extends the vim.Window behaviour in various ways.
     """
-    @property
-    def _proxied(self):
-        return _vim.windows
+    def __init__(self, windows):
+        super().__init__(windows)
 
 
-windows = Windows()
+windows = Windows(_vim.windows)

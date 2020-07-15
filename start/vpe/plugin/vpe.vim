@@ -3,6 +3,14 @@
 "
 
 
+function! VPE_Call(uid, ...)
+    let g:_vpe_args_ = {}
+    let g:_vpe_args_['uid'] = a:uid
+    let g:_vpe_args_['args'] = a:000
+    call py3eval('vpe.Callback.invoke()')
+endfunction
+
+
 function! VPE_py_call(...)
     let g:VPE_py_args = a:000
     let g:VPE_ret = ''
@@ -13,6 +21,7 @@ vpe.dispatch(*vim.vars.VPE_py_args)
 EOF
     return g:VPE_ret
 endfunction
+
 
 
 py3 <<EOF

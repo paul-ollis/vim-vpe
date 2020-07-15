@@ -16,14 +16,18 @@ is very unlikely to be compatible with earlier versions. I plan that future
 versions of *vpe* will be backwardly compatible with version 8.1.
 """
 
+import collections
 import contextlib
+import functools
 import itertools
 import pathlib
 import sys
+import weakref
 
 import vim as _vim
 
 from . import buffers
+from . import colors
 from . import commands
 from . import current
 from . import dictionaries
@@ -32,14 +36,6 @@ from . import tabpages
 from . import variables
 from . import windows
 
-_wrappers = {
-    type(_vim.options): options.Options,
-    _vim.Buffer: buffers.Buffer,
-    _vim.Dictionary:    dictionaries.Dictionary,
-    _vim.Range: buffers.Range,
-    _vim.TabPage: tabpages.TabPage,
-    _vim.Window: windows.Window,
-}
 _blockedVimFunctions = set((
     "libcall",
     "libcallnr",
@@ -54,21 +50,148 @@ _vim_singletons = {
     'windows': windows.windows,
 }
 
+# TODO: Rationalise routed functions and Callbacks.
 _routed_functions = {}
 _func_id_source = itertools.count()
+id_source = itertools.count()
+
+_vim.command('let g:_vpe_example_list_ = []')
+_vim.command('let g:_vpe_example_dict_ = {}')
+_vim_list_type = _vim.vars['_vpe_example_list_'].__class__
+_vim_dict_type = _vim.vars['_vpe_example_dict_'].__class__
+_vim.command('unlet g:_vpe_example_list_ g:_vpe_example_dict_')
+
+_std_vim_colours = set((
+    "Black", "DarkBlue", "DarkGreen", "DarkCyan",
+    "DarkRed", "DarkMagenta", "Brown", "DarkYellow",
+    "Gray", "Grey", "LightGray", "LightGrey",
+    "DarkGray", "DarkGrey",
+    "Blue", "LightBlue", "Green", "LightGreen",
+    "Cyan", "LightCyan", "Red", "LightRed", "Magenta",
+    "LightMagenta", "Yellow", "LightYellow", "White", "NONE"))
 
 
-def wrap_item(item):
-    wrapper = _wrappers.get(type(item), None)
-    if wrapper is not None:
-        return wrapper(item)
-    elif isinstance(item, bytes):
-        return item.decode()
-    return item
+def _get_wrapped_buffer(vim_buffer):
+    b = buffers.Buffer.get_known(vim_buffer)
+    if b is None:
+        b = buffers.Buffer(vim_buffer)
+    return b
+    
 
-
-class Struct:
+class _Struct:
     pass
+
+
+# TODO: Very similar to the other Scratch buffer in py_core.
+class Scratch(buffers.Buffer):
+    """A scratch buffer.
+
+    A scratch buffer has no associated file, no swapfile, never gets written
+    and never appears to be modified. The content of such a buffer is normally
+    under the control of code. Direct editing is disabled.
+    """
+    def __init__(self, name, buffer):
+        super().__init__(buffer)
+        self.name = name
+        self.options.buftype = 'nofile'
+        self.options.swapfile = False
+        self.options.modified = False
+        self.options.readonly = True
+        self.options.modifiable = False
+        self.options.bufhidden = 'hide'
+
+        self.options.buflisted = True
+
+    def show(self):
+        """Make this buffer visible in the current window."""
+        commands.buffer(self.number, bang=True)
+
+    def modifiable(self):
+        """Create a context that allows the buffer to be modified.""" 
+        return self.temp_options(modifiable=True, readonly=False)
+
+
+_known_special_buffers = {}
+
+
+def get_display_buffer(name):
+    """Get a named display-only buffer.
+
+    The actual buffer name will be of the form '/[[name]]'. The buffer is
+    created if it does not already exist.
+
+    :param name:
+        An identifying name for this buffer.
+    """
+    buf_name = f'/[[{name}]]'
+    b = _known_special_buffers.get(buf_name, None)
+    if b is not None:
+        return b
+
+    for b in vim.buffers:
+        if b.name == buf_name:
+            break
+    else:
+        commands.new()
+        b = vim.current.buffer
+        commands.wincmd('c')
+
+    b = Scratch(buf_name, b)
+    _known_special_buffers[buf_name] = b
+    return b
+
+
+class Log:
+    def __init__(self):
+        self.fifo = collections.deque(maxlen=100)
+        self.buf = None
+
+    def __call__(self, *args):
+        text = ' '.join(str(a) for a in args)
+        lines = text.splitlines()
+        self.fifo.extend(lines)
+        buf = self.buf
+        if buf:
+            with buf.modifiable():
+                buf.append(lines)
+        self._trim()
+
+    def clear(self):
+        self.fifo.clear()
+        self._trim()
+        
+    def _trim(self):
+        buf = self.buf
+        if buf:
+            d = len(buf) - len(self.fifo)
+            if d > 0:
+                with buf.modifiable():
+                    buf[:] = buf[d:]
+
+    def show(self):
+        """Show the buffer.
+
+        If there is no buffer currently displaying the log then this will:
+
+        - Split the current window.
+        - Create a buffer and show it in the new split.
+        """
+        if self.buf is None:
+            self.buf = get_display_buffer('log')
+            with self.buf.modifiable():
+                self.buf[:] = list(self.fifo)
+        for w in vim.windows:
+            if w.buffer.number == self.buf.number:
+                break
+        else:
+            commands.wincmd('s')
+            self.buf.show()
+            commands.wincmd('w')
+
+    def set_maxlen(self, maxlen):
+        if maxlen != self.fifo.maxlen:
+            self.fifo = collections.deque(self.fifo, maxlen)
+        self._trim()
 
 
 class Timer:
@@ -140,15 +263,11 @@ class Timer:
         if timer is not None:
             timer._invoke_self()
 
-def popup_clear(force=False):
-    PopupWindow.popup_clear(force)
-
-
 class PopupWindow:
     _popups = {}
 
     def __init__(self, func, content, kwargs):
-        this = Struct()
+        this = _Struct()
         this._filter_callback = kwargs.get('filter', None)
         this._close_callback = kwargs.get('callback', None)
         if this._filter_callback:
@@ -210,7 +329,6 @@ class PopupWindow:
 
     @classmethod
     def _on_close(cls, id, close_arg):
-        print(f'close {id=}, {close_arg=}')
         popup = cls._popups.get(id, None)
         if popup is not None:
             if popup._close_callback:
@@ -224,19 +342,6 @@ class PopupWindow:
             return popup._filter_callback(id, key_str)
 
 
-def popup_filter_yesno(id, key_str):
-    return vim.popup_filter_yesno(id, key_str)
-
-
-def popup_filter_menu(id, key_str):
-    if key_str != b' ':
-        # TODO: In Python land, we seem to get a mysterious initial <space> key
-        #       that immediately causes first item to be selected and the menu
-        #       to close. This work-around simply blocks the <space> key.
-        return vim.popup_filter_menu(id, key_str)
-    return False
-
-
 class Function(_vim.Function):
     """Wrapper around a vim.Function.
 
@@ -245,7 +350,6 @@ class Function(_vim.Function):
     - A vim.Dictionary is wrapped as a VPE Dictionary.
     - A bytes instance is decodes to a string.
     """
-
     def __call__ (self, *args, **kwargs):
         v = super().__call__(*args, **kwargs)
         if isinstance(v, _vim.Dictionary):
@@ -343,6 +447,145 @@ def script_py_path():
     return str(py_script)
 
     
+class Callback:
+    callbacks = {}
+
+    def __init__(self, func, *args):
+        uid = self.uid = str(next(id_source))
+        self.method = None
+        try:
+            ref_inst = func.__self__
+        except AttributeError:
+            ref_inst = func
+        else:
+            self.method = weakref.ref(func.__func__)
+        self.ref_inst = weakref.ref(
+            ref_inst, functools.partial(self.on_del, uid=uid))
+
+        self.callbacks[uid] = self
+        self.args = args
+        # log('CB: Add', uid)
+
+    def __call__(self, *args):
+        args = [coerce_arg(a) for a in args]
+        inst = self.ref_inst()
+        if inst is not None:
+            method = self.method and self.method()
+            if method is not None:
+                return method(inst, *args)
+            else:
+                return inst(*args)
+
+        self.on_del(None, uid=self.uid)
+        return 0
+
+    def kill(self):
+        self.callbacks.pop(self.uid)
+        # log(f'Cleanup callback {self.uid}')
+
+    @classmethod
+    def invoke(cls):
+        uid = vim.vars._vpe_args_['uid']
+        cb = cls.callbacks.get(uid, None)
+        if cb is None:
+            log(f'invoke: {uid=} not found')
+            return 0
+        args = vim.vars._vpe_args_['args']
+        return cb(*args)
+
+    @classmethod
+    def on_del(cls, _, *, uid):
+        log('Cleanup', uid)
+        cls.callbacks.pop(uid, None)
+
+    def as_call(self):
+        """Format Vim script string to invoke this callback.
+
+        More accurately, format the Vim script to call Callback.invoke with the
+        appropriate parameters.
+        """
+        args = [quoted_string(self.uid)]
+        for a in self.args:
+            if isinstance(a, str):
+                args.append(quoted_string(a))
+            else:
+                args.append(str(a))
+        return f'call VPE_Call({", ".join(args)})'
+
+    def as_vim_function(self):
+        """Create a vim.Function that will route to this callback."""
+        vim_func = _vim.Function('VPE_call', args=[self.uid])
+
+
+class expr:
+    pass
+
+
+class expr_arg(expr):
+    def __init__(self, arg):
+        self.arg = arg
+
+    def __str__(self):
+        return self.arg
+
+
+def quoted_string(s):
+    return f'"{s}"'
+
+
+def coerce_arg(value):
+    if isinstance(value, bytes):
+        return value.decode()
+    if isinstance(value, _vim_list_type):
+        return [coerce_arg(el) for el in value]
+    if isinstance(value, (_vim_dict_type, dictionaries.Dictionary)):
+        return {k.decode(): coerce_arg(v) for k, v in value.items()}
+    return value
+
+
+class AutoCmdGroup:
+    """Context for managing auto commands within a given group."""
+    def __init__(self, name):
+        self.name = name
+
+    def __enter__(self):
+        _vim.command(f'augroup {self.name}')
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        _vim.command('augroup END')
+
+    def delete_all(self):
+        """Delete all entries in the group."""
+        _vim.command('autocmd!')
+
+    def add(
+        self, event, /, func, *, pat='<buffer>', once=False, nested=False):
+        """Add a new auto command to the group.
+
+        :param event:
+            The name of the event.
+        :param func:
+            The Python function to invoke. Plain functions and instance methods
+            are supported.
+        :param pat:
+            The file pattern to match. If not supplied then the special
+            '<buffer>' pattern is used. If the argument is a Buffer then
+            the special patern for 'buffer=N> is used.
+        :param once, nested:
+            The standard ':autocmd' options.
+        """
+        if isinstance(pat, buffers.Buffer):
+            pat = f'<buffer={pat.number}>'
+        cmd_seq = ['autocmd', event, pat]
+        if once:
+            cmd_seq.append('++once')
+        if nested:
+            cmd_seq.append('++nested')
+        cmd_seq.append(Callback(func).as_call())
+        _vim.command(' '.join(cmd_seq))
+
+
 def highlight(
         *, group=None, clear=False, default=False, link=None, disable=False,
         **kwargs):
@@ -378,6 +621,7 @@ def highlight(
         The remain keyword arguments act like the |:highlight| command's
         keyword arguments.
     """
+    _convert_colour_names(kwargs)
     args = []
     if link:
         args.append('link')
@@ -401,6 +645,18 @@ def highlight(
         args.append(f'{name}={value}')
 
     return commands.highlight(*args)
+
+
+def _convert_colour_names(kwargs):
+    _cterm_argnames = set(('ctermfg', 'ctermbg', 'ctermul'))
+    _gui_argnames = set(('guifg', 'guibg', 'guisp'))
+    for arg_name, name in kwargs.items():
+        if name in _std_vim_colours:
+            continue
+        if name in _cterm_argnames:
+            kwargs[name] = colors.name_to_number.get(name.lower(), name)
+        elif name in _gui_argnames:
+            kwargs[name] = colors.name_to_hex.get(name.lower(), name)
 
 
 def error(*args):
@@ -440,12 +696,6 @@ def dispatch(ident, *args):
     vim.vars.VPE_ret = func(*args) 
 
 
-def _admin_status():
-    print(f'{len(Timer._timers)=}')
-    print(f'{len(PopupWindow._popups)=}')
-    print(f'{len(_routed_functions)=}')
-
-
 def timer_start(ms, func, **kwargs):
     """Wrapping of vim.timer_start.
 
@@ -473,16 +723,6 @@ def call_soon(func):
 
 def timer_stopall():
     Timer.stop_all()
-
-
-def play():
-    def _on_close(wid, close_arg):
-        print(f'Def done! {wid=} {close_arg=}')
-
-    def _on_key(wid, key_str):
-        vim.popup_close(wid)
-
-    popup_atcursor(['Hi', 'Paul'], callback=_on_close, filter=_on_key)
 
 
 def popup_notification(content, **kwargs):
@@ -515,5 +755,50 @@ def popup_menu(content, **kwargs):
     return PopupWindow(vim.popup_menu, content, kwargs)
 
 
-# Create a Vim instance for module use.
+def popup_filter_yesno(id, key_str):
+    return vim.popup_filter_yesno(id, key_str)
+
+
+def popup_filter_menu(id, key_str):
+    if key_str != b' ':
+        # TODO: In Python land, we seem to get a mysterious initial <space> key
+        #       that immediately causes first item to be selected and the menu
+        #       to close. This work-around simply blocks the <space> key.
+        return vim.popup_filter_menu(id, key_str)
+    return False
+
+
+def popup_clear(force=False):
+    PopupWindow.popup_clear(force)
+
+
+def _admin_status():
+    """Useful, but unspported, diagnostic."""
+
+    log(f'{len(Timer._timers)=}')
+    log(f'{len(PopupWindow._popups)=}')
+    log(f'{len(_routed_functions)=}')
+
+
+def wrap_item(item):
+    wrapper = _wrappers.get(type(item), None)
+    if wrapper is not None:
+        return wrapper(item)
+    elif isinstance(item, bytes):
+        return item.decode()
+    return item
+
+
+# Create a Vim and Log instance for general use.
 vim = Vim()
+log = Log()
+
+_wrappers = {
+    type(_vim.options): options.Options,
+    type(_vim.windows): windows.Windows,
+    _vim.Buffer: _get_wrapped_buffer,
+    _vim.Dictionary:    dictionaries.Dictionary,
+    _vim.Range: buffers.Range,
+    _vim.TabPage: tabpages.TabPage,
+    _vim.Window: windows.Window,
+}

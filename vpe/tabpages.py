@@ -4,10 +4,19 @@ import collections.abc
 
 import vim as _vim
 
+import vpe
+from vpe import commands
 from vpe import proxies
 from vpe import variables
 
 __all__ = ('tabpages',)
+
+_position_name_to_flag = {
+    'after': '.',
+    'before': '-',
+    'first': '0',
+    'last': '$'
+}
 
 
 # TODO: CollectionProxy is not the correct base class.
@@ -32,6 +41,24 @@ class TabPages(proxies.CollectionProxy):
     @property
     def _proxied(self):
         return _vim.tabpages
+
+    def new(self, *, position='after'):
+        """Create a new tab page.
+
+        :param position:
+            The position relative to this tab. The standard character prefixes
+            for the ':tabnew' command can be used or one of the more readable strings:
+
+            'after', 'before'
+                Immediately after or before the current tab (same as '.', '-'),
+            'first', 'last'
+                As the first or last tab (same as '0', '$'),
+
+            This defaults to 'after'.
+        """
+        flag = _position_name_to_flag.get(position, position)
+        _vim.command(f'{flag}tabnew')
+        return vpe.vim.current.tabpage
 
 
 tabpages = TabPages()
