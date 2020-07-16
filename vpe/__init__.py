@@ -76,10 +76,6 @@ def _get_wrapped_buffer(vim_buffer):
     if b is None:
         b = buffers.Buffer(vim_buffer)
     return b
-    
-
-class _Struct:
-    pass
 
 
 # TODO: Very similar to the other Scratch buffer in py_core.
@@ -107,7 +103,7 @@ class Scratch(buffers.Buffer):
         commands.buffer(self.number, bang=True)
 
     def modifiable(self):
-        """Create a context that allows the buffer to be modified.""" 
+        """Create a context that allows the buffer to be modified."""
         return self.temp_options(modifiable=True, readonly=False)
 
 
@@ -157,9 +153,10 @@ class Log:
         self._trim()
 
     def clear(self):
+        print("LOG CLEAR")
         self.fifo.clear()
         self._trim()
-        
+
     def _trim(self):
         buf = self.buf
         if buf:
@@ -198,8 +195,8 @@ class Timer:
     _timers = {}
 
     def __init__(self, ms, func, kwargs):
-        vim_func, self._func_uid = _routed_function(self._on_timer)
-        self._id = vim.timer_start(ms, vim_func, kwargs)
+        cb = Callback(self._invoke_self)
+        self._id = vim.timer_start(ms, cb.as_vim_function(), kwargs)
         self._timers[self._id] = self
         self.callback = func
 
@@ -227,7 +224,7 @@ class Timer:
         info = vim.timer_info(self.id)
         if info:
             return info[0][name]
-        
+
     def stop(self):
         vim.timer_stop(self.id)
         self._cleanup()
@@ -238,13 +235,12 @@ class Timer:
     def resume(self):
         vim.timer_pause(self.id, False)
 
-    def _invoke_self(self):
+    def _invoke_self(self, _):
         if self.repeat == 1:
             self._cleanup()
         self.callback(self)
 
     def _cleanup(self):
-        _routed_functions.pop(self._func_uid, None)
         self._timers.pop(self.id, None)
 
     @classmethod
@@ -252,33 +248,40 @@ class Timer:
         vim.timer_stopall()
         for timer in list(cls._timers.values()):
             timer._cleanup()
-        
-    @classmethod
-    def _on_timer(cls, tid):
-        """The callback for all active timers.
 
-        This performs routing to the actual Timer instamce.
-        """
-        timer = cls._timers.get(tid, None)
-        if timer is not None:
-            timer._invoke_self()
 
-class PopupWindow:
+class _PopupAttr(object):
+    def __init__(self, name):
+        self.name = name
+
+    def __get__(self, obj, _):
+        return vim.popup_getoptions(obj.id)[self.name]
+
+    def __set__(self, obj, value):
+        vim.popup_setoptions(obj.id, {self.name: value})
+
+
+class PopupMeta(type):
+    def __new__(cls, classname, bases, namespace):
+        pid = _vim.Function('popup_create')('', {'visible': False})
+        _vim.Function('popup_hide')(pid)
+        attrs = _vim.Function('popup_getoptions')(pid)
+        for name in attrs.keys():
+            name = name.decode()
+            if name not in ('close', 'filter'):
+                namespace[name] = _PopupAttr(name)
+        return super().__new__(cls, classname, bases, namespace)
+
+
+class PopupWindow(metaclass=PopupMeta):
     _popups = {}
 
-    def __init__(self, func, content, kwargs):
-        this = _Struct()
-        this._filter_callback = kwargs.get('filter', None)
-        this._close_callback = kwargs.get('callback', None)
-        if this._filter_callback:
-            vim_func, this._filter_uid = _routed_function(self._on_filter)
-            kwargs['filter'] = vim_func
-        else:
-            this._filter_uid = None
-        vim_func, this._close_uid = _routed_function(self._on_close)
-        kwargs['callback'] = vim_func
-        this._id = func(content, kwargs)
-        self.__dict__.update(this.__dict__)
+    def __init__(self, content, **kwargs):
+        close_cb = Callback(self._on_close)
+        filter_cb = Callback(self._on_key, pass_bytes=True)
+        kwargs['callback'] = close_cb.as_vim_function()
+        kwargs['filter'] = filter_cb.as_vim_function()
+        self._id = vim.popup_create(content, kwargs)
         self._popups[self._id] = self
 
     @property
@@ -304,20 +307,8 @@ class PopupWindow:
     def getoptions(self):
         return vim.popup_getoptions(self._id)
 
-    def end(self):
+    def close(self):
         vim.popup_close(self._id)
-
-    def __getattr__(self, name):
-        options = vim.popup_getoptions(self._id)
-        return options.get(name, None)
-
-    def __setattr__(self, name, value):
-        vim.popup_setoptions(self._id, {name: value})
-
-    def _cleanup(self):
-        _routed_functions.pop(self._filter_uid, None)
-        _routed_functions.pop(self._close_uid, None)
-        self._popups.pop(self._id, None)
 
     @classmethod
     def popup_clear(cls, force):
@@ -325,21 +316,28 @@ class PopupWindow:
         active = set(vim.popup_list())
         for p in list(cls._popups.values()):
             if p.id not in active:
-                p._cleanup()
+                cls._popups.pop(p.id, None)
 
-    @classmethod
-    def _on_close(cls, id, close_arg):
-        popup = cls._popups.get(id, None)
-        if popup is not None:
-            if popup._close_callback:
-                popup._close_callback(id, close_arg)
-            popup._cleanup()
+    def on_close(self, close_arg):
+        pass
 
-    @classmethod
-    def _on_filter(cls, id, key_str):
-        popup = cls._popups.get(id, None)
-        if popup is not None:
-            return popup._filter_callback(id, key_str)
+    def on_key(self, key):
+        pass
+
+    def _on_close(self, _, close_arg):
+        self.on_close(close_arg)
+        self._popups.pop(self._id, None)
+
+    def _on_key(self, _, key_bytes):
+        k = _special_keymap.get(key_bytes, key_bytes)
+        if isinstance(k, bytes):
+            try:
+                k = k.decode()
+            except UnicodeError:
+                pass
+            else:
+                k = _special_keymap.get(k, k)
+        self.on_key(k)
 
 
 class Function(_vim.Function):
@@ -446,11 +444,11 @@ def script_py_path():
     py_script = vim_script.parent / (vim_script.stem + '.py')
     return str(py_script)
 
-    
+
 class Callback:
     callbacks = {}
 
-    def __init__(self, func, *args):
+    def __init__(self, func, *args, **kwargs):
         uid = self.uid = str(next(id_source))
         self.method = None
         try:
@@ -464,10 +462,10 @@ class Callback:
 
         self.callbacks[uid] = self
         self.args = args
-        # log('CB: Add', uid)
+        self.pass_bytes = kwargs.pop('pass_bytes', False)
 
     def __call__(self, *args):
-        args = [coerce_arg(a) for a in args]
+        args = [coerce_arg(a, keep_bytes=self.pass_bytes) for a in args]
         inst = self.ref_inst()
         if inst is not None:
             method = self.method and self.method()
@@ -481,7 +479,6 @@ class Callback:
 
     def kill(self):
         self.callbacks.pop(self.uid)
-        # log(f'Cleanup callback {self.uid}')
 
     @classmethod
     def invoke(cls):
@@ -514,7 +511,7 @@ class Callback:
 
     def as_vim_function(self):
         """Create a vim.Function that will route to this callback."""
-        vim_func = _vim.Function('VPE_call', args=[self.uid])
+        return _vim.Function('VPE_Call', args=[self.uid])
 
 
 class expr:
@@ -533,9 +530,12 @@ def quoted_string(s):
     return f'"{s}"'
 
 
-def coerce_arg(value):
-    if isinstance(value, bytes):
-        return value.decode()
+def coerce_arg(value, keep_bytes=False):
+    if isinstance(value, bytes) and not keep_bytes:
+        try:
+            return value.decode()
+        except UnicodeError:
+            return value
     if isinstance(value, _vim_list_type):
         return [coerce_arg(el) for el in value]
     if isinstance(value, (_vim_dict_type, dictionaries.Dictionary)):
@@ -680,22 +680,6 @@ def pedit(path, silent=True, noerrors=False):
     _vim.command(' '.join(cmd))
 
 
-def _routed_function(func):
-    uid = str(next(_func_id_source))
-    vim_func = _vim.Function('VPE_py_call', args=[uid])
-    _routed_functions[uid] = func
-    return vim_func, uid
-
-
-def dispatch(ident, *args):
-    vim.vars.VPE_ret = ''
-    func = _routed_functions.get(ident.decode(), None)
-    if func is None:
-        print(f'No function for {ident}')
-        return
-    vim.vars.VPE_ret = func(*args) 
-
-
 def timer_start(ms, func, **kwargs):
     """Wrapping of vim.timer_start.
 
@@ -785,7 +769,10 @@ def wrap_item(item):
     if wrapper is not None:
         return wrapper(item)
     elif isinstance(item, bytes):
-        return item.decode()
+        try:
+            return item.decode()
+        except UnicodeError:
+            return item
     return item
 
 
@@ -802,3 +789,31 @@ _wrappers = {
     _vim.TabPage: tabpages.TabPage,
     _vim.Window: windows.Window,
 }
+
+_special_keymap = {}
+
+_special_key_names = (
+    'Up', 'Down', 'Left', 'Right', 'Help', 'Undo', 'Insert',
+    'Home', 'End', 'PageUp', 'PageDown', 'kHome', 'kEnd',
+    'kPageUp', 'kPageDown', 'kPlus', 'kMinus', 'kMultiply',
+    'kDivide', 'kEnter', 'kPoint')
+
+
+def _register_key(name, unmodified=True, modifiers='SCMA'):
+    if unmodified:
+        key_name = f'<{name}>'
+        _vim.command(rf'let g:_vpe_temp_ = "\{key_name}"')
+        _special_keymap[vim.vars._vpe_temp_] = key_name
+    for m in modifiers:
+        key_name = f'<{m}-{name}>'
+        _vim.command(rf'let g:_vpe_temp_ = "\{key_name}"')
+        _special_keymap[vim.vars._vpe_temp_] = key_name
+
+
+for k in _special_key_names:
+    _register_key(k)
+for n in range(12):
+    _register_key(f'F{n + 1}')
+for c in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ':
+    _register_key(c, unmodified=False, modifiers='CMA')
+del _special_key_names, _register_key
