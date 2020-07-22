@@ -24,13 +24,16 @@ class BufferListContext(list):
     def __init__(self, vim_buffer):
         super().__init__(vim_buffer)
         self._vim_buffer = weakref.ref(vim_buffer)
+        self.abort = False
 
     def __enter__(self):
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        if self.abort:
+            return
         b = self._vim_buffer()
-        if exc_type is None:
+        if exc_type is None and b is not None :
             with b.temp_options(modifiable=True):
                 b[:] = self
 
