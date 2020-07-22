@@ -264,27 +264,34 @@ class _PopupAttr(object):
         vim.popup_setoptions(obj.id, {self.name: value})
 
 
-class PopupMeta(type):
-    def __new__(cls, classname, bases, namespace):
-        pid = _vim.Function('popup_create')('', {'visible': False})
-        _vim.Function('popup_hide')(pid)
-        attrs = _vim.Function('popup_getoptions')(pid)
-        for name in attrs.keys():
-            name = name.decode()
-            if name not in ('close', 'filter'):
-                namespace[name] = _PopupAttr(name)
-        return super().__new__(cls, classname, bases, namespace)
+_popup_options = (
+    'line', 'col', 'pos', 'posinvert', 'textprop', 'textpropwin', 'textpropid',
+    'fixed', 'flip', 'maxheight', 'minheight', 'maxwidth', 'minwidth',
+    'firstline', 'hidden', 'tabpage', 'title', 'wrap', 'drag', 'resize',
+    'highlight', 'padding', 'border', 'borderhighlight',
+    'borderchars', 'scrollbar', 'scrollbarhighlig', 'thumbhighlight', 'zindex',
+    'mask', 'time', 'moved', 'mousemoved', 'cursorline', 'mapping',
+    'filtermode',
+)
+
+def _add_popup_options_properties(cls):
+    for name in _popup_options:
+        setattr(cls, name, _PopupAttr(name))
+    setattr(cls, 'close_control', _PopupAttr('close'))
+    return cls
 
 
-class PopupWindow(metaclass=PopupMeta):
+@_add_popup_options_properties
+class Popup:
     _popups = {}
+    _create_func = 'popup_create'
 
     def __init__(self, content, **kwargs):
         close_cb = Callback(self._on_close)
         filter_cb = Callback(self._on_key, pass_bytes=True)
         kwargs['callback'] = close_cb.as_vim_function()
         kwargs['filter'] = filter_cb.as_vim_function()
-        self._id = vim.popup_create(content, kwargs)
+        self._id = getattr(vim, self._create_func)(content, kwargs)
         self._popups[self._id] = self
 
     @property
@@ -304,12 +311,6 @@ class PopupWindow(metaclass=PopupMeta):
     def settext(self, content):
         vim.popup_settext(self._id, content)
 
-    def setoptions(self, **options):
-        vim.popup_setoptions(self._id, options)
-
-    def getoptions(self):
-        return vim.popup_getoptions(self._id)
-
     def close(self):
         vim.popup_close(self._id)
 
@@ -324,7 +325,7 @@ class PopupWindow(metaclass=PopupMeta):
     def on_close(self, close_arg):
         pass
 
-    def on_key(self, key):
+    def on_key(self, key, byte_seq):
         pass
 
     def _on_close(self, _, close_arg):
@@ -332,15 +333,74 @@ class PopupWindow(metaclass=PopupMeta):
         self._popups.pop(self._id, None)
 
     def _on_key(self, _, key_bytes):
-        k = _special_keymap.get(key_bytes, key_bytes)
-        if isinstance(k, bytes):
-            try:
-                k = k.decode()
-            except UnicodeError:
-                pass
-            else:
-                k = _special_keymap.get(k, k)
-        self.on_key(k)
+        for byte_seq in self._split_key_sequences(key_bytes):
+            k = _special_keymap.get(byte_seq, byte_seq)
+            if isinstance(k, bytes):
+                try:
+                    k = k.decode()
+                except UnicodeError:
+                    pass
+                else:
+                    k = _special_keymap.get(k, k)
+            ret = self.on_key(k, byte_seq)
+        return ret
+
+    @staticmethod
+    def _split_key_sequences(s):
+        s_char = b'\x80'
+        if not s.startswith(s_char):
+            yield s
+            return
+        while s:
+            prefix, sep, s = s.partition(s_char)
+            if prefix:
+                yield s_char + prefix
+
+
+class PopupAtCursor(Popup):
+    """Popup configured to appear near the cursor.
+
+    This creates the popup using popup_atcursor().
+    """
+    _create_func = 'popup_atcursor'
+
+
+class PopupBeval(Popup):
+    """Popup configured to appear near (v:beval_line, v:beval_col).
+
+    This creates the popup using popup_beval().
+    """
+    _create_func = 'popup_beval'
+
+
+class PopupNotification(Popup):
+    """Popup configured as a short lived notification (default 3s).
+
+    This creates the popup using popup_notification().
+    """
+    _create_func = 'popup_notification'
+
+
+class PopupDialog(Popup):
+    """Popup configured as a dialogue.
+
+    This creates the popup using popup_dialog().
+    """
+    _create_func = 'popup_dialog'
+
+    def on_key(self, key, byte_seq):
+        return vim.popup_filter_yesno(self.id, byte_seq)
+
+
+class PopupMenu(Popup):
+    """Popup configured as a menu.
+
+    This creates the popup using popup_menu().
+    """
+    _create_func = 'popup_menu'
+
+    def on_key(self, key, byte_seq):
+        return vim.popup_filter_menu(self.id, byte_seq)
 
 
 class Function(_vim.Function):
@@ -349,14 +409,17 @@ class Function(_vim.Function):
     This provides some minimal cooercion of function return types.
 
     - A vim.Dictionary is wrapped as a VPE Dictionary.
-    - A bytes instance is decodes to a string.
+    - A bytes instance is decodes to a string, if possible.
     """
     def __call__ (self, *args, **kwargs):
         v = super().__call__(*args, **kwargs)
         if isinstance(v, _vim.Dictionary):
             return dictionaries.Dictionary(v)
         elif isinstance(v, bytes):
-            return v.decode()
+            try:
+                return v.decode()
+            except UnicodeError:
+                return v
         return v
 
 
@@ -725,58 +788,15 @@ def timer_stopall():
     Timer.stop_all()
 
 
-def popup_notification(content, **kwargs):
-    """Invoke vim.popup_notification with kwargs as options."""
-    return PopupWindow(vim.popup_notification, content, kwargs)
-
-
-def popup_create(content, **kwargs):
-    """Invoke vim.popup_create with kwargs as options."""
-    return PopupWindow(vim.popup_create, content, kwargs)
-
-
-def popup_atcursor(content, **kwargs):
-    """Invoke vim.popup_atcursor with kwargs as options."""
-    return PopupWindow(vim.popup_atcursor, content, kwargs)
-
-
-def popup_beval(content, **kwargs):
-    """Invoke vim.popup_beval with kwargs as options."""
-    return PopupWindow(vim.popup_beval, content, kwargs)
-
-
-def popup_dialog(content, **kwargs):
-    """Invoke vim.popup_dialog with kwargs as options."""
-    return PopupWindow(vim.popup_dialog, content, kwargs)
-
-
-def popup_menu(content, **kwargs):
-    """Invoke vim.popup_menu with kwargs as options."""
-    return PopupWindow(vim.popup_menu, content, kwargs)
-
-
-def popup_filter_yesno(id, key_str):
-    return vim.popup_filter_yesno(id, key_str)
-
-
-def popup_filter_menu(id, key_str):
-    if key_str != b' ':
-        # TODO: In Python land, we seem to get a mysterious initial <space> key
-        #       that immediately causes first item to be selected and the menu
-        #       to close. This work-around simply blocks the <space> key.
-        return vim.popup_filter_menu(id, key_str)
-    return False
-
-
 def popup_clear(force=False):
-    PopupWindow.popup_clear(force)
+    Popup.popup_clear(force)
 
 
 def _admin_status():
     """Useful, but unspported, diagnostic."""
 
     log(f'{len(Timer._timers)=}')
-    log(f'{len(PopupWindow._popups)=}')
+    log(f'{len(Popup._popups)=}')
     log(f'{len(Callback.callbacks)=}')
 
 
@@ -792,10 +812,6 @@ def wrap_item(item):
     return item
 
 
-# Create a Vim and Log instance for general use.
-vim = Vim()
-log = Log()
-
 _wrappers = {
     type(_vim.options): options.Options,
     type(_vim.windows): windows.Windows,
@@ -806,14 +822,23 @@ _wrappers = {
     _vim.Window: windows.Window,
 }
 
+# Create a Vim and Log instance for general use.
+vim = Vim()
+log = Log()
+
 _special_keymap = {}
 
 _special_key_names = (
     'Up', 'Down', 'Left', 'Right', 'Help', 'Undo', 'Insert',
     'Home', 'End', 'PageUp', 'PageDown', 'kHome', 'kEnd',
     'kPageUp', 'kPageDown', 'kPlus', 'kMinus', 'kMultiply',
-    'kDivide', 'kEnter', 'kPoint')
-
+    'kDivide', 'kEnter', 'kPoint',
+    'LeftMouse', 'LeftDrag', 'LeftRelease', 'MiddleMouse',
+    'MiddleDrag', 'MiddleRelease', 'RightMouse', 'RightDrag',
+    'RightRelease', 'X1Mouse', 'X1Drag', 'X1Release',
+    'X2Mouse', 'X2Drag', 'X2Release',
+    'ScrollWheelUp', 'ScrollWheelDown',
+)
 
 def _register_key(name, unmodified=True, modifiers='SCMA'):
     if unmodified:
