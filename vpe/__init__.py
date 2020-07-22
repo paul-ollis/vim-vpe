@@ -757,6 +757,27 @@ def pedit(path, silent=True, noerrors=False):
     _vim.command(' '.join(cmd))
 
 
+# TODO: Need to think about mapping API. This is probably sub-optimal.
+def nmap(keys, func, curbuf=True):
+    """Set up a normal mapping that invokes a Python function.
+
+    :param keys:
+        The key sequence to be mapped.
+    :param func:
+        The Python function other callable to invoke for the mapping.
+    :param curbuf:
+        Set to false is the mapping should *not* be restricted to the current
+        buffer.
+    """
+    cb = Callback(func)
+    # sw_normal = '<c-\\><c-n>'
+    buffer = '<buffer> ' if curbuf else ''
+    # rhs = f'{sw_normal}:silent {cb.as_call()}<CR>'
+    rhs = f':silent {cb.as_call()}<CR>'
+    cmd = f'nnoremap {buffer} {keys} {rhs}'
+    vim.command(cmd)
+
+
 def timer_start(ms, func, **kwargs):
     """Wrapping of vim.timer_start.
 
