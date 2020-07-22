@@ -82,6 +82,9 @@ class Buffer(proxies.CollectionProxy):
     def __setitem__(self, slice_or_index, value):
         self._proxied.__setitem__(slice_or_index, value)
 
+    def __delitem__(self, slice_or_index):
+        self._proxied.__delitem__(slice_or_index)
+
     @classmethod
     def get_known(cls, buffer):
         return cls._known.get(buffer.number, None)
