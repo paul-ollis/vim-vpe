@@ -49,10 +49,6 @@ _vim_singletons = {
     'vvars': variables.vvars,
     'windows': windows.windows,
 }
-
-# TODO: Rationalise routed functions and Callbacks.
-_routed_functions = {}
-_func_id_source = itertools.count()
 id_source = itertools.count()
 
 _vim.command('let g:_vpe_example_list_ = []')
@@ -452,7 +448,9 @@ def script_py_path():
 class Callback:
     callbacks = {}
 
-    def __init__(self, func, *args, **kwargs):
+    def __init__(
+            self, func, *, py_args=(), py_kwargs={}, vim_args=(),
+            pass_bytes=False):
         uid = self.uid = str(next(id_source))
         self.method = None
         try:
@@ -465,18 +463,21 @@ class Callback:
             ref_inst, functools.partial(self.on_del, uid=uid))
 
         self.callbacks[uid] = self
-        self.args = args
-        self.pass_bytes = kwargs.pop('pass_bytes', False)
+        self.vim_args = vim_args
+        self.py_args = py_args
+        self.py_kwargs = py_kwargs
+        self.pass_bytes = pass_bytes
 
-    def __call__(self, *args):
-        args = [coerce_arg(a, keep_bytes=self.pass_bytes) for a in args]
+    def __call__(self, *vim_args):
         inst = self.ref_inst()
         if inst is not None:
+            vim_args = [
+                coerce_arg(a, keep_bytes=self.pass_bytes) for a in vim_args]
             method = self.method and self.method()
             if method is not None:
-                return method(inst, *args)
+                return method(inst, *self.py_args, *vim_args)
             else:
-                return inst(*args)
+                return inst(*self.py_args, *vim_args)
 
         self.on_del(None, uid=self.uid)
         return 0
@@ -489,30 +490,38 @@ class Callback:
         uid = vim.vars._vpe_args_['uid']
         cb = cls.callbacks.get(uid, None)
         if cb is None:
-            log(f'invoke: {uid=} not found')
             return 0
-        args = vim.vars._vpe_args_['args']
-        return cb(*args)
+        vim_args = vim.vars._vpe_args_['args']
+        ret = cb(*vim_args)
+        if ret is None:
+            ret = 0
+        return ret
 
     @classmethod
     def on_del(cls, _, *, uid):
-        log('Cleanup', uid)
         cls.callbacks.pop(uid, None)
 
-    def as_call(self):
-        """Format Vim script string to invoke this callback.
+    def as_invocation(self):
+        """Format a command of the form 'VPE_Call(...)'
 
-        More accurately, format the Vim script to call Callback.invoke with the
-        appropriate parameters.
+        The result is a valid Vim script expression.
         """
-        args = [quoted_string(self.uid)]
-        for a in self.args:
+        vim_args = [quoted_string(self.uid)]
+        for a in self.vim_args:
             if isinstance(a, str):
-                args.append(quoted_string(a))
+                vim_args.append(quoted_string(a))
             else:
-                args.append(str(a))
-        return f'call VPE_Call({", ".join(args)})'
+                vim_args.append(str(a))
+        return f'VPE_Call({", ".join(vim_args)})'
 
+    def as_call(self):
+        """Format a command of the form 'call VPE_Call(...)'
+
+        The result can be used as a colon prompt command.
+        """
+        return f'call {self.as_invocation()}'
+
+    # TODO: This form ignores the vim_args.
     def as_vim_function(self):
         """Create a vim.Function that will route to this callback."""
         return _vim.Function('VPE_Call', args=[self.uid])
@@ -765,7 +774,7 @@ def _admin_status():
 
     log(f'{len(Timer._timers)=}')
     log(f'{len(PopupWindow._popups)=}')
-    log(f'{len(_routed_functions)=}')
+    log(f'{len(Callback.callbacks)=}')
 
 
 def wrap_item(item):
