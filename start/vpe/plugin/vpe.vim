@@ -1,12 +1,12 @@
 "
-" Startup for the Vim Pyth Extensions.
+" Startup for the Vim Python Extensions.
 "
 
 function! VPE_Call(uid, ...)
     let g:_vpe_args_ = {}
     let g:_vpe_args_['uid'] = a:uid
     let g:_vpe_args_['args'] = a:000
-    call py3eval('vpe.Callback.invoke()')
+    return py3eval('vpe.Callback.invoke()')
 endfunction
 
 py3 <<EOF
@@ -27,9 +27,8 @@ def _init_vpe_():
     if pack_dir not in sys.path:
        sys.path.append(pack_dir)
 
-    # " If the user has set g:vpe_post_load_initrc then try to source it as a vim
-    # script.
-
+    # " If the user has set g:vpe_post_load_initrc then try to source it as a
+    # vim script.
     if 'vpe_post_load_initrc' in vim.vars:
         vim.command(f'source {vim.vars["vpe_post_load_initrc"].decode()}')
 
