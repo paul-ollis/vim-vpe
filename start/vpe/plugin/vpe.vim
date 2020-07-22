@@ -9,6 +9,8 @@ function! VPE_Call(uid, ...)
     return py3eval('vpe.Callback.invoke()')
 endfunction
 
+command! VPERunThisAsPy execute 'py3file ' . expand('<sfile>:r') . '.py'
+
 py3 <<EOF
 def _init_vpe_():
     """Initialise access to the VPE package.
