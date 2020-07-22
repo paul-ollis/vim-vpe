@@ -30,13 +30,11 @@ class Base(Suite):
             fail(f'Messages were produced, see {msg_path}')
 
     def suiteSetUp(self):
-        sentinel = pathlib.Path('data-out/sentinel')
         vim = self.vim = support.VimClient()
         with open(f'data-out/{self.name}.txt', 'w'):
             pass
         vim.command(f'cd {os.getcwd()}')
-        vim.command(f'source init.vim')
-        msg_path = f'data-out/{self.name}.txt.msg'
+        sentinel = pathlib.Path('data-out/sentinel')
         sentinel.unlink(missing_ok=True)
         vim.command(f'py3file vim-scripts/{self.name}.py')
 
