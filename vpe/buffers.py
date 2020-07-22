@@ -1,5 +1,6 @@
 """Special support for buffers."""
 
+import collections
 import weakref
 
 import vim as _vim
@@ -7,6 +8,16 @@ import vim as _vim
 from vpe import proxies
 
 __all__ = ('buffers',)
+
+
+class Struct:
+    """A basic data storage structure.
+
+    This is intended to store arbitrary name, value pairs as attributes.
+    Attempting to read an undefined attribute gives ``None``.
+    """
+    def __getattr__(self, name):
+        setattr(self, name, None)
 
 
 class BufferListContext(list):
@@ -51,6 +62,16 @@ class Buffer(proxies.CollectionProxy):
     def __init__(self, buffer):
         super().__init__(buffer)
         self._known[buffer.number] = self
+        self.__dict__['_store'] = collections.defaultdict(Struct)
+
+    def store(self, key):
+        """Return a `Struct` for a give key.
+
+        This provides a mechanism to store arbitrary data associated with a
+        given buffer. A new `Struct` is created the first time a given key is
+        used.
+        """
+        return self._store[key]
 
     def range(self, a, b):
         return self._wrap_item(self._proxied.range(a, b))
