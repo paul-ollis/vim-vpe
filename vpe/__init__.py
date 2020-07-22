@@ -17,11 +17,9 @@ versions of *vpe* will be backwardly compatible with version 8.1.
 """
 
 import collections
-import contextlib
 import functools
 import itertools
 import pathlib
-import sys
 import weakref
 
 import vim as _vim
@@ -798,6 +796,7 @@ def _admin_status():
     log(f'{len(Timer._timers)=}')
     log(f'{len(Popup._popups)=}')
     log(f'{len(Callback.callbacks)=}')
+    log(f'{len(Timer._timers)=}')
 
 
 def wrap_item(item):
