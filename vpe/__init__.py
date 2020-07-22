@@ -139,8 +139,8 @@ def get_display_buffer(name, create=True):
 
 class Log:
     def __init__(self):
-        self.fifo = collections.deque(maxlen=100)
-        self.buf = None
+        self.fifo = collections.deque(maxlen=1000)
+        self.buf = get_display_buffer('log', create=False)
 
     def __call__(self, *args):
         text = ' '.join(str(a) for a in args)
@@ -151,9 +151,12 @@ class Log:
             with buf.modifiable():
                 buf.append(lines)
         self._trim()
+        if self.buf:
+            for w in vim.windows:
+                if w.buffer.number == self.buf.number:
+                    vim.win_execute(vim.win_getid(w.number), '$')
 
     def clear(self):
-        print("LOG CLEAR")
         self.fifo.clear()
         self._trim()
 
