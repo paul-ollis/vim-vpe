@@ -70,6 +70,8 @@ _std_vim_colours = set((
     "Cyan", "LightCyan", "Red", "LightRed", "Magenta",
     "LightMagenta", "Yellow", "LightYellow", "White", "NONE"))
 
+_known_special_buffers = {}
+
 
 def _get_wrapped_buffer(vim_buffer):
     b = buffers.Buffer.get_known(vim_buffer)
@@ -107,17 +109,17 @@ class Scratch(buffers.Buffer):
         return self.temp_options(modifiable=True, readonly=False)
 
 
-_known_special_buffers = {}
-
-
-def get_display_buffer(name):
+def get_display_buffer(name, create=True):
     """Get a named display-only buffer.
 
-    The actual buffer name will be of the form '/[[name]]'. The buffer is
-    created if it does not already exist.
+    The actual buffer name will be of the form '/[[name]]'. By default, the
+    buffer is created if it does not already exist.
 
     :param name:
         An identifying name for this buffer.
+    :param existing:
+        This can be set false to prevent creation if the buffer does not
+        already exist.
     """
     buf_name = f'/[[{name}]]'
     b = _known_special_buffers.get(buf_name, None)
@@ -128,6 +130,8 @@ def get_display_buffer(name):
         if b.name == buf_name:
             break
     else:
+        if not create:
+            return
         commands.new()
         b = vim.current.buffer
         commands.wincmd('c')

@@ -16,7 +16,7 @@ except _vim.error:
 with test_context('data-out/basic_buffer.txt'):
 
     print('- Test-ID: buffer-attr-types -')
-    assert_equal('Buffer', 'buf.__class__.__name__')
+    assert_true('isinstance(buf, vpe.buffers.Buffer)')
     assert_equal('Variables', 'buf.vars.__class__.__name__')
     assert_equal('Options', 'buf.options.__class__.__name__')
 
@@ -111,7 +111,7 @@ with test_context('data-out/basic_buffer.txt'):
     # Modifying the contents, even when buffer is not modifiable.
     _buf.options['modifiable'] = False
     try:
-        buf[:] = ['1', '2'] 
+        buf[:] = ['1', '2']
     except vim.error:
         pass
     assert_equal(['1', '2', '3'], 'buf[:]')

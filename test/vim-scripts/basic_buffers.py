@@ -12,5 +12,5 @@ with test_context('data-out/basic_buffers.txt'):
     assert_true('isinstance(buf, vpe.buffers.Buffer)')
 
     for i, b in enumerate(vim.buffers):
-        assert_equal('Buffer', 'b.__class__.__name__', info=i)
+        assert_true('isinstance(b, vpe.buffers.Buffer)', info=i)
     assert_equal(len(_vim.buffers), 'i + 1')
