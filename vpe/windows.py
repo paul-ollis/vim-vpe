@@ -20,7 +20,7 @@ class Window(proxies.Proxy):
     @property
     def vars(self):
         """The buffar vars wrapped as a Variables instance."""
-        return variables.Variables(self._proxied)
+        return variables.Variables(self._proxied.vars)
 
     def temp_options(self, **presets):
         """Context used to temporarily change options."""
