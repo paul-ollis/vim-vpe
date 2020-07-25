@@ -511,10 +511,11 @@ def script_py_path():
 
 class Callback:
     callbacks = {}
+    caller = 'VPE_Call'
 
     def __init__(
             self, func, *, py_args=(), py_kwargs={}, vim_args=(),
-            pass_bytes=False):
+            pass_bytes=False, info=()):
         uid = self.uid = str(next(id_source))
         self.method = None
         try:
@@ -529,19 +530,20 @@ class Callback:
         self.callbacks[uid] = self
         self.vim_args = vim_args
         self.py_args = py_args
-        self.py_kwargs = py_kwargs
+        self.py_kwargs = py_kwargs.copy()
         self.pass_bytes = pass_bytes
+        self.info = info
 
-    def __call__(self, *vim_args):
+    def __call__(self, vim_args, callargs=()):
         inst = self.ref_inst()
         if inst is not None:
             vim_args = [
                 coerce_arg(a, keep_bytes=self.pass_bytes) for a in vim_args]
             method = self.method and self.method()
             if method is not None:
-                return method(inst, *self.py_args, *vim_args)
+                return method(inst, *callargs, *self.py_args, *vim_args, **self.py_kwargs)
             else:
-                return inst(*self.py_args, *vim_args)
+                return inst(*callargs, *self.py_args, *vim_args, **self.py_kwargs)
 
         self.on_del(None, uid=self.uid)
         return 0
@@ -556,7 +558,7 @@ class Callback:
         if cb is None:
             return 0
         vim_args = vim.vars._vpe_args_['args']
-        ret = cb(*vim_args)
+        ret = cb(vim_args)
         if ret is None:
             ret = 0
         return ret
@@ -566,7 +568,7 @@ class Callback:
         cls.callbacks.pop(uid, None)
 
     def as_invocation(self):
-        """Format a command of the form 'VPE_Call(...)'
+        """Format a command of the form 'VPE_xxx(...)'
 
         The result is a valid Vim script expression.
         """
@@ -576,10 +578,10 @@ class Callback:
                 vim_args.append(quoted_string(a))
             else:
                 vim_args.append(str(a))
-        return f'VPE_Call({", ".join(vim_args)})'
+        return f'{self.caller}({", ".join(vim_args)})'
 
     def as_call(self):
-        """Format a command of the form 'call VPE_Call(...)'
+        """Format a command of the form 'call VPE_xxx(...)'
 
         The result can be used as a colon prompt command.
         """
@@ -588,7 +590,52 @@ class Callback:
     # TODO: This form ignores the vim_args.
     def as_vim_function(self):
         """Create a vim.Function that will route to this callback."""
-        return _vim.Function('VPE_Call', args=[self.uid])
+        return _vim.Function(f'{self.caller}', args=[self.uid])
+
+
+class MapCallback(Callback):
+    caller = 'VPE_MappingCall'
+
+    @classmethod
+    def invoke(cls):
+        uid = vim.vars._vpe_args_['uid']
+        log(uid)
+        cb = cls.callbacks.get(uid, None)
+        if cb is None:
+            return 0
+        ret = cb(vim_args=(), callargs=(MappingInfo(*cb.info),))
+        if ret is None:
+            ret = 0
+        return ret
+
+
+class MappingInfo:
+    def __init__(self, mode, keys):
+        self.mode = mode
+        self.keys = keys
+        v = vim.visualmode()
+        if v == 'v':
+            self._vmode = 'character'
+        elif v == 'V':
+            self._vmode = 'line'
+        else:
+            self._vmode = 'block'
+        if self.mode == 'visual':
+            _, *self._start_cursor, _ = list(vim.getpos("'<"))
+            _, *self._end_cursor, _ = list(vim.getpos("'>"))
+
+    @property
+    def line_range(self):
+        if self.start_cursor is not None:
+            slidx, _ = self._start_cursor
+            elidx, _ = self._end_cursor
+            return slidx - 1, elidx
+
+    def __getattr__(self, name):
+        return self.__dict__.get(f'_{name}')
+
+    def __str__(self):
+        return f'{self.__class__.__name__}({self.mode},{self.keys})'
 
 
 class expr:

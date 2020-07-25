@@ -9,6 +9,12 @@ function! VPE_Call(uid, ...)
     return py3eval('vpe.Callback.invoke()')
 endfunction
 
+function! VPE_MappingCall(uid)
+    let g:_vpe_args_ = {}
+    let g:_vpe_args_['uid'] = a:uid
+    return py3eval('vpe.MapCallback.invoke()')
+endfunction
+
 command! VPERunThisAsPy execute 'py3file ' . expand('<sfile>:r') . '.py'
 
 py3 <<EOF
