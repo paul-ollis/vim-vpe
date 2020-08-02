@@ -2,6 +2,11 @@
 " Startup for the Vim Python Extensions.
 "
 
+if exists('g:loaded_vpe')
+  finish
+endif
+let g:loaded_vpe = 1
+
 function! VPE_Call(uid, ...)
     let g:_vpe_args_ = {}
     let g:_vpe_args_['uid'] = a:uid
