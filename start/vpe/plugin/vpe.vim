@@ -20,7 +20,7 @@ function! VPE_MappingCall(uid)
     return py3eval('vpe.MapCallback.invoke()')
 endfunction
 
-command! VPERunThisAsPy execute 'py3file ' . expand('<sfile>:r') . '.py'
+command! VPERunThisAsPy call py3eval('VPE_run_this_as_py()')
 
 py3 <<EOF
 def _init_vpe_():
@@ -44,6 +44,28 @@ def _init_vpe_():
     # vim script.
     if 'vpe_post_load_initrc' in vim.vars:
         vim.command(f'source {vim.vars["vpe_post_load_initrc"].decode()}')
+
+
+def VPE_run_this_as_py():
+    import importlib
+    import pathlib
+
+    import vim
+
+    try:
+        this_script = pathlib.Path(vim.eval("expand('<sfile>')"))
+        this_dir = pathlib.Path(vim.eval("expand('<sfile>')")).parent
+        mod_name = f'{this_script.parent.name}.{this_script.stem}'
+        mod = importlib.import_module(mod_name)
+        mod.run()
+    except Exception as e:
+        import traceback
+        import io
+        import vpe
+        f = io.StringIO()
+        traceback.print_exc(file=f)
+        vpe.log(f.getvalue())
+    return ''
 
 
 _init_vpe_()

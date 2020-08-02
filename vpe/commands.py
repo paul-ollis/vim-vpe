@@ -45,7 +45,8 @@ class Command:
     def __init__(self, name):
         self.name = name
 
-    def __call__ (self, /, *args,bang=False, range='', a='', b='', preview=False):
+    def __call__ (
+            self, /, *args,bang=False, range='', a='', b='', preview=False):
         exclamation = '!' if bang else ''
         cmd = f'{self.name}{exclamation}'
         arg_expr = ''
