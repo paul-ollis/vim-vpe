@@ -63,9 +63,10 @@ class Buffer(proxies.CollectionProxy):
     _writeable = set(('name',))
 
     def __init__(self, buffer):
-        super().__init__(buffer)
-        self._known[buffer.number] = self
+        super().__init__()
+        self.__dict__['number'] = buffer.number
         self.__dict__['_store'] = collections.defaultdict(Struct)
+        self._known[buffer.number] = self
 
     def store(self, key):
         """Return a `Struct` for a give key.
@@ -112,6 +113,10 @@ class Buffer(proxies.CollectionProxy):
     def temp_options(self, **presets):
         """Context used to temporarily change options."""
         return proxies.TemporaryOptions(self.options, **presets)
+
+    @property
+    def _proxied(self):
+        return _vim.buffers[self.number]
 
 
 class Buffers(proxies.CollectionProxy):
