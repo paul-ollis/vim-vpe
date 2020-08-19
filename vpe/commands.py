@@ -27,7 +27,7 @@ _blockedVimCommands = set((
 class Command:
     """Wrapper to invoke a Vim command as a function.
 
-    Invocation takes the form of:
+    Invocation takes the form of::
 
         func(arg[, arg[, arg...]], [bang=<flag>], [a=<start>], [b=<end>])
         func(arg[, arg[, arg...]], [bang=<flag>], [range=<range>])

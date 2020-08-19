@@ -2,14 +2,11 @@
 
 This provides the Vim class, which is a wrapper around Vim's built-in *vim*
 module. It is intended that a Vim instance can be uses as a replacement for the
-*vim* module. For example:
+*vim* module. For example:<py>:
 
-    import vpe
-    vim = vpe.Vim()
+    from vpe import vim
     # Now use 'vim' as an extended version of the *vim* module.
     # ...
-
-Note that ``vpe.Vim()`` always returns the same (singleton) instance.
 
 This was developed for Vim version 8.1. It will probably work for Vim 8.0, but
 is very unlikely to be compatible with earlier versions. I plan that future
@@ -20,6 +17,7 @@ import collections
 import functools
 import itertools
 import pathlib
+import re
 import weakref
 
 import vim as _vim
@@ -33,7 +31,14 @@ from . import options
 from . import tabpages
 from . import variables
 from . import windows
+from .vim_types import *
 
+__all__ = (
+    'AutoCmdGroup', 'Timer', 'Popup', 'PopupAtCursor', 'PopupBeval',
+    'PopupNotification', 'PopupDialog', 'PopupMenu',
+    'error', 'call_soon',
+    'buffers', 'commands',
+)
 _blockedVimFunctions = set((
     "libcall",
     "libcallnr",
@@ -49,6 +54,7 @@ _vim_singletons = {
 }
 id_source = itertools.count()
 
+# Set up some global Vim variables to support type testing.
 _vim.command('let g:_vpe_example_list_ = []')
 _vim.command('let g:_vpe_example_dict_ = {}')
 _vim_list_type = _vim.vars['_vpe_example_list_'].__class__
@@ -64,6 +70,7 @@ _std_vim_colours = set((
     "Cyan", "LightCyan", "Red", "LightRed", "Magenta",
     "LightMagenta", "Yellow", "LightYellow", "White", "NONE"))
 
+#: Dictionary to track any special buffers that get created.
 _known_special_buffers = {}
 
 
@@ -138,6 +145,35 @@ def invoke_vim_function(func, *args, **kwargs):
 
 vim_command = functools.partial(invoke_vim_function, _vim.command)
 vim_eval = functools.partial(invoke_vim_function, _vim.eval)
+
+
+def parse_vimerror(error: vim_error):
+    """Parse a vim.error exception.
+
+    :error: A vim.error as cause in a try...except block.
+    """
+    pat = r'''(?x)
+        Vim
+        (?:
+            \( (?P<command> \w+ ) \)
+        ) ?
+        :
+        (?:
+            E (?P<code> \d{1,3} )
+        :
+        ) ?
+        [ ]
+        (?P<message> .* )
+    '''
+    m = re.match(pat, str(error))
+    if m:
+        code = m.group('code')
+        code = int(code) if code else 0
+        command = m.group('command') or ''
+        return VimError(message=m.group('message'), command=command, code=code)
+    return VimError(message=str(error))
+
+
 
 
 # TODO: Very similar to the other Scratch buffer in py_core.
@@ -259,32 +295,65 @@ class Log:
 
 
 class Timer:
+    """Pythonic way to use Vim's timers.
+
+    This can be used as a replacement for the vim functions: timer_start,
+    timer_info, timer_pause, timer_stop.
+
+    An example of usage:<py>:
+
+        def handle_expire(t):
+            print(f'{t.repeat=}')
+
+        # This will cause handle_expire to be called twice. The output will be
+        # (Or is the sqeuence 2, 1~):
+        #     t.remaining=1
+        #     t.remaining=0
+        t = Timer(ms=100, handle_expire, repeat=2)
+
+    The status of a timer can be queried using the properties `time`, `repeat`,
+    `remaining` and `paused`. The methods `pause`, `stop` and `resume` allow
+    an active timer to be controlled.
+
+    :ms:     The timer's interval in milliseconds.
+    :func:   The function to be invoked when the timer fires. This is
+             called with the firing `Timer` instance as the only parameter.
+    :repeat: How many times to fire.
+    """
     _timers = {}
 
-    def __init__(self, ms, func, kwargs):
+    def __init__(self, ms, func, repeat=None):
         cb = Callback(self._invoke_self)
-        self._id = vim.timer_start(ms, cb.as_vim_function(), kwargs)
+        options = {}
+        if repeat is not None:
+            options['repeat'] = repeat
+        self._id = vim.timer_start(ms, cb.as_vim_function(), options)
         self._timers[self._id] = self
-        self.callback = func
+        self._callback = func
 
     @property
-    def id(self):
+    def id(self) -> int:
+        """The ID of the underlying vim timer."""
         return self._id
 
     @property
-    def time(self):
+    def time(self) -> int:
+        """The ID of the underlying Vim timer."""
         return self._get_info('time')
 
     @property
-    def repeat(self):
+    def repeat(self) -> int:
+        """The number of times the timer will still fire."""
         return self._get_info('repeat')
 
     @property
-    def remaining(self):
+    def remaining(self) -> int:
+        """The time remaining (ms) until the timer will next fire."""
         return self._get_info('remaining')
 
     @property
-    def paused(self):
+    def paused(self) -> bool:
+        """True if the timer is currently paused."""
         return bool(self._get_info('paused'))
 
     def _get_info(self, name):
@@ -293,25 +362,42 @@ class Timer:
             return info[0][name]
 
     def stop(self):
+        """Stop the timer.
+
+        This invokes vim's timer_stop funciton.
+        """
         vim.timer_stop(self.id)
         self._cleanup()
 
     def pause(self):
+        """Pause the timer.
+
+        This invokes vim's timer_pause funciton.
+        """
         vim.timer_pause(self.id, True)
 
     def resume(self):
+        """Resume the timer, if paused.
+
+        This invokes vim's timer_pause funciton.
+        """
         vim.timer_pause(self.id, False)
 
     def _invoke_self(self, _):
         if self.repeat == 1:
             self._cleanup()
-        self.callback(self)
+        self._callback(self)
 
     def _cleanup(self):
         self._timers.pop(self.id, None)
 
     @classmethod
     def stop_all(cls):
+        """Stop all timers and clean up.
+
+        Use this in preference to vim.timer_stopall, to ensure that VPE cleans
+        up its underlying administrative structures.
+        """
         vim.timer_stopall()
         for timer in list(cls._timers.values()):
             timer._cleanup()
@@ -347,10 +433,42 @@ def _add_popup_options_properties(cls):
 
 @_add_popup_options_properties
 class Popup:
+    """A Pythonic way to uses Vim's popup windows.
+
+    This can be used as instead of the individual functions popup_create,
+    popup_hide, popup_show, popup_settext, popup_close).
+
+    Creation of a Popup uses vim.popup_create to create the actual popup
+    window. Control of the popup windows is achieved using the methods `hide`,
+    `show` and `settext`. You can subclass this in order to override the
+    `on_close` or `on_key` methods.
+
+    The subclasses `PopupAtCursor`, `PopupBeval`, `PopupNotification`,
+    `PopupDialog` and `PopupMenu`, provide similar convenient alternatives
+    to popup_atcursor, popup_beval, popup_notification, popup_dialog and
+    popup_menu.
+
+    The windows options (line, col, pos, *etc*.) are made avaiable as
+    properties of the same name. For example, to change the first displated
+    line:<py>:
+
+        p = vpe.Popup(my_text)
+        ...
+        p.firstline += 3
+
+    The close option must be accessed as close_control, because `close` is a
+    Popup method. There is no filter or callback property.
+
+    :content: The content for the window.
+    :options: Nearly all the standard popup_create options (line, col, pos
+              *etc*. can be provided as keyword arguments. The exceptions
+              are filter and callback. Over ride the `on_key` and `on_close`
+              methods instead.
+    """
     _popups = {}
     _create_func = 'popup_create'
 
-    def __init__(self, content, **kwargs):
+    def __init__(self, content, **options):
         close_cb = Callback(self._on_close)
         filter_cb = Callback(self._on_key, pass_bytes=True)
         kwargs['callback'] = close_cb.as_vim_function()
@@ -359,44 +477,87 @@ class Popup:
         self._popups[self._id] = self
 
     @property
-    def id(self):
+    def id(self) -> int:
+        """The iID of the Vim popup window."""
         return self._id
 
     @property
-    def buffer(self):
+    def buffer(self) -> buffers.Buffer:
+        """The buffer holding the window's content."""
         return vim.buffers[vim.winbufnr(self._id)]
 
-    def hide(self):
+    def hide(self) -> None:
+        """Hide the popup."""
         vim.popup_hide(self._id)
 
-    def show(self):
+    def show(self) -> None:
+        """Show the popup."""
         vim.popup_show(self._id)
 
-    def settext(self, content):
+    def settext(self, content) -> None:
+        """Set the text of the popup."""
         vim.popup_settext(self._id, content)
 
-    def close(self):
-        vim.popup_close(self._id)
+    def close(self, result: int = 0) -> None:
+        """Close the popup.
+
+        :result: The result value that will be forwarded to on_close.
+        """
+        vim.popup_close(self._id, result)
 
     @classmethod
-    def popup_clear(cls, force):
+    def clear(cls, force: bool) -> None:
+        """Clear all popups from display.
+
+        Use this in preference to vim.popup_clear, to ensure that VPE cleans
+        up its underlying administrative structures.
+
+        :force: If true then if the current window is a popup, it will also be
+                closed.
+        """
         vim.popup_clear(force)
         active = set(vim.popup_list())
         for p in list(cls._popups.values()):
             if p.id not in active:
                 cls._popups.pop(p.id, None)
 
-    def on_close(self, close_arg):
-        pass
+    def on_close(self, result: int) -> None:
+        """Invoked when the popup is closed.
 
-    def on_key(self, key, byte_seq):
-        pass
+        The default implementation does nothing, it is intended that this be
+        over-ridden in subclasses.
+
+        :result: The value passed to `close`. This will be -1 if the user
+                 forcefully closed the popup.
+        """
+
+    def on_key(self, key: str, byte_seq: bytes) -> bool:
+        """Invoked when the popup receives a keypress.
+
+        The default implementation does nothing, it is intended that this be
+        over-ridden in subclasses. The keystream is preprocessed before this
+        is method is invoked as follows:
+
+        - Merged key sequences are split, so that this is always invoked
+          with the sequence for just a single key.
+        - Special key sequences are converted to the standard Vim symbolic
+          names such as <Up>, <LeftMouse>, <F11>, <S-F3>, <C-P>, *etc*.
+        - Anything that does not convert to a special name is decoded to a
+          Python string, if possible.
+
+        :key:      The pressed key. This is typically a single character
+                   such as 'a' or a symbolic Vim keyname, such as '<F1>'.
+        :byte_seq: The unmodified byte sequence, as would be received for
+                   a filter callback using Vimscript.
+        :return:   True if the key should be considered consumed.
+        """
+        return False
 
     def _on_close(self, _, close_arg):
         self.on_close(close_arg)
         self._popups.pop(self._id, None)
 
-    def _on_key(self, _, key_bytes):
+    def _on_key(self, _, key_bytes: bytes) -> bool:
         for byte_seq in self._split_key_sequences(key_bytes):
             k = _special_keymap.get(byte_seq, byte_seq)
             if isinstance(k, bytes):
@@ -407,7 +568,7 @@ class Popup:
                 else:
                     k = _special_keymap.get(k, k)
             ret = self.on_key(k, byte_seq)
-        return ret
+        return int(bool(ret))
 
     @staticmethod
     def _split_key_sequences(s):
@@ -448,22 +609,26 @@ class PopupNotification(Popup):
 class PopupDialog(Popup):
     """Popup configured as a dialogue.
 
-    This creates the popup using popup_dialog().
+    This creates the popup using popup_dialog(). It also provides a default
+    `PopupDialog.on_key` implementation that invokes popup_filter_yesno.
     """
     _create_func = 'popup_dialog'
 
     def on_key(self, key, byte_seq):
+        """Invoke popup_filter_yesno to handle keys for this popup."""
         return vim.popup_filter_yesno(self.id, byte_seq)
 
 
 class PopupMenu(Popup):
     """Popup configured as a menu.
 
-    This creates the popup using popup_menu().
+    This creates the popup using popup_menu(). It also provides a default
+    `PopupMenu.on_key` implementation that invokes popup_filter_menu.
     """
     _create_func = 'popup_menu'
 
     def on_key(self, key, byte_seq):
+        """Invoke popup_filter_menu to handle keys for this popup."""
         return vim.popup_filter_menu(self.id, byte_seq)
 
 
@@ -734,7 +899,30 @@ def coerce_arg(value, keep_bytes=False):
 
 
 class AutoCmdGroup:
-    """Context for managing auto commands within a given group."""
+    """A Pythonic way to define auto commands.
+
+    This is a context manager that supports definition of autocommands
+    that:
+
+    - Are always in a given group.
+    - Invoke Python code when triggered.
+
+    It is intended to be used as:<py>:
+
+        with AutoCmdGroup('mygroup') as g:
+            g.delete_all()
+            g.add('BufWritePre', handle_bufwrite, ...)
+            g.add('BufDelete', handle_bufdelete, ...)
+
+        ...
+
+        # Add more autocommands to the same group.
+        with AutoCmdGroup('mygroup') as g:
+            g.delete_all()
+            g.add('BufWritePre', handle_bufwrite, ...)
+
+    :name: The name of the group.
+    """
     def __init__(self, name):
         self.name = name
 
@@ -753,17 +941,14 @@ class AutoCmdGroup:
         self, event, /, func, *, pat='<buffer>', once=False, nested=False):
         """Add a new auto command to the group.
 
-        :param event:
-            The name of the event.
-        :param func:
-            The Python function to invoke. Plain functions and instance methods
-            are supported.
-        :param pat:
-            The file pattern to match. If not supplied then the special
-            '<buffer>' pattern is used. If the argument is a Buffer then
-            the special patern for 'buffer=N> is used.
-        :param once, nested:
-            The standard ':autocmd' options.
+        :event:  The name of the event.
+        :func:   The Python function to invoke. Plain functions and instance
+                 methods are supported.
+        :pat:    The file pattern to match. If not supplied then the special
+                 '<buffer>' pattern is used. If the argument is a `Buffer` then
+                 the special pattern for 'buffer=N> is used.
+        :once:   The standard ':autocmd' options.
+        :nested: The standard ':autocmd' options.
         """
         if isinstance(pat, buffers.Buffer):
             pat = f'<buffer={pat.number}>'
@@ -911,17 +1096,27 @@ def timer_start(ms, func, **kwargs):
 
 
 def call_soon(func):
+    """Arrange to call a function 'soon'.
+
+    This uses a Vim timer with a delay of 0ms to schedule the function call.
+    This means that currently executing Python code will complete *before*
+    the function is invoked.
+
+    :func: The function to be invoked. It takes no arguments.
+    """
     def do_call(timer):
         func()
     timer_start(0, do_call)
 
 
 def timer_stopall():
+    """Convenience function that invokes `Timer.stop_all`."""
     Timer.stop_all()
 
 
 def popup_clear(force=False):
-    Popup.popup_clear(force)
+    """Convenience function that invokes `Popup.clear`."""
+    Popup.clear(force)
 
 
 def _admin_status():

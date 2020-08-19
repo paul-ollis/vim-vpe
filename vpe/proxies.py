@@ -33,7 +33,7 @@ class Proxy:
 
     IMPORTANT
         This base class overrides __setattr__. Base classes should use
-        self.__dict__ to explicitly set attribuyes (*e.g.* the _proxied
+        self.__dict__ to explicitly set attributes (*e.g.* the _proxied
         attribute).
     """
     _writeable = set()

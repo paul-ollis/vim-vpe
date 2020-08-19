@@ -37,9 +37,9 @@ class Variables(ImmutableVariables):
 class VimVariables(ImmutableVariables):
     """Wrapper around the various vim variables dictionaries.
 
-    This is necessary to allow operations such as vim.vvars.errmsg = ''. The vim.vvars
-    object has locked == FIXED. So we need to set variables using the good old
-    'let' command.
+    This is necessary to allow operations such as vim.vvars.errmsg = ''. The
+    vim.vvars object has locked == FIXED. So we need to set variables using the
+    good old 'let' command.
     """
     def __setattr__(self, name, value):
         try:

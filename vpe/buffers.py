@@ -7,7 +7,7 @@ import vim as _vim
 
 from vpe import proxies
 
-__all__ = ('buffers',)
+__all__ = ('Buffer',)
 
 
 class Struct:
