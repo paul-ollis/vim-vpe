@@ -67,11 +67,77 @@ _std_vim_colours = set((
 _known_special_buffers = {}
 
 
-def _get_wrapped_buffer(vim_buffer):
+class VimError(_vim.error):
+    """A parsed version of vim.error.
+
+    VPE code raises this in place of the standard vim.error exception. It is
+    a subclass of vime.error, so code that handles vime.error will still work
+    when converted to use the `vim.vpe` object.
+
+    This version attempts to parse the Vim error string to provide additional
+    attributes:
+
+    @command: The name of the Vim command that raised the error. This may be
+              an empty string.
+    @code:    The error code. This will be zero if parsing failed to extract
+              the code.
+    @message: The message part, after extracting the command, error code and
+              'Vim' prefix. If parsing completely fails then is simply the
+              unparsed message.
+    """
+    command: str
+    code: int
+    message: str
+
+    def __init__(self, error: vim_error):
+        super().__init__(str(error))
+        self.message: str
+        self.command: str = ''
+        self.code: int = 0
+        pat = r'''(?x)
+            Vim                           # Common prefix.
+            (?:
+                \( (?P<command> \w+ ) \)  # May have command in parentheses.
+            ) ?
+            :
+            (?:
+                E (?P<code> \d{1,4} )     # May have an error code.
+            :
+            ) ?
+            [ ] (?P<message> .* )         # Space then free form message.
+        '''
+        m = re.match(pat, str(error))
+        if m:
+            code = m.group('code')
+            self.code = int(code) if code else 0
+            self.command = m.group('command') or ''
+            self.message = m.group('message')
+        else:
+            self.message = str(error)
+
+
+def _get_wrapped_buffer(vim_buffer: vim_buffer) -> buffers.Buffer:
+    """Get a wrapped version of a vim buffer object.
+
+    This always returns the same `Buffer` for a given vim buffer number.
+
+    :vim_buffer: A buffer object as, for example vim.current.buffer.
+    """
     b = buffers.Buffer.get_known(vim_buffer)
     if b is None:
         b = buffers.Buffer(vim_buffer)
     return b
+
+
+def invoke_vim_function(func, *args, **kwargs):
+    try:
+        return func(*args, **kwargs)
+    except vim.error as e:
+        raise VimError(e)
+
+
+vim_command = functools.partial(invoke_vim_function, _vim.command)
+vim_eval = functools.partial(invoke_vim_function, _vim.eval)
 
 
 # TODO: Very similar to the other Scratch buffer in py_core.
@@ -429,7 +495,7 @@ class Registers:
 
         The reg_name may also be an integer value in the range 0-9.
         """
-        return _vim.eval(f'@{reg_name}')
+        return vim_eval(f'@{reg_name}')
 
     def __setitem__(self, reg_name, value):
         """Allow setting registers as dictionary entries.
@@ -444,7 +510,7 @@ class _VimDirectFunctions:
 
     def __getattr__(self, name):
         fname_form = f'*{name}'
-        if _vim.eval(f'exists({fname_form!r})') != '0':
+        if vim_eval(f'exists({fname_form!r})') != '0':
             if name not in _blockedVimFunctions:
                 return Function(name)
 
@@ -673,15 +739,15 @@ class AutoCmdGroup:
         self.name = name
 
     def __enter__(self):
-        _vim.command(f'augroup {self.name}')
+        vim_command(f'augroup {self.name}')
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        _vim.command('augroup END')
+        vim_command('augroup END')
 
     def delete_all(self):
         """Delete all entries in the group."""
-        _vim.command('autocmd!')
+        vim_command('autocmd!')
 
     def add(
         self, event, /, func, *, pat='<buffer>', once=False, nested=False):
@@ -707,7 +773,7 @@ class AutoCmdGroup:
         if nested:
             cmd_seq.append('++nested')
         cmd_seq.append(Callback(func).as_call())
-        _vim.command(' '.join(cmd_seq))
+        vim_command(' '.join(cmd_seq))
 
 
 def highlight(
@@ -789,8 +855,8 @@ def error(*args):
     Unlike using sys.stderr directly, this does not raise a vim.error.
     """
     msg = ' '.join(str(a) for a in args)
-    _vim.command(f'echohl ErrorMsg')
-    _vim.command(f'echomsg {msg!r}')
+    vim_command(f'echohl ErrorMsg')
+    vim_command(f'echomsg {msg!r}')
 
 
 def pedit(path, silent=True, noerrors=False):
@@ -801,7 +867,7 @@ def pedit(path, silent=True, noerrors=False):
         else:
             cmd.append('silent')
     cmd.extend(['pedit', path])
-    _vim.command(' '.join(cmd))
+    vim_command(' '.join(cmd))
 
 
 # TODO: Need to think about mapping API. This is probably sub-optimal.
@@ -910,11 +976,11 @@ _special_key_names = (
 def _register_key(name, unmodified=True, modifiers='SCMA'):
     if unmodified:
         key_name = f'<{name}>'
-        _vim.command(rf'let g:_vpe_temp_ = "\{key_name}"')
+        vim_command(rf'let g:_vpe_temp_ = "\{key_name}"')
         _special_keymap[vim.vars._vpe_temp_] = key_name
     for m in modifiers:
         key_name = f'<{m}-{name}>'
-        _vim.command(rf'let g:_vpe_temp_ = "\{key_name}"')
+        vim_command(rf'let g:_vpe_temp_ = "\{key_name}"')
         _special_keymap[vim.vars._vpe_temp_] = key_name
 
 

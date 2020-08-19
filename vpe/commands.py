@@ -1,6 +1,8 @@
 """Pythonic access to the Vim commands."""
 
-import vim
+import vim as _vim
+
+import vpe
 
 _blockedVimCommands = set((
         "function",
@@ -74,12 +76,12 @@ class Command:
         if preview:
             return cmd
         else:
-            vim.command(cmd)
+            vpe.vim_command(cmd)
 
 
 def __getattr__(name):
     cname_form = f':{name}'
-    if vim.eval(f'exists({cname_form!r})') == '2':
+    if vpe.vim_eval(f'exists({cname_form!r})') == '2':
         if name not in _blockedVimCommands:
             return Command(name)
 

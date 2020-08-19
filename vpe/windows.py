@@ -4,6 +4,7 @@ import collections.abc
 
 import vim as _vim
 
+import vpe
 from vpe import proxies
 from vpe import variables
 
@@ -28,7 +29,7 @@ class Window(proxies.Proxy):
 
     def goto(self):
         """Switch to this window, if possible."""
-        _vim.command(f'{self.number} wincmd w')
+        vpe.vim_command(f'{self.number} wincmd w')
 
 
 class Windows(proxies.CollectionProxy):

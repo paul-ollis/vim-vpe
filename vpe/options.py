@@ -2,6 +2,7 @@
 
 import vim as _vim
 
+import vpe
 from vpe import proxies
 from vpe import variables
 
@@ -194,9 +195,11 @@ class GlobalOptions(Options):
         v = super().__getattr__(name)
         if v is None:
             oname_form = f'+{name}'
-            if _vim.eval(f'exists({oname_form!r})') == '0':
-                raise e
-        return self._wrap_item(_vim.eval(f'&g:{name}'), name)
+            if vpe.vim_eval(f'exists({oname_form!r})') == '0':
+                oname = self.__class__.__name__
+                raise AttributeError(
+                    f'{oname} object has no attribute {name!r}')
+        return self._wrap_item(vpe.vim_eval(f'&g:{name}'), name)
 
     def __setattr__(self, name, value):
         try:
@@ -205,7 +208,7 @@ class GlobalOptions(Options):
             return
         except AttributeError as e:
             oname_form = f'+{name}'
-            if _vim.eval(f'exists({oname_form!r})') == '0':
+            if vpe.vim_eval(f'exists({oname_form!r})') == '0':
                 raise e
         v = int(value) if isinstance(value, bool) else value
         v_expr = repr(v)
@@ -215,7 +218,7 @@ class GlobalOptions(Options):
             s = s.replace('"', r'\"')
             s = s.replace(r"\'", "'")
             v_expr = '"' + s + '"'
-        _vim.command(f'let &{name} = {v_expr}')
+        vpe.vim_command(f'let &{name} = {v_expr}')
 
 
 global_options = GlobalOptions(_vim.options)

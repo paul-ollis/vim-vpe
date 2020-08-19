@@ -57,7 +57,7 @@ class TabPages(proxies.CollectionProxy):
             This defaults to 'after'.
         """
         flag = _position_name_to_flag.get(position, position)
-        _vim.command(f'{flag}tabnew')
+        vpe.vim_command(f'{flag}tabnew')
         return vpe.vim.current.tabpage
 
 

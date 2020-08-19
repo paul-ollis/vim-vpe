@@ -4,6 +4,7 @@ import vim as _vim
 
 __all__ = ('Variables',)
 
+import vpe
 from vpe import dictionaries
 from vpe import options
 from vpe import proxies
@@ -42,9 +43,9 @@ class VimVariables(ImmutableVariables):
     """
     def __setattr__(self, name, value):
         try:
-            _vim.command(f'let v:{name} = {value!r}')
+            vpe.vim_command(f'let v:{name} = {value!r}')
         except _vim.error:
-            _vim.command(f'let v:errmsg = ""')
+            vpe.vim_command(f'let v:errmsg = ""')
             raise AttributeError(
                 f'can\'t set attribute {name} for {self.__class__.__name__}')
 
