@@ -7,7 +7,7 @@ import vpe
 from vpe import commands
 
 
-class Singleton:
+class _Singleton:
     pass
 
 
@@ -39,8 +39,8 @@ class SyntaxBase:
         'transparent': lambda v: '',
     }
     _match_offset_names = set(('ms', 'me', 'hs', 'he'))
-    ALLBUT = Singleton()
-    ALL = Singleton()
+    ALLBUT = _Singleton()
+    ALL = _Singleton()
 
     def _format_options(self, options, supported):
         s = []
@@ -112,6 +112,14 @@ class NextGroup(GroupOption):
     name = 'nextgroup'
 
 
+class LocationGroup(GroupOption):
+    def __init__(self, name, group):
+        super().__init__(group)
+        self.name = name
+
+    def vim_fmt(self):
+        return f'{self.name} {self.group.qual_name}'
+
 
 class NamedSyntaxItem(SyntaxBase):
 
@@ -134,6 +142,16 @@ class NamedSyntaxItem(SyntaxBase):
     def arg_name(self):
         return self.qual_name
 
+
+class NoneGroup(NamedSyntaxItem):
+    def __init__(self):
+        pass
+
+    @property
+    def qual_name(self):
+        return 'NONE'
+
+
 def extract_keys(d, *names):
     extracted = {}
     for name in names:
@@ -152,8 +170,9 @@ class Region(SyntaxBase):
         'fold': lambda v: '',
     }
 
-    def __init__(self, syn, name, **options):
+    def __init__(self, syn, syn_cmd, name, **options):
         self.syn = syn
+        self.syn_cmd = syn_cmd
         self.qual_name = name
         self.starts, self.skips, self.ends = [], [], []
         self.preview = options.pop('preview', False)
@@ -177,7 +196,7 @@ class Region(SyntaxBase):
     def __exit__(self, exc_type, exc_val, exc_tb):
         if exc_type is None:
             self.syn.schedule(
-                commands.syntax, 'region', f'{self.qual_name}',
+                self.syn_cmd, 'region', f'{self.qual_name}',
                 *[p.arg_str() for p in self.starts],
                 *[p.arg_str() for p in self.skips],
                 *[p.arg_str() for p in self.ends],
@@ -188,6 +207,8 @@ class Region(SyntaxBase):
 
 class Group(NamedSyntaxItem):
     region_type = Region
+    syn_cmd = commands.syntax
+    _pre_pat_names = 'excludenl', 'keepend', 'grouphere', 'groupthere'
 
     def __init__(self, syn, name, std=False, contained=False):
         super().__init__(syn, name, std=std)
@@ -218,7 +239,7 @@ class Group(NamedSyntaxItem):
         if self.contained:
             options['contained'] = True
         options = convert_syntax_options(options)
-        pre_pat_options = extract_keys(options, 'excludenl', 'keepend')
+        pre_pat_options = extract_keys(options, *self._pre_pat_names)
         if lidx is not None:
             pats[0:0] =  [fr'\%{lidx + 1}l']
         elif lrange is not None:
@@ -231,11 +252,11 @@ class Group(NamedSyntaxItem):
             pats[0:0] =  [prefix]
         pat = ''.join(f'{p}' for p in pats)
         self.syn.schedule(
-            commands.syntax, 'match', f'{self.qual_name}',
+            self.syn_cmd, 'match', f'{self.qual_name}',
             *[opt.vim_fmt() for opt in pre_pat_options.values()],
             f'"{pat}"{offsets}',
             *[opt.vim_fmt() for opt in options.values()])
-        if preview:
+        if preview or self.name == 'Sync':
             print(self.syn.preview_last())
 
     def add_region(self, *, start=None, skip=None, end=None, **options):
@@ -245,7 +266,8 @@ class Group(NamedSyntaxItem):
         start, skip and end pattern can be added. For more complex cases use
         a `region` context.
         """
-        with Region(self.syn, self.qual_name, *options) as region:
+        with self.region_type(
+                self.syn, self.syn_cmd, self.qual_name, *options) as region:
             if start:
                 region.start(start)
             if skip:
@@ -260,7 +282,8 @@ class Group(NamedSyntaxItem):
         """
         if self.contained:
             options['contained'] = True
-        return self.region_type(self.syn, self.qual_name, **options)
+        return self.region_type(
+            self.syn, self.syn_cmd, self.qual_name, **options)
 
     def highlight(self, **kwargs):
         """Define highlighting for this group.
@@ -278,6 +301,11 @@ class Group(NamedSyntaxItem):
             hilink(group.qual_name, self.qual_name)
 
 
+class SyncGroup(Group):
+    """A group use for synchronisation."""
+    syn_cmd = functools.partial(commands.syntax, 'sync')
+
+
 def convert_syntax_options(options):
     for name in options:
         if name == 'contains':
@@ -286,6 +314,8 @@ def convert_syntax_options(options):
             options[name] = MatchGroup(options[name])
         elif name == 'nextgroup':
             options[name] = NextGroup(options[name])
+        elif name in ('grouphere', 'groupthere'):
+            options[name] = LocationGroup(name, options[name])
         else:
             options[name] = Option(name, options[name])
     return options
@@ -298,6 +328,7 @@ class Syntax(SyntaxBase):
     are applied when the context is exited.
     """
     group_type = Group
+    sync_group_type = SyncGroup
 
     def __init__(self, group_prefix):
         self.prefix = group_prefix
@@ -314,6 +345,11 @@ class Syntax(SyntaxBase):
     def group(self, name, **kwargs):
         if name not in self.groups:
             self.groups[name] = self.group_type(self, name, **kwargs)
+        return self.groups[name]
+
+    def sync_group(self, name, **kwargs):
+        if name not in self.groups:
+            self.groups[name] = self.sync_group_type(self, name, **kwargs)
         return self.groups[name]
 
     def std_cluster(self, name):
@@ -448,7 +484,6 @@ class Cluster(NamedSyntaxItem):
 
     def include(self, path_name):
         self.syn.schedule(commands.syntax, 'include', self.arg_name, path_name)
-        self.syn.schedule(commands.unlet, 'b:current_syntax', bang=True)
 
     def invoke(self):
         if not self.groups:
@@ -464,3 +499,6 @@ class StdCluster(Cluster):
 
     def invoke(self):
         return
+
+
+NONE = NoneGroup()
