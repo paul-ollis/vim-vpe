@@ -1,0 +1,81 @@
+import pathlib
+import sys
+
+# Make sure that the doculate code can be imported.
+root_path = pathlib.Path('~/develop/main/cs-test-dev/cs-toolkit/doc')
+root_path = root_path.expanduser()
+src_path = root_path
+src_path_name = str(src_path)
+while src_path_name in sys.path:
+    sys.path.remove(src_path_name)
+sys.path[0:0] = [src_path_name]
+
+# Make sure that the Vim VPE code can be imported.
+root_path = pathlib.Path.cwd().parent
+src_path = root_path
+src_path_name = str(src_path)
+while src_path_name in sys.path:
+    sys.path.remove(src_path_name)
+sys.path[0:0] = [src_path_name]
+
+import doculate
+doculate.gen_api_tree(root_path=src_path, mod_name='vpe')
+
+# TODO: Sort this out! 
+from paul import paul_theme_path
+
+# Use the mym sphinx support add-ons.
+from mym_addons import sphinx
+
+# Edit the following lines to suite your needs.
+projectName = "cs-toolkit"
+
+# Make sure that the Sphinx can load the vimhelp plugin.
+sphinxConfig = sphinx.Config(project=projectName)
+root_path = pathlib.Path('~/np/sw/sphinx-ext/vimhelp')
+root_path = root_path.expanduser()
+sphinxConfig.add_to_syspath(str(root_path))
+
+sphinxConfig.add_extension("vimhelp")
+sphinxConfig.add_extension("sphinx.ext.graphviz")
+sphinxConfig.add_extension("sphinx.ext.autodoc")
+sphinxConfig.conf["exclude_patterns"] = []
+sphinxConfig.conf["html_theme_path"] = [paul_theme_path]
+sphinxConfig.conf["html_theme"] = "paul"
+sphinxConfig.conf["pygments_style"] = "manni"
+sphinxConfig.conf["default_role"] = "any"
+sphinxConfig.conf['autodoc_typehints'] = "none"
+sphinxConfig.conf['master_doc'] = "vpe-help"
+
+
+# Generate the config file.
+confPath = sphinxConfig.create(MYMFILE)
+
+# Ensure we import the correct modules and use locally checked out members of
+# the CS flock.
+KeepEnviron("PYTHONPATH")
+path = EnvironPath("PATH")
+# path.prepend('~/develop/main/epysphinx')
+
+srcFiles = ["api/vpe.rst"]
+
+# pySources = GlobTree("../src", inclFiles=["*.py"])
+# flat = '--flat'
+# flat = ''
+
+if 1:
+    Command("html/index.html", srcFiles,
+        Cmd = "sphinx-build -NaE -b html . html",
+              AutoDep=sphinx.scanSphinx,
+              Local=1)
+
+Command("vimhelp/vpe-help.txt", srcFiles,
+    Cmd = "sphinx-build -NaE -b vimhelp . vimhelp",
+          AutoDep=sphinx.scanSphinx,
+          Local=1)
+
+InstallFile("../start/vpe/doc/vpe-help.txt", "vimhelp/vpe-help.txt")
+
+#Command("api-rst/index.rst", pySources,
+#     Cmd = "epysphinx %s -v --warn-undoc $SOURCES" % (flat, ),
+#     Local=1)
