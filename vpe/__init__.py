@@ -238,9 +238,9 @@ def get_display_buffer(name, create=True):
 
 
 class Log:
-    def __init__(self):
-        self.fifo = collections.deque(maxlen=1000)
-        self.buf = get_display_buffer('log', create=False)
+    def __init__(self, name):
+        self.fifo = collections.deque(maxlen=100)
+        self.buf = get_display_buffer(name, create=False)
 
     def __call__(self, *args):
         text = ' '.join(str(a) for a in args)
@@ -670,45 +670,7 @@ class Registers:
         return vim.setreg(f'{reg_name}', value)
 
 
-class _VimDirectFunctions:
-    """Transparent access to Vim's functions."""
-
-    def __getattr__(self, name):
-        fname_form = f'*{name}'
-        if vim_eval(f'exists({fname_form!r})') != '0':
-            if name not in _blockedVimFunctions:
-                return Function(name)
-
-        raise AttributeError(
-            f'{self.__class__.__name__} object has no attribute {name!r}')
-
-
-class _VimOverrides:
-    """Overrides of the basic *vim* API."""
-
-    def __getattr__(self, name):
-        """For non-overridden attributes use the vim module's official API."""
-        if name in _vim_singletons:
-            return _vim_singletons[name]
-        try:
-            attr = getattr(_vim, name)
-        except AttributeError:
-            return super().__getattr__(name)
-        else:
-            return wrap_item(attr)
-
-    def __setattr__(self, name, value):
-        if name in self.__dict__:
-            self.__dict__[name] = value
-        else:
-            raise AttributeError(
-                f'can\'t set attribute {name} for {self.__class__.__name__}')
-
-
-class Vim(
-        _VimOverrides,
-        _VimDirectFunctions,
-    ):
+class Vim:
     """A wrapper around and replacement for the *vim* module."""
     _registers = Registers()
 
@@ -731,6 +693,35 @@ class Vim(
     def vim(self):
         """Get the underlying built-in vim module."""
         return _vim
+
+    def __getattr__(self, name):
+        # Some attributes map to single global objects.
+        if name in _vim_singletons:
+            return _vim_singletons[name]
+
+        # Use the standard Vim module member for preference. Otherwise make
+        # Vim functions appear as members.
+        try:
+            attr = getattr(_vim, name)
+        except AttributeError:
+            return self._get_vim_function(name)
+        else:
+            return wrap_item(attr)
+
+    def __setattr__(self, name, value):
+        if name in self.__dict__:
+            self.__dict__[name] = value
+        else:
+            raise AttributeError(
+                f'can\'t set attribute {name} for {self.__class__.__name__}')
+
+    def _get_vim_function(self, name):
+        fname_form = f'*{name}'
+        if vim_eval(f'exists({fname_form!r})') != '0':
+            if name not in _blockedVimFunctions:
+                return Function(name)
+        raise AttributeError(
+            f'{self.__class__.__name__} object has no attribute {name!r}')
 
 
 def script_py_path():
@@ -772,9 +763,12 @@ class Callback:
                 coerce_arg(a, keep_bytes=self.pass_bytes) for a in vim_args]
             method = self.method and self.method()
             if method is not None:
-                return method(inst, *callargs, *self.py_args, *vim_args, **self.py_kwargs)
+                return method(
+                    inst, *callargs, *self.py_args, *vim_args,
+                    **self.py_kwargs)
             else:
-                return inst(*callargs, *self.py_args, *vim_args, **self.py_kwargs)
+                return inst(
+                    *callargs, *self.py_args, *vim_args, **self.py_kwargs)
 
         self.on_del(None, uid=self.uid)
         return 0
@@ -1137,6 +1131,8 @@ def wrap_item(item):
             return item.decode()
         except UnicodeError:
             return item
+    elif callable(item):
+        return functools.partial(invoke_vim_function, item)
     return item
 
 
@@ -1152,7 +1148,7 @@ _wrappers = {
 
 # Create a Vim and Log instance for general use.
 vim = Vim()
-log = Log()
+log = Log('VPE')
 
 _special_keymap = {}
 

@@ -5,6 +5,7 @@ import weakref
 
 import vim as _vim
 
+import vpe
 from vpe import proxies
 
 __all__ = ('Buffer',)
@@ -96,9 +97,7 @@ class Buffer(proxies.CollectionProxy):
     @property
     def vars(self):
         """The buffar vars wrapped as a Variables instance."""
-        # TODO: A circular import issue to be fixed.
-        from vpe import variables
-        return variables.Variables(self._proxied.vars)
+        return vpe.variables.Variables(self._proxied.vars)
 
     def append(self, line_or_lines, nr=None):
         if nr is None:
