@@ -11,8 +11,19 @@ module. It is intended that a Vim instance can be uses as a replacement for the
 This was developed for Vim version 8.1. It will probably work for Vim 8.0, but
 is very unlikely to be compatible with earlier versions. I plan that future
 versions of *vpe* will be backwardly compatible with version 8.1.
+
+@vim:
+    A replacement for (and wrapper around) the :vim:`python-vim` module.
+
+    This is in instance of the `Vim` class.
+
+@log:
+    The Vpe log support object.
+
+    This is in instance of the `Log` class.
 """
 
+from typing import Optional
 import collections
 import functools
 import itertools
@@ -35,9 +46,10 @@ from .vim_types import *
 
 __all__ = (
     'AutoCmdGroup', 'Timer', 'Popup', 'PopupAtCursor', 'PopupBeval',
-    'PopupNotification', 'PopupDialog', 'PopupMenu',
+    'PopupNotification', 'PopupDialog', 'PopupMenu', 'VimError', 'Vim',
+    'Registers', 'Log',
     'error', 'call_soon',
-    'buffers', 'commands',
+    'buffers', 'commands', 'windows', 'tabpages', 'options', 'variables',
 )
 _blockedVimFunctions = set((
     "libcall",
@@ -74,14 +86,14 @@ _std_vim_colours = set((
 _known_special_buffers = {}
 
 
-class VimError(_vim.error):
+class VimError(_vim.error, Exception):
     """A parsed version of vim.error.
 
     VPE code raises this in place of the standard vim.error exception. It is
-    a subclass of vime.error, so code that handles vime.error will still work
-    when converted to use the `vim.vpe` object.
+    a subclass of vim.error, so code that handles vime.error will still work
+    when converted to use the `vpe.vim` object.
 
-    This version attempts to parse the Vim error string to provide additional
+    This exception attempts to parse the Vim error string to provide additional
     attributes:
 
     @command: The name of the Vim command that raised the error. This may be
@@ -139,7 +151,7 @@ def _get_wrapped_buffer(vim_buffer: vim_buffer) -> buffers.Buffer:
 def invoke_vim_function(func, *args, **kwargs):
     try:
         return func(*args, **kwargs)
-    except vim.error as e:
+    except _vim.error as e:
         raise VimError(e)
 
 
@@ -174,14 +186,12 @@ def parse_vimerror(error: vim_error):
     return VimError(message=str(error))
 
 
-
-
 # TODO: Very similar to the other Scratch buffer in py_core.
 class Scratch(buffers.Buffer):
     """A scratch buffer.
 
-    A scratch buffer has no associated file, no swapfile, never gets written
-    and never appears to be modified. The content of such a buffer is normally
+    A scratch buffer has no associated file, has no swap file, never gets
+    written and never appears to be modified. The content of such a buffer is
     under the control of code. Direct editing is disabled.
     """
     def __init__(self, name, buffer):
@@ -196,26 +206,24 @@ class Scratch(buffers.Buffer):
 
         self.options.buflisted = True
 
-    def show(self):
+    def show(self) -> None:
         """Make this buffer visible in the current window."""
         commands.buffer(self.number, bang=True)
 
-    def modifiable(self):
+    def modifiable(self) -> proxies.TemporaryOptions:
         """Create a context that allows the buffer to be modified."""
         return self.temp_options(modifiable=True, readonly=False)
 
 
-def get_display_buffer(name, create=True):
+def get_display_buffer(name: str, create=True) -> Optional[Scratch]:
     """Get a named display-only buffer.
 
     The actual buffer name will be of the form '/[[name]]'. By default, the
     buffer is created if it does not already exist.
 
-    :param name:
-        An identifying name for this buffer.
-    :param existing:
-        This can be set false to prevent creation if the buffer does not
-        already exist.
+    :name:     An identifying name for this buffer.
+    :existing: This can be set false to prevent creation if the buffer does not
+               already exist.
     """
     buf_name = f'/[[{name}]]'
     b = _known_special_buffers.get(buf_name, None)
@@ -238,11 +246,41 @@ def get_display_buffer(name, create=True):
 
 
 class Log:
+    """Support for logging to a display buffer.
+
+    An instance of this class provides a mechanism to support logging that can
+    be viewed within a buffer. Instances of this class act as a simple print
+    function.:<py>:
+
+        info = Log('my_info')
+        info("Created log", info)
+        info("Starting process")
+
+    The output is stored in a Python FIFO structure, up to a maximum number
+    of lines; the default is 100, change this with `set_maxlen`. No actual Vim
+    buffer is created until required, which is when `show` is first
+    invoked.:<py>:
+
+        info.show()   # Make the log visible.
+
+    The :mod:`vpe` module provides a predefined log, called 'VPE'. This is
+    available for general use. VPE also uses it to log significant occurrences
+    - mainly error conditions.
+
+    :name: A name that maps to the corresponding display buffer.
+    """
     def __init__(self, name):
         self.fifo = collections.deque(maxlen=100)
         self.buf = get_display_buffer(name, create=False)
 
     def __call__(self, *args):
+        """Write to the log.
+
+        :args: Zero or more objects to print to the log.
+
+            Each argument is converted to a string. The resulting list is
+            joined into a single string using a space between each.
+        """
         text = ' '.join(str(a) for a in args)
         lines = text.splitlines()
         self.fifo.extend(lines)
@@ -256,11 +294,15 @@ class Log:
                 if w.buffer.number == self.buf.number:
                     vim.win_execute(vim.win_getid(w.number), '$')
 
-    def clear(self):
+    def clear(self) -> None:
+        """Clear all lines from the log.
+
+        The FIFO is cleared and the corresponding buffer updated.
+        """
         self.fifo.clear()
         self._trim()
 
-    def _trim(self):
+    def _trim(self) -> None:
         buf = self.buf
         if buf:
             d = len(buf) - len(self.fifo)
@@ -268,10 +310,10 @@ class Log:
                 with buf.modifiable():
                     buf[:] = buf[d:]
 
-    def show(self):
-        """Show the buffer.
+    def show(self) -> None:
+        """Make sure the buffer is visible.
 
-        If there is no buffer currently displaying the log then this will:
+        If there is no buffer currently displayed the log then this will:
 
         - Split the current window.
         - Create a buffer and show it in the new split.
@@ -288,7 +330,13 @@ class Log:
             self.buf.show()
             commands.wincmd('w')
 
-    def set_maxlen(self, maxlen):
+    def set_maxlen(self, maxlen: int) -> None:
+        """Set the maximum length of the log's FIFO.
+
+        This will discard older lines if necessary.
+
+        :maxlen: How many lines to store in the FIFO.
+        """
         if maxlen != self.fifo.maxlen:
             self.fifo = collections.deque(self.fifo, maxlen)
         self._trim()
@@ -305,10 +353,9 @@ class Timer:
         def handle_expire(t):
             print(f'{t.repeat=}')
 
-        # This will cause handle_expire to be called twice. The output will be
-        # (Or is the sqeuence 2, 1~):
-        #     t.remaining=1
-        #     t.remaining=0
+        # This will cause handle_expire to be called twice. The output will be:
+        #     t.repeat=2
+        #     t.repeat=1
         t = Timer(ms=100, handle_expire, repeat=2)
 
     The status of a timer can be queried using the properties `time`, `repeat`,
@@ -653,8 +700,18 @@ class Function(_vim.Function):
 
 
 class Registers:
-    """Pythonic access to the Vim registers."""
+    """Dictionary like access to the Vim registers.
 
+    This allows Vim's registers to be read and modified. This is typically via
+    the `Vim.registers` attribute.:<py>:
+
+        vim.registers['a'] = 'A line of text'
+        prev_copy = vim.registers[1]
+
+    This uses :vim:`eval' to read registers and :vim:`setreg` to write them.
+    Keys are converted to strings before performing the register lookup. If the
+    key is '=' then the un-evaluated contents of the register are returned.
+    """
     def __getitem__(self, reg_name):
         """Allow reading registers as dictionary entries.
 
@@ -688,6 +745,10 @@ class Vim:
 
     @property
     def registers(self):
+        """Dictionary like access to Vim's registers.
+
+        This returns a `Registers` object.
+        """
         return self._registers
 
     def vim(self):
