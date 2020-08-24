@@ -1,0 +1,3 @@
+#!/bin/bash
+
+wad --tree='..:*.py' ./run_tests

@@ -1,33 +1,33 @@
 """A pythonic API for creating syntax highlighting definitions."""
+from __future__ import annotations
 
+from typing import Dict, Tuple, List, Any, Callable, Optional, Union
+from typing import Set, Iterable
 import functools
 import weakref
 
 import vpe
 from vpe import commands
 
+delimeter_chars = '"\'/\\+?!=^_:@$%&*;~#,.'
+
 
 class _Singleton:
+    # pylint: disable=too-few-public-methods
     pass
 
 
 class SyntaxBase:
-    _keyword_options = {}
-    _match_options = {
-        'contains': lambda v: 'f={v}',
-        'display': lambda v: '',
-        'extend': lambda v: '',
-        'fold': lambda v: '',
-    }
-    _region_options = {
+    """Base class for various syntax support classes."""
+    # pylint: disable=too-few-public-methods
+    _region_options: Dict[str, Callable] = {
         'concealends': lambda v: '',
         'contains': lambda v: 'f={v}',
         'display': lambda v: '',
         'extend': lambda v: '',
-        'extend': lambda v: '',
         'fold': lambda v: '',
     }
-    _other_options = {
+    _other_options: Dict[str, Callable] = {
         'cchar': lambda v: 'f={v}',
         'conceal': lambda v: '',
         'contained': lambda v: '',
@@ -42,15 +42,18 @@ class SyntaxBase:
     ALLBUT = _Singleton()
     ALL = _Singleton()
 
-    def _format_options(self, options, supported):
-        s = []
-        for name, value in options.items():
-            if value:
-                fmt = supported.get(name, self._other_options.get(name))
-                s.append(f'{name}{fmt(value)}')
-        return tuple(s)
+    @staticmethod
+    def get_offsets(
+            options: dict, offset_names: Iterable[str]) -> Tuple[str, dict]:
+        """Extract the offset arguments from keyword options.
 
-    def get_offsets(self, options, offset_names):
+        :options:      A dictionary of options.
+        :offset_names: The offset option names to extract.
+        :return:
+            A tuple of the extracted offsets and the remaining options. The
+            offsets value is a string of the form name=value[,...], ready to
+            use in the Vim syntax command.
+        """
         offsets = ','.join(
             f'{n}={v}' for n, v in options.items() if n in offset_names)
         options = {n: v for n, v in options.items() if n not in offset_names}
@@ -58,20 +61,41 @@ class SyntaxBase:
 
 
 class Option:
-    def __init__(self, name, value):
+    """Base class for the syntax command options."""
+    # pylint: disable=too-few-public-methods
+
+    def vim_fmt(self) -> str:
+        """Format the option as a string for use in a :syntax command."""
+
+
+class SimpleOption(Option):
+    """A simple syntax option.
+
+    :name:  The option's name.
+    :value: If true then the option is enabled.
+    """
+    # pylint: disable=too-few-public-methods
+    def __init__(self, name: str, value: bool):
         self.name = name
         self.value = value
 
-    def vim_fmt(self):
+    def vim_fmt(self) -> str:
+        """Format the option as a string for use in a :syntax command."""
         if self.value:
             return f'{self.name}'
         return ''
 
 
 class Contains(Option):
-    name = 'contains'
+    """Store for the syntax contains option.
 
-    def __init__(self, *groups):
+    :groups: This can optionally be initialised with one or more groups.
+    """
+    # pylint: disable=too-few-public-methods
+    name = 'contains'
+    groups: List[Group]
+
+    def __init__(self, *groups: Group):
         self.groups = []
         for g in groups:
             if isinstance(g, tuple):
@@ -82,22 +106,26 @@ class Contains(Option):
             assert not isinstance(g, str)
 
     def vim_fmt(self):
-        if not self.groups:
-            return ''
         if Syntax.ALL in self.groups:
             return 'contains=ALL'
 
         args = []
         if Syntax.ALLBUT in self.groups:
             args.append('ALLBUT')
-        opt_sort = lambda x: x
-        args.extend(opt_sort(
+        args.extend(sorted(
             g.arg_name for g in self.groups if g is not Syntax.ALLBUT))
         return f'{self.name}={",".join(args)}'
 
 
 class GroupOption(Option):
-    def __init__(self, group):
+    """Base class for group options.
+
+    :group: A group instance.
+    """
+    # pylint: disable=too-few-public-methods
+    name: str = ''
+
+    def __init__(self, group: Group):
         self.group = group
 
     def vim_fmt(self):
@@ -105,14 +133,24 @@ class GroupOption(Option):
 
 
 class MatchGroup(GroupOption):
+    """A matchgroup option."""
+    # pylint: disable=too-few-public-methods
     name = 'matchgroup'
 
 
 class NextGroup(GroupOption):
+    """A nextgroup option."""
+    # pylint: disable=too-few-public-methods
     name = 'nextgroup'
 
 
 class LocationGroup(GroupOption):
+    """A grouphere or groupthere option.
+
+    :name:  The option name - 'grouphere' or groupthere'.
+    :group: A group instance.
+    """
+    # pylint: disable=too-few-public-methods
     def __init__(self, name, group):
         super().__init__(group)
         self.name = name
@@ -122,72 +160,110 @@ class LocationGroup(GroupOption):
 
 
 class NamedSyntaxItem(SyntaxBase):
+    """A syntax item with an assigned name.
 
-    def __init__(self, syn, name, std=False):
+    :syn:  The `Syntax` instance that created this item.
+    :name: A name for the item.
+    :std:  If true then the item is treated as not in the Syntax object's
+           namespace.
+    """
+    def __init__(self, syn: Syntax, name: str, std=False):
         self.syn = weakref.proxy(syn)
         self._name = name
         self._std = std
 
     @property
-    def name(self):
+    def name(self) -> str:
+        """The base name of this item, without the Sytntax ojbect's prefix."""
         return self._name
 
     @property
-    def qual_name(self):
+    def qual_name(self) -> str:
+        """The qualified name of this item.
+
+        It this was created with std=True then this is the same as the `name`.
+        Otherwise the parent Syntax object's namespace is assed to `name` as a
+        prefix.
+        """
         if self._std:
             return self._name
         return self.syn.fmt_group(self._name)
 
     @property
-    def arg_name(self):
+    def arg_name(self) -> str:
+        """A suitable name when used as an argument."""
         return self.qual_name
 
 
-class NoneGroup(NamedSyntaxItem):
+class _NoneGroup(NamedSyntaxItem):
     def __init__(self):
+        # pylint: disable=super-init-not-called
         pass
 
     @property
     def qual_name(self):
+        """The qualified name of this item - fixed as NONE."""
         return 'NONE'
 
 
-def extract_keys(d, *names):
-    extracted = {}
-    for name in names:
-        if name in d:
-            extracted[name] = d.pop(name)
-    return extracted
-
-
 class Region(SyntaxBase):
+    """A context manager for adding a region  to a group.
+
+    :syn:     The `Syntax` instance that created this item.
+    :syn_cmd: The syntax command function.
+    :name:    A name for the item.
+    :options: Named options for the region command.
+    """
+    # pylint: disable=too-many-instance-attributes
     _options = {
         'concealends': lambda v: '',
         'contains': lambda v: 'f={v}',
         'display': lambda v: '',
         'extend': lambda v: '',
-        'extend': lambda v: '',
         'fold': lambda v: '',
     }
 
-    def __init__(self, syn, syn_cmd, name, **options):
+    def __init__(self, syn: Syntax, syn_cmd: Callable, name: str, **options):
         self.syn = syn
         self.syn_cmd = syn_cmd
         self.qual_name = name
-        self.starts, self.skips, self.ends = [], [], []
+        self.starts: List[Start] = []
+        self.skips: List[Skip] = []
+        self.ends: List[End] = []
         self.preview = options.pop('preview', False)
         self.options = convert_syntax_options(options)
 
-    def start(self, *pat, **kwargs):
-        self.starts.append(Start(*pat, **kwargs))
+    def start(self, pat: str, *pats: str, **kwargs) -> Region:
+        """Define a start pattern
+
+        :pat:    The first part of the regular expression string.
+        :pats:   Additional expression strings. These are concatenated with
+                 *pat* to form the complete regular expression.
+        :kwargs: Additional options for the region start.
+        """
+        self.starts.append(Start(pat, *pats, **kwargs))
         return self
 
-    def skip(self, *pat, **kwargs):
-        self.skips.append(Skip(*pat, **kwargs))
+    def skip(self, pat: str, *pats: str, **kwargs) -> Region:
+        """Define a skip pattern
+
+        :pat:    The first part of the regular expression string.
+        :pats:   Additional expression strings. These are concatenated with
+                 *pat* to form the complete regular expression.
+        :kwargs: Additional options for the region skip.
+        """
+        self.skips.append(Skip(pat, *pats, **kwargs))
         return self
 
-    def end(self, *pat, **kwargs):
-        self.ends.append(End(*pat, **kwargs))
+    def end(self, pat: str, *pats: str, **kwargs) -> Region:
+        """Define an end pattern
+
+        :pat:    The first part of the regular expression string.
+        :pats:   Additional expression strings. These are concatenated with
+                 *pat* to form the complete regular expression.
+        :kwargs: Additional options for the region skip.
+        """
+        self.ends.append(End(pat, *pats, **kwargs))
         return self
 
     def __enter__(self):
@@ -201,11 +277,20 @@ class Region(SyntaxBase):
                 *[p.arg_str() for p in self.skips],
                 *[p.arg_str() for p in self.ends],
                 *[opt.vim_fmt() for opt in self.options.values()])
-            if self.preview:
-                print(self.syn.preview_last())
+            if self.preview:                                 # pragma: no cover
+                vpe.log(self.syn.preview_last())
 
 
 class Group(NamedSyntaxItem):
+    """A named syntax group.
+
+    :syn:       The `Syntax` instance that created this item.
+    :name:      A name for the item.
+    :std:       If true then the group is treated as not in the Syntax object's
+                namespace.
+    :contained: If true then all matches, keywords and regions this creates
+                automtically have the contained option set.
+    """
     region_type = Region
     syn_cmd = commands.syntax
     _pre_pat_names = 'excludenl', 'keepend', 'grouphere', 'groupthere'
@@ -214,34 +299,54 @@ class Group(NamedSyntaxItem):
         super().__init__(syn, name, std=std)
         self.linked = set()
         self.contained = contained
+        self.hl_args = {}
 
     def add_links(self, *groups):
-        """Add groups to the sent that lnk to this group."""
+        """Add groups to the set that link to this group."""
         for group in groups:
             if isinstance(group, str):
-                group = self.syn.group(group)
-            self.linked.add(group)
+                self.linked.add(self.syn.group(group))
+            else:
+                self.linked.add(group)
 
-    def add_keyword(self, *keywords, **options):
-        offsets, options = self.get_offsets(options, self._match_offset_names)
-        if self.contained:
+    def add_keyword(self, keyword, *keywords, **options):
+        """Add one or more keywords to this syntax group.
+
+        :keyword:  The first tkeyword to add.
+        :keywords: Additional tkeywords to add.
+        :options:  Options for the set of keywords.
+        """
+        keywords = keyword, *keywords
+        _, options = self.get_offsets(options, self._match_offset_names)
+        if self.contained and 'contained' not in options:
             options['contained'] = True
         options = convert_syntax_options(options)
         self.syn.schedule(
-            commands.syntax, 'keyword', f'{self.qual_name}', ' '.join(keywords),
-            *[opt.vim_fmt() for opt in options.values()])
+            commands.syntax, 'keyword', f'{self.qual_name}',
+            ' '.join(keywords),
+            *[s for opt in options.values() if (s := opt.vim_fmt())])
 
-    def add_match(self, *pat, lidx=None, lrange=None, **options):
-        """Add a syntax match for this group."""
-        pats = [str(p) for p in pat]
+    def add_match(
+            self, pat: str, *pats: str, lidx: Optional[int] = None,
+            lrange: Optional[Tuple[int, int]] = None, **options):
+        """Add a syntax match for this group.
+
+        :pat:     The first part of the regular expression string.
+        :pats:    Additional expression strings. These are concatenated with
+                  *pat* to form the complete regular expression.
+        :lidx:    The index of a line to tie the match to.
+        :lrange:  A range of lines to tie the match to.
+        :options: Additional options for the match.
+        """
+        all_pats = [str(p) for p in (pat, *pats)]
         preview = options.pop('preview', False)
         offsets, options = self.get_offsets(options, self._match_offset_names)
-        if self.contained:
+        if self.contained and 'contained' not in options:
             options['contained'] = True
         options = convert_syntax_options(options)
         pre_pat_options = extract_keys(options, *self._pre_pat_names)
         if lidx is not None:
-            pats[0:0] =  [fr'\%{lidx + 1}l']
+            all_pats[0:0] = [fr'\%{lidx + 1}l']
         elif lrange is not None:
             a, b = lrange
             prefix = ''
@@ -249,38 +354,47 @@ class Group(NamedSyntaxItem):
                 prefix += fr'\%>{a}l'
             if b is not None:
                 prefix += fr'\%<{b + 1}l'
-            pats[0:0] =  [prefix]
-        pat = ''.join(f'{p}' for p in pats)
+            all_pats[0:0] = [prefix]
+        pat = ''.join(f'{p}' for p in all_pats)
         self.syn.schedule(
             self.syn_cmd, 'match', f'{self.qual_name}',
             *[opt.vim_fmt() for opt in pre_pat_options.values()],
-            f'"{pat}"{offsets}',
+            f'{deliminate(pat)}{offsets}',
             *[opt.vim_fmt() for opt in options.values()])
-        if preview or self.name == 'Sync':
-            print(self.syn.preview_last())
+        if preview:                                          # pragma: no cover
+            vpe.log(self.syn.preview_last())
 
-    def add_region(self, *, start=None, skip=None, end=None, **options):
+    def add_region(
+            self, *, start: str, end: str, skip: Optional[str] = None,
+            **options):
         """Add a syntax region for this group.
 
         This is only suitable for simple region definitions. Only a single
         start, skip and end pattern can be added. For more complex cases use
         a `region` context.
+
+        :start:   The start pattern.
+        :end:     The end pattern.
+        :skip:    Optional skip pattern.
+        :options: Additional options for the region.
         """
+        if self.contained and 'contained' not in options:
+            options['contained'] = True
         with self.region_type(
-                self.syn, self.syn_cmd, self.qual_name, *options) as region:
-            if start:
-                region.start(start)
+                self.syn, self.syn_cmd, self.qual_name, **options) as region:
+            region.start(start)
             if skip:
                 region.skip(skip)
-            if end:
-                region.end(end)
+            region.end(end)
 
     def region(self, **options):
         """Create a region context manager.
 
         This supports regions with multiple start, skip and end patterns.
+
+        :options: Additional options for the region.
         """
-        if self.contained:
+        if self.contained and 'contained' not in options:
             options['contained'] = True
         return self.region_type(
             self.syn, self.syn_cmd, self.qual_name, **options)
@@ -292,12 +406,21 @@ class Group(NamedSyntaxItem):
             These are the same as for `vpe.highlight`, except that ``group``
             and ``clear`` should not be  used.
         """
-        vpe.highlight(group=self.qual_name, **kwargs)
+        self.hl_args.update(kwargs)
 
-    def invoke(self):
+    def set_highlight(self):
+        """Set up highlight definition for this group."""
+        if self.hl_args:
+            vpe.highlight(group=self.qual_name, **self.hl_args)
+
+    def invoke(self) -> None:
+        """Invoke any pending syntax commands.
+
+        This is only intended to be used by a `Syntax` instance.
+        """
         hilink = functools.partial(
             commands.highlight, 'default', 'link', bang=True)
-        for group in self.linked:
+        for group in sorted(self.linked, key=lambda g: g.qual_name):
             hilink(group.qual_name, self.qual_name)
 
 
@@ -306,83 +429,93 @@ class SyncGroup(Group):
     syn_cmd = functools.partial(commands.syntax, 'sync')
 
 
-def convert_syntax_options(options):
-    for name in options:
-        if name == 'contains':
-            options[name] = Contains(options[name])
-        elif name == 'matchgroup':
-            options[name] = MatchGroup(options[name])
-        elif name == 'nextgroup':
-            options[name] = NextGroup(options[name])
-        elif name in ('grouphere', 'groupthere'):
-            options[name] = LocationGroup(name, options[name])
-        else:
-            options[name] = Option(name, options[name])
-    return options
-
-
 class Syntax(SyntaxBase):
     """Context manager for defining syntax highlighting.
 
     This stores a sequence of syntax highlighting directives. The directives
-    are applied when the context is exited.
+    are executed (as syntax and highlight commands) when the context is exited.
     """
     group_type = Group
     sync_group_type = SyncGroup
+    _directives: List[Tuple[Callable, Tuple, Dict]]
 
     def __init__(self, group_prefix):
         self.prefix = group_prefix
-        self._match_options['contains'] = self._expand_groups_arg
         self.groups = {}
         self.std_groups = {}
         self.clusters = {}
 
     def std_group(self, name):
+        """Create a standard (externally defined) group.
+
+        :name: The group's full name.
+        """
         if name not in self.std_groups:
             self.std_groups[name] = self.group_type(self, name, std=True)
         return self.std_groups[name]
 
-    def group(self, name, **kwargs):
+    def group(self, name, **options):
+        """Create a group within this `syntax` object's namespace.
+
+        :name:    The group's name.
+        :options: Options for the group.
+        """
         if name not in self.groups:
-            self.groups[name] = self.group_type(self, name, **kwargs)
+            self.groups[name] = self.group_type(self, name, **options)
         return self.groups[name]
 
-    def sync_group(self, name, **kwargs):
+    def sync_group(self, name, **options):
+        """Create a sync group within this `syntax` object's namespace.
+
+        :name:    The group's name.
+        :options: Options for the group.
+        """
         if name not in self.groups:
-            self.groups[name] = self.sync_group_type(self, name, **kwargs)
+            self.groups[name] = self.sync_group_type(self, name, **options)
         return self.groups[name]
 
     def std_cluster(self, name):
+        """Create a standard (externally defined) cluster.
+
+        :name: The cluster's full name.
+        """
         if name not in self.clusters:
             self.clusters[name] = StdCluster(self, name)
         return self.clusters[name]
 
     def cluster(self, name, *add_groups):
+        """Create a cluster within this `syntax` object's namespace.
+
+        :name: The cluster's name.
+        """
         if name not in self.clusters:
             self.clusters[name] = Cluster(self, name)
         cluster = self.clusters[name]
-        cluster.add(*add_groups)
+        if add_groups:
+            cluster.add(*add_groups)
         return cluster
 
-    def fmt_group(self, name):
-        if name.startswith('@'):
-            return f'@{self.prefix}{name[1:]}'
+    def fmt_group(self, name: str) -> str:
+        """Format the name of a group, adding the Syntax object's prefix.
+
+        :name: The name of the group.
+        """
         return f'{self.prefix}{name}'
 
-    def fmt_groups(self, v):
-        if isinstance(v, str):
-            names = v.split(',')
-        else:
-            names = v
-        return ','.join(f'{self.fmt_group(name)}' for name in names)
-
-    def _expand_groups_arg(self, v):
-        return f'={self.fmt_groups(v)}'
-
     def schedule(self, func, *args, **kwargs):
+        """Add a syntax command to those scheduled for later execution.
+
+        :func:   The syntax command function.
+        :args:   Positional arguments for the command.
+        :kwargs: Keyword arguments for the command.
+        """
         self._directives.append((func, args, kwargs))
 
-    def preview_last(self):
+    def preview_last(self) -> str:
+        """Generate preview string of the last scheduled command.
+
+        This can be useful during debugging a new syntax.
+        """
         func, args, kwargs = self._directives[-1]
         return func(*args, **kwargs, preview=True)
 
@@ -399,32 +532,33 @@ class Syntax(SyntaxBase):
             group.invoke()
         for group in self.std_groups.values():
             group.invoke()
-
-
-delimeter_chars = r'"/\'+?!=^_:@$%&*;~#,.'
-
-
-def deliminate(p):
-    used = set(p)
-    for delim in delimeter_chars:
-        if delim not in used:
-            break
-    else:
-        delim = '"'
-        p = p.replace('"', r'\"')
-    return f'{delim}{p}{delim}'
+        for group in self.groups.values():
+            group.set_highlight()
 
 
 class Pattern(SyntaxBase):
+    """A syntax pattern.
 
-    def __init__(self, *pat, lidx=None, lrange=None, **options):
-        self.pat = ''.join(str(p) for p in pat)
+    :pat:     The first part of the regular expression string.
+    :pats:    Additional expression strings. These are concatenated with *pat*
+              to form the complete regular expression.
+    :lidx:    The index of a line to tie the match to.
+    :lrange:  A range of lines to tie the match to.
+    :options: Additional options, including pattern offsets.
+    """
+    _offset_names: Set
+    _name: str
+    _pre_pat_names: Tuple[str, ...]
+
+    def __init__(self, pat, *pats, lidx=None, lrange=None, **options):
+        pats = pat, *pats
+        self.pat = ''.join(str(p) for p in pats)
         self.matchgroup = options.pop('matchgroup', None)
         self.offsets, _ = self.get_offsets(options, self._offset_names)
         options = convert_syntax_options(options)
         self.pre_pat_options = extract_keys(options, *self._pre_pat_names)
         if lidx is not None:
-            self.pat =  fr'\%{lidx + 1}l' + pat
+            self.pat = fr'\%{lidx + 1}l' + self.pat
         elif lrange is not None:
             a, b = lrange
             prefix = ''
@@ -432,9 +566,10 @@ class Pattern(SyntaxBase):
                 prefix += fr'\%>{a}l'
             if b is not None:
                 prefix += fr'\%<{b + 1}l'
-            self.pat =  prefix + pat
+            self.pat = prefix + self.pat
 
-    def arg_str(self):
+    def arg_str(self) -> str:
+        """Format pattern as an argument to a ayntax command."""
         s = [opt.vim_fmt() for opt in self.pre_pat_options.values()]
         if self.matchgroup:
             s.append(f'matchgroup={self.matchgroup.qual_name}')
@@ -443,25 +578,32 @@ class Pattern(SyntaxBase):
 
 
 class Start(Pattern):
+    """A start pattern."""
     _offset_names = set(('ms', 'hs', 'rs'))
     _name = 'start'
     _pre_pat_names = ('keepend', 'extend, matchgroup')
 
 
 class Skip(Pattern):
+    """A skip pattern."""
     _offset_names = set(('me',))
     _name = 'skip'
     _pre_pat_names = ('keepend', 'extend')
 
 
 class End(Pattern):
+    """An end pattern."""
     _offset_names = set(('me', 'he', 're'))
     _name = 'end'
     _pre_pat_names = ('keepend', 'extend', 'excludenl', 'matchgroup')
 
 
 class Cluster(NamedSyntaxItem):
+    """ A cluster of groups.
 
+    :syn:  The `Syntax` instance that created this cluster.
+    :name: A name for this cluster.
+    """
     def __init__(self, syn, name):
         super().__init__(syn, name)
         self.groups = set()
@@ -470,22 +612,53 @@ class Cluster(NamedSyntaxItem):
     def arg_name(self):
         return f'@{self.qual_name}'
 
-    def add(self, *groups):
-        for group in groups:
+    def add(self, group1: Union[Group, str], /, *groups: Union[Group, str]):
+        """Add groups to the cluster.
+
+        A group argument may be a name, in which case it references or creates
+        a group within the parent `syntax` object.
+
+        :group1: The first group to be added.
+        :groups: Additional groups to be added.
+        """
+        for group in (group1, *groups):
             if isinstance(group, str):
                 self.groups.add(self.syn.group(group))
             else:
                 self.groups.add(group)
 
-    def group(self, name, **kwargs):
-        grp = self.syn.group(name, **kwargs)
+    def group(self, name, **options):
+        """Create and add a new group.
+
+        The new group is within the parent `Syntax` objects namespace. This
+        provides a convenient shortcut for:<py>:
+
+            g = syntax.group(name, ...)
+            cluster.add(g)
+
+        :name:    The name of the group.
+        :options: Options for the group.
+        """
+        grp = self.syn.group(name, **options)
         self.add(grp)
         return grp
 
     def include(self, path_name):
+        """Include Vim syntax file, adding its groups to this cluster.
+
+        This does a :vim:`syn-include` operation with a a cluster name.
+
+        :path_name: The path name of the syntax file to include. If this is
+                    a relative path, the file is searched for within the
+                    ::vim:`runtimepath`.
+        """
         self.syn.schedule(commands.syntax, 'include', self.arg_name, path_name)
 
-    def invoke(self):
+    def invoke(self) -> None:
+        """Invoke any pending syntax commands.
+
+        This is only intended to be used by a `Syntax` instance.
+        """
         if not self.groups:
             return
         cont = Contains(*self.groups)
@@ -493,12 +666,71 @@ class Cluster(NamedSyntaxItem):
 
 
 class StdCluster(Cluster):
+    """A cluster of groups, not in a `Syntax` object's namespace."""
     @property
     def arg_name(self):
+        """A suitable name when used as an argument."""
         return f'@{self.name}'
 
-    def invoke(self):
-        return
+    def invoke(self) -> None:
+        """Null operation implementation."""
 
 
-NONE = NoneGroup()
+def deliminate(pat: str) -> str:
+    """Put deliminators around a syntax expression.
+
+    If reasonably sensible, a deliminator that is not part of the pattern is
+    used. If this is not possible then the double quote character is used and
+    any double quotes within the pattern are escaped with a backslash.
+
+    :pat: The pattern to be deliminated.
+    """
+    used = set(pat)
+    for delim in delimeter_chars:
+        if delim not in used:
+            break
+    else:
+        delim = '"'
+        pat = pat.replace('"', r'\"')
+    return f'{delim}{pat}{delim}'
+
+
+def convert_syntax_options(options) -> dict:
+    """Convert values in a dictionary of option to `Option` instances.
+
+    :options: The dictionary containing keyword defined options.
+    :return:  The same (modified in place) dictionary.
+    """
+    for name in options:
+        if name == 'contains':
+            options[name] = Contains(options[name])
+        elif name == 'matchgroup':
+            options[name] = MatchGroup(options[name])
+        elif name == 'nextgroup':
+            options[name] = NextGroup(options[name])
+        elif name in ('grouphere', 'groupthere'):
+            options[name] = LocationGroup(name, options[name])
+        else:
+            options[name] = SimpleOption(name, options[name])
+    return options
+
+
+def extract_keys(source_dict: dict, *keys: Any) -> dict:
+    """Extract a set of named items from a dictionary.
+
+    Any item in *source_dict* that has a key contained in *keys* is moved to
+    a new dictionary.
+
+    :source_dict: The dictionary from which to extract the items.
+    :keys:        The keys for the items to extract.
+    :return:
+        A new dictionary containing the items remove from the *source_dict*.
+    """
+    extracted = {}
+    for name in keys:
+        if name in source_dict:
+            extracted[name] = source_dict.pop(name)
+    return extracted
+
+
+NONE = _NoneGroup()

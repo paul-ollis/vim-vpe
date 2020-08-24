@@ -82,5 +82,5 @@ This is a brief list of VPE's features.
   standard :vim:`if_pyth` versions.
 
 - Support for cleanly invoking Python functions for keyboard mappings
-  (:vim:`:nmap`), using a :vim:`popup-window`), :vim:`timers` 
+  (:vim:`:nmap`), using a :vim:`popup-window`, :vim:`timers` 
   and :vim:`autocommands`.

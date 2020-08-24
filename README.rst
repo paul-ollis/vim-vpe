@@ -8,8 +8,8 @@
 
 
 :status:
-    It must considere alpha, but I am personally using VPE to configure nearly
-    all of my Vim environment.
+    It must considered alpha, but I am personally using VPE to configure nearly
+    all of my Vim environment and for some quite complex plug-ins.
 
 
 Introduction
@@ -44,7 +44,7 @@ of enhancements.
   provide enhanced access to the corresponding Vim objects. For example
   vim.current.buffer provides a `Buffer` instance in place of Vim's standard
   `python-buffer <https://vimhelp.org/if_pyth.txt.html#python-buffer>`_. This
-  supports things like easier acces to buffer variables, more efficient buffer
+  supports things like easier access to buffer variables, more efficient buffer
   modification and per-buffer metadata storage.
 
 - The Vim registers are available using the `registers` attribute.
@@ -67,7 +67,17 @@ This is a brief list of VPE's features.
   standard `vim <https://vimhelp.org/if_pyth.txt.html#python-vim>`_ versions.
 
 - Support for cleanly invoking Python functions for keyboard `mappings
-  <https://vimhelp.org/map.txt.html#:nmap>`_, 
-  using a `popup-window <https://vimhelp.org/popup.txt.html#popup-window>`_,
-  `timers <https://vimhelp.org/eval.txt.html#timers>`_ 
-  and `autocommands <https://vimhelp.org/autocmd.txt.html#autocommands>`_.
+  <https://vimhelp.org/map.txt.html#:nmap>`_.
+
+- Pythonic support for using `popup-windows
+  <https://vimhelp.org/popup.txt.html#popup-window>`_.
+
+- Pythonic support for using `timers <https://vimhelp.org/eval.txt.html#timers>`_.
+
+- Pythonic support for `autocommands
+  <https://vimhelp.org/autocmd.txt.html#autocommands>`_ that invoke Python
+  functions.
+
+- Python support for `channels <https://vimhelp.org/channel.txt.html>`_.
+
+- Logging to a buffer. Useful when developing and debugging plug-ins.

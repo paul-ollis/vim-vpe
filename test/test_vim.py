@@ -1,227 +1,163 @@
 """The core VPE tests."""
+# pylint: disable=too-many-lines,wrong-import-position
+# pylint: disable=inconsistent-return-statements
+# pylint: disable=deprecated-method
 
-import functools
-import os
-import pathlib
-import subprocess
-import time
+from functools import partial
 
-from CleverSheep.Test import Tester
+# pylint: disable=unused-wildcard-import,wildcard-import
 from CleverSheep.Test.Tester import *
+from CleverSheep.Test.Tester import test, runModule
 
 import support
 
-
-class Base(Suite):
-    """Base for Vim tests."""
-
-    def do_checks(self):
-        i = None
-        for i, result in enumerate(support.get_test_results(
-                f'data-out/{self.name}.txt', Tester.currentTest().testID)):
-            support.check_result(result)
-        failIf(i is None, f'No results for {Tester.currentTest().testID}')
-
-        msg_path = f'data-out/{self.name}.txt.msg'
-        with open(msg_path) as f:
-            text = f.read()
-        if text.strip():
-            support.cons(text.rstrip())
-            fail(f'Messages were produced, see {msg_path}')
-
-    def suiteSetUp(self):
-        vim = self.vim = support.VimClient()
-        with open(f'data-out/{self.name}.txt', 'w'):
-            pass
-        vim.command(f'cd {os.getcwd()}')
-        sentinel = pathlib.Path('data-out/sentinel')
-        sentinel.unlink(missing_ok=True)
-        vim.command(f'py3file vim-scripts/{self.name}.py')
-
-        when = time.time() + 1.0
-        while not sentinel.exists() and time.time() < when:
-            time.sleep(0.01)
-        vim.sync()
-
-    def suiteTearDown(self):
-        pass
+import vpe
 
 
-class VimSuite(Base):
+class VimSuite(support.Base):
     """Basic behaviour of the Vim object."""
-    name = 'basic_vim'
 
-    @test(testID='vim-attr-types')
-    def vim_attr_types(self):
-        """Verify that Vim returns attributes of the correct type."""
-        self.do_checks()
+    @test(testID='vim-singleton')
+    def singleton(self):  # pylint: disable=no-self-use
+        """The Vim class instantiates as a singleton."""
+        failUnless(vpe.Vim() is vpe.vim)
 
-    @test(testID='comma-separated-flag-option')
-    def comma_separated_flags_options(self):
-        """Verify that comma separated flag options work correctly."""
-        self.do_checks()
+    @test(testID='standard-members')
+    def all_members_provided(self):
+        """The Vim replicates the vim module members.
 
-    @test(testID='flag-option')
-    def flag_options(self):
-        """Verify that flag options work correctly."""
-        self.do_checks()
+        :<py>:
 
-    @test(testID='list-option')
-    def list_options(self):
-        """Verify that list options work correctly."""
-        self.do_checks()
+            members = {}
+            member_names = (
+                'command', 'eval', 'bindeval', 'strwidth', 'foreach_rtp',
+                'chdir', 'fchdir', 'error', 'buffers', 'windows', 'tabpages',
+                'current', 'vars', 'vvars', 'options')
+            for name in member_names:
+                members[name] = (vim, name, None)
+            dump(members)
+        """
+        members = self.run_self()
+        for aname, attr in members.items():
+            failIf(attr is None, f'Vim has no {aname} member')
 
-    @test(testID='global-option')
-    def global_options(self):
-        """Verify that global options work correctly."""
-        self.do_checks()
-
-    @test(testID='vim-read-only-attrs')
-    def read_only_attrs(self):
-        """The Vim class enforces read-only attributes."""
-        self.do_checks()
-
-    @test(testID='mod-overrides-functions')
-    def mod_overrides_function(self):
-        """Vim module attributes are used in preference to Vim functions."""
-        self.do_checks()
-
-    @test(testID='current')
-    def current(self):
-        """The Vim current attributes provides wrapped attributes."""
-        self.do_checks()
-
-    @test(testID='vim-singletons')
-    def vim_singletons(self):
-        """Verify that certain Vim attributes are singletons."""
-        self.do_checks()
-
-    @test(testID='temp-options-context')
-    def temp_options(self):
-        """The temp_options method modifies options in with block."""
-        self.do_checks()
-
-    @test(testID='registers')
-    def registers(self):
-        """The registers attribute provides read/write access."""
-        self.do_checks()
-
-
-class BuffersSuite(Base):
-    """Basic behaviour of the Buffers object."""
-    name = 'basic_buffers'
-
-    @test(testID='buffers-attr-types')
-    def vim_attr_types(self):
-        """Verify that Vim returns attributes of the correct type."""
-        self.do_checks()
-
-
-class BufferSuite(Base):
-    """Basic behaviour of the Buffer object."""
-    name = 'basic_buffer'
-
-    @test(testID='buffer-attr-types')
-    def buf_attr_types(self):
-        """Verify that a vpe.Buffer returns attributes of the correct type."""
-        self.do_checks()
-
-    @test(testID='buffer-read-only-attrs')
-    def read_only_attrs(self):
-        """Certain attributes are read-only."""
-        self.do_checks()
-
-    @test(testID='buffer-name-can-be-set')
-    def read_only_attrs(self):
-        """A buffer's name attributes can be set."""
-        self.do_checks()
-
-    @test(testID='buffer-append')
-    def buf_append(self):
-        """Verify that buffers can be appended to."""
-        self.do_checks()
-
-    @test(testID='buffer-marks')
-    def buffer_marks(self):
-        """Verify that buffers marks work."""
-        self.do_checks()
-
-    @test(testID='buffer-list-context')
-    def buffer_list_context(self):
-        """Verify that a buffer can be modified using a buffer list context."""
-        self.do_checks()
-
-    @test(testID='buf-temp-options-context')
-    def temp_options(self):
-        """The temp_options method modifies options in with block."""
-        self.do_checks()
-
-    # TODO: Need tests for Buffer.vars
-
-
-class RangeSuite(Base):
-    """Basic behaviour of the Range object."""
-    name = 'basic_range'
-
-    @test(testID='range-attr-types')
-    def buf_attr_types(self):
-        """Verify that a vpe.Buffer returns attributes of the correct type."""
-        self.do_checks()
-
-    @test(testID='range-append')
-    def buf_append(self):
-        """Verify that buffers can be appended to."""
-        self.do_checks()
-
-
-class WindowsSuite(Base):
-    """Basic behaviour of the Windows object."""
-    name = 'basic_windows'
-
-    @test(testID='windows-attr-types')
-    def vim_attr_types(self):
-        """Verify that Window returns attributes of the correct type."""
-        self.do_checks()
-
-
-class WindowSuite(Base):
-    """Basic behaviour of the Window object."""
-    name = 'basic_window'
-
-    @test(testID='window-attr-types')
+    @test(testID='read-only-attrs')
     def attr_types(self):
-        """Verify that a vpe.Window returns attributes of the correct type."""
-        self.do_checks()
+        """The Vim object's attributes are read-only.
 
-    @test(testID='window-writeable-attrs')
-    def writeable_attrs(self):
-        """Verify that some window attributes are writeable."""
-        self.do_checks()
+        This prevents, for example, accidentally making the buffers
+        inaccessible.
+        """
+        for aname in (
+                'buffers', 'vars', 'vvars', 'windows', 'options', 'tabpages',
+                'current'):
+            failUnlessRaises(AttributeError, setattr, self.vim, aname, '')
 
-    @test(testID='win-temp-options-context')
-    def temp_options(self):
-        """The temp_options method modifies options in with block."""
-        self.do_checks()
+    @test(testID='return-type-wrapping')
+    def return_types_are_wrapped(self):
+        """The Vim types are wrapped for function calls.
+
+        The Vim object exposes most Vim functiona as methods. The vim.Function
+        class used for this, which results in types like vim.Dictionary being
+        returned. VPE automaticaly wraps these in easier to use types.
+        """
+        print("A", type(self.eval('vim.environ()')))
+        failUnless(isinstance(
+            self.eval('vim.environ()'), vpe.wrappers.MutableMappingProxy))
+        print(type(self.eval('vim.timer_info(0)')))
+        failUnless(isinstance(
+            self.eval('vim.timer_info(0)'), vpe.wrappers.MutableSequenceProxy))
+        failUnless(isinstance(self.eval('vim.string(0)'), str))
+        failUnless(isinstance(self.eval('vim.abs(-1)'), int))
+        failUnless(isinstance(self.eval('vim.ceil(1.5)'), float))
+
+    @test(testID='temp-options-1')
+    def temp_options_context(self):
+        """Vim.temp_options makes it easy to work with different option values.
+
+        Changes made via context manager is active get restored.
+
+        :<py>:
+
+            res = Struct()
+            bg = _vim.options['background']
+            alt_bg = b'dark' if bg == b'light' else b'light'
+            res.orig_bg = bg
+            res.alt_bg = alt_bg
+            with vim.temp_options() as temp_opt:
+                temp_opt['background'] = alt_bg
+                res.in_context_bg = _vim.options['background']
+            res.post_context_bg = _vim.options['background']
+
+            dump(res)
+        """
+        res = self.run_self()
+        failUnlessEqual(res.alt_bg, res.in_context_bg)
+        failUnlessEqual(res.orig_bg, res.post_context_bg)
+
+    @test(testID='temp-options-2')
+    def temp_options_context_init_vals(self):
+        """Vim.temp_options can have preset values for the context.
+
+        Changes made via context manager is active get restored.
+
+        :<py>:
+
+            res = Struct()
+            bg = _vim.options['background']
+            alt_bg = b'dark' if bg == b'light' else b'light'
+            res.orig_bg = bg
+            res.alt_bg = alt_bg
+            temp_opt_cm = vim.temp_options(background=alt_bg)
+            res.pre_context_bg = _vim.options['background']
+            with temp_opt_cm:
+                res.in_context_bg = _vim.options['background']
+            res.post_context_bg = _vim.options['background']
+
+            dump(res)
+        """
+        res = self.run_self()
+        failUnlessEqual(res.orig_bg, res.pre_context_bg)
+        failUnlessEqual(res.alt_bg, res.in_context_bg)
+        failUnlessEqual(res.orig_bg, res.post_context_bg)
+
+    @test(testID='vim-to-py-script')
+    def vim_to_py_script(self):
+        """The script_py_path function converts source path to python path.
+
+        :<py>:
+
+            res = Struct()
+            res.py_path = vpe.script_py_path()
+            dump(res)
+        """
+        with open('/tmp/script.vim', 'wt') as f:
+            f.write('py3file /tmp/test.py\n')
+        with open('/tmp/test.py', 'wt') as f:
+            f.write(self.mycode())
+        self.vs.execute_vim('source /tmp/script.vim')
+        res = self.result()
+        failUnless('/tmp/script.py', res.py_path)
+
+    @test(testID='vim-registers')
+    def vim_registers(self):
+        """The registers property allows read/write access to the registers.
+
+        :<py>:
+
+            res = Struct()
+            vim.registers['a'] = 'Hello'
+            res.a1 = vim.registers['a']
+            res.a2 = vim.eval('@a')
+            vim.registers['a'] = 'Bye'
+            res.a3 = vim.eval('@a')
+            dump(res)
+        """
+        res = self.run_self()
+        failUnlessEqual('Hello', res.a1)
+        failUnlessEqual('Hello', res.a2)
+        failUnlessEqual('Bye', res.a3)
 
 
-class TabPagesSuite(Base):
-    """Basic behaviour of the TabPages object."""
-    name = 'basic_tabpages'
-
-    @test(testID='tabpages-attr-types')
-    def vim_attr_types(self):
-        """Verify that TabPage returns attributes of the correct type."""
-        self.do_checks()
-
-
-class TabPageSuite(Base):
-    """Basic behaviour of the TabPage object."""
-    name = 'basic_tabpage'
-
-    @test(testID='tabpage-attr-types')
-    def attr_types(self):
-        """Verify that a vpe.TabPage returns attributes of the correct type."""
-        self.do_checks()
-
-
-runModule()
+if __name__ == '__main__':
+    runModule()

@@ -1,24 +1,32 @@
+from typing import Union
+
 import pathlib
 import sys
 
-# Make sure that the doculate code can be imported.
-root_path = pathlib.Path('~/develop/main/cs-test-dev/cs-toolkit/doc')
-root_path = root_path.expanduser()
-src_path = root_path
-src_path_name = str(src_path)
-while src_path_name in sys.path:
-    sys.path.remove(src_path_name)
-sys.path[0:0] = [src_path_name]
+print()
 
-# Make sure that the Vim VPE code can be imported.
-root_path = pathlib.Path.cwd().parent
-src_path = root_path
-src_path_name = str(src_path)
-while src_path_name in sys.path:
-    sys.path.remove(src_path_name)
-sys.path[0:0] = [src_path_name]
+
+def ensure_dir_is_in_sys_path(path: Union[pathlib.Path, str]):
+    """Ensure that a given directory is in sys.path.
+
+    :path: May refer to a directory or a file within the required directory.
+    """
+    full_path = pathlib.Path(path).expanduser()
+    if full_path.is_file():
+        full_path = full_path.parent
+    path_name = str(full_path)
+    if path_name not in sys.path:
+        sys.path[0:0] = [path_name]
+
+
+# Make sure that we can import the doculate code and the VPE code.
+src_path = pathlib.Path.cwd().parent
+ensure_dir_is_in_sys_path('~/develop/main/cs-test-dev/cs-toolkit/doc')
+ensure_dir_is_in_sys_path(src_path)
+ensure_dir_is_in_sys_path(src_path / 'stub')
 
 import doculate
+print(f'{doculate.__file__=}')
 doculate.gen_api_tree(root_path=src_path, mod_name='vpe')
 
 # TODO: Sort this out! 
@@ -39,7 +47,17 @@ sphinxConfig.add_to_syspath(str(root_path))
 sphinxConfig.add_extension("vimhelp")
 sphinxConfig.add_extension("sphinx.ext.graphviz")
 sphinxConfig.add_extension("sphinx.ext.autodoc")
-sphinxConfig.conf["exclude_patterns"] = []
+sphinxConfig.conf["exclude_patterns"] = [
+    'api/vpe.channels.rst',
+    'api/vpe.colors.rst',
+    'api/vpe.current.rst',
+    'api/vpe.dictionaries.rst',
+    'api/vpe.options.rst',
+    'api/vpe.proxies.rst',
+    'api/vpe.tabpages.rst',
+    'api/vpe.variables.rst',
+    'api/vpe.windows.rst',
+]
 sphinxConfig.conf["html_theme_path"] = [paul_theme_path]
 sphinxConfig.conf["html_theme"] = "paul"
 sphinxConfig.conf["pygments_style"] = "manni"

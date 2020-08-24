@@ -7,19 +7,6 @@ if exists('g:loaded_vpe')
 endif
 let g:loaded_vpe = 1
 
-function! VPE_Call(uid, ...)
-    let g:_vpe_args_ = {}
-    let g:_vpe_args_['uid'] = a:uid
-    let g:_vpe_args_['args'] = a:000
-    return py3eval('vpe.Callback.invoke()')
-endfunction
-
-function! VPE_MappingCall(uid)
-    let g:_vpe_args_ = {}
-    let g:_vpe_args_['uid'] = a:uid
-    return py3eval('vpe.MapCallback.invoke()')
-endfunction
-
 command! VPERunThisAsPy call py3eval('VPE_run_this_as_py()')
 
 py3 <<EOF
@@ -32,29 +19,28 @@ def _init_vpe_():
 
     import pathlib
     import sys
+    import vim as _vim
 
-    import vim
-
-    this_dir = pathlib.Path(vim.eval("expand('<sfile>')")).parent
+    this_dir = pathlib.Path(_vim.eval("expand('<sfile>')")).parent
     pack_dir = str(this_dir.parent.parent.parent)
     if pack_dir not in sys.path:
        sys.path.append(pack_dir)
 
-    # " If the user has set g:vpe_post_load_initrc then try to source it as a
+    # If the user has set g:vpe_post_load_initrc then try to source it as a
     # vim script.
-    if 'vpe_post_load_initrc' in vim.vars:
-        vim.command(f'source {vim.vars["vpe_post_load_initrc"].decode()}')
+    if 'vpe_post_load_initrc' in _vim.vars:
+        _vim.command(f'source {vim.vars["vpe_post_load_initrc"].decode()}')
 
 
 def VPE_run_this_as_py():
     import importlib
     import pathlib
 
-    import vim
+    import vim as _vim
 
     try:
-        this_script = pathlib.Path(vim.eval("expand('<sfile>')"))
-        this_dir = pathlib.Path(vim.eval("expand('<sfile>')")).parent
+        this_script = pathlib.Path(_vim.eval("expand('<sfile>')"))
+        this_dir = pathlib.Path(_vim.eval("expand('<sfile>')")).parent
         mod_name = f'{this_script.parent.name}.{this_script.stem}'
         mod = importlib.import_module(mod_name)
         mod.run()
