@@ -13,10 +13,10 @@ py3 <<EOF
 def _init_vpe_():
     """Initialise access to the VPE package.
 
-    This is just a case of making sure that the correct directory is in sys.path.
-    It will also source an optional post-initialisation script.
+    This is primarily a case of making sure that the correct directory is in
+    sys.path.
     """
-
+    # Use imports within function to minimise global namespace polution.
     import pathlib
     import sys
     import vim as _vim
@@ -26,13 +26,14 @@ def _init_vpe_():
     if pack_dir not in sys.path:
        sys.path.append(pack_dir)
 
-    # If the user has set g:vpe_post_load_initrc then try to source it as a
-    # vim script.
-    if 'vpe_post_load_initrc' in _vim.vars:
-        _vim.command(f'source {vim.vars["vpe_post_load_initrc"].decode()}')
-
 
 def VPE_run_this_as_py():
+    """Run a Python shadow of the current Vim script.
+    
+    For example, if invoked from .vim/syntax/mysyntax.vim then
+    .vim/syntax/mysyntax.py is imported its 'run()' function invoked.
+    """
+    # Use imports within function to minimise global namespace polution.
     import importlib
     import pathlib
 
