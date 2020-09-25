@@ -3,7 +3,6 @@
 This module provides support for mapping key sequences to Python function
 calls.
 """
-from __future__ import annotations
 
 from typing import Tuple, Optional, List, Callable
 import traceback

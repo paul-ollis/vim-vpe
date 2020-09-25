@@ -1,5 +1,4 @@
 """Development of channel support."""
-from __future__ import annotations
 
 from typing import Any, Optional, Tuple, Dict, ClassVar, Union, List
 from functools import partial
@@ -173,7 +172,7 @@ class Channel:
     vch: VimChannel
 
     def __init__(
-            self, net_address: str, /, drop: str = None, noblock: bool = None,
+            self, net_address: str, drop: str = None, noblock: bool = None,
             waittime: int = None, timeout_ms: int = None):
         self.net_address = net_address
         options = self._build_options(
@@ -238,7 +237,7 @@ class Channel:
             ch.close()
 
     @classmethod
-    def _get_active_channel(cls) -> Optional[Channel]:
+    def _get_active_channel(cls) -> Optional["Channel"]:
         """Get the Channel instance for the current callback."""
         ref = cls.channels.get(wrappers.vim.vars.VPE_read_channel_info['id'])
         return None if ref is None else ref()

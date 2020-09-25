@@ -3,7 +3,6 @@
 You should not normally need to import this module directly.
 """
 # pylint: disable=too-many-lines
-from __future__ import annotations
 
 from typing import Set, ClassVar, Any, Dict, Optional, List, Tuple, Union
 from typing import Type, Callable
@@ -457,7 +456,7 @@ class Buffer(MutableSequenceProxy):
       buffer with some of its options temporarily modified.
     - Buffer specific meta-data can be attached using the `store`.
     """
-    _known: Dict[int, Buffer] = {}
+    _known: Dict[int, "Buffer"] = {}
     _writeable = set(('name',))
 
     def __init__(self, buffer):
@@ -507,7 +506,7 @@ class Buffer(MutableSequenceProxy):
         return iter(self._proxied)
 
     @classmethod
-    def get_known(cls, buffer: Any) -> Optional[Buffer]:
+    def get_known(cls, buffer: Any) -> Optional["Buffer"]:
         """Get the Buffer instance for a given vim.buffer.
 
         This is only intended for internal use.
@@ -529,7 +528,7 @@ class Buffer(MutableSequenceProxy):
             return False
 
     @property
-    def vars(self) -> Variables:
+    def vars(self) -> "Variables":
         """The buffar vars wrapped as a `Variables` instance."""
         return Variables(self._proxied.vars)
 
@@ -621,7 +620,7 @@ class Window(Proxy):
         self.__dict__['id'] = vpe.vim.win_getid(n_win, n_tab)
 
     @property
-    def vars(self) -> Variables:
+    def vars(self) -> "Variables":
         """The buffar vars wrapped as a `Variables` instance."""
         return Variables(self._proxied.vars)
 

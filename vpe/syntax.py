@@ -1,5 +1,4 @@
 """A pythonic API for creating syntax highlighting definitions."""
-from __future__ import annotations
 
 from typing import Dict, Tuple, List, Any, Callable, Optional, Union
 from typing import Set, Iterable
@@ -92,9 +91,9 @@ class Contains(Option):
     """
     # pylint: disable=too-few-public-methods
     name = 'contains'
-    groups: List[Group]
+    groups: List["Group"]
 
-    def __init__(self, *groups: Group):
+    def __init__(self, *groups: "Group"):
         self.groups = []
         for g in groups:
             if isinstance(g, tuple):
@@ -124,7 +123,7 @@ class GroupOption(Option):
     # pylint: disable=too-few-public-methods
     name: str = ''
 
-    def __init__(self, group: Group):
+    def __init__(self, group: "Group"):
         self.group = group
 
     def vim_fmt(self):
@@ -166,7 +165,7 @@ class NamedSyntaxItem(SyntaxBase):
     :std:  If true then the item is treated as not in the Syntax object's
            namespace.
     """
-    def __init__(self, syn: Syntax, name: str, std=False):
+    def __init__(self, syn: "Syntax", name: str, std=False):
         self.syn = weakref.proxy(syn)
         self._name = name
         self._std = std
@@ -222,7 +221,7 @@ class Region(SyntaxBase):
         'fold': lambda v: '',
     }
 
-    def __init__(self, syn: Syntax, syn_cmd: Callable, name: str, **options):
+    def __init__(self, syn: "Syntax", syn_cmd: Callable, name: str, **options):
         self.syn = syn
         self.syn_cmd = syn_cmd
         self.qual_name = name
@@ -232,7 +231,7 @@ class Region(SyntaxBase):
         self.preview = options.pop('preview', False)
         self.options = convert_syntax_options(options)
 
-    def start(self, pat: str, *pats: str, **kwargs) -> Region:
+    def start(self, pat: str, *pats: str, **kwargs) -> "Region":
         """Define a start pattern
 
         :pat:    The first part of the regular expression string.
@@ -243,7 +242,7 @@ class Region(SyntaxBase):
         self.starts.append(Start(pat, *pats, **kwargs))
         return self
 
-    def skip(self, pat: str, *pats: str, **kwargs) -> Region:
+    def skip(self, pat: str, *pats: str, **kwargs) -> "Region":
         """Define a skip pattern
 
         :pat:    The first part of the regular expression string.
@@ -254,7 +253,7 @@ class Region(SyntaxBase):
         self.skips.append(Skip(pat, *pats, **kwargs))
         return self
 
-    def end(self, pat: str, *pats: str, **kwargs) -> Region:
+    def end(self, pat: str, *pats: str, **kwargs) -> "Region":
         """Define an end pattern
 
         :pat:    The first part of the regular expression string.
@@ -323,7 +322,7 @@ class Group(NamedSyntaxItem):
         self.syn.schedule(
             vpe.commands.syntax, 'keyword', f'{self.qual_name}',
             ' '.join(keywords),
-            *[s for opt in options.values() if (s := opt.vim_fmt())])
+            *[opt.vim_fmt() for opt in options.values() if opt.vim_fmt()])
 
     def add_match(
             self, pat: str, *pats: str, lidx: Optional[int] = None,
@@ -613,7 +612,7 @@ class Cluster(NamedSyntaxItem):
     def arg_name(self):
         return f'@{self.qual_name}'
 
-    def add(self, group1: Union[Group, str], /, *groups: Union[Group, str]):
+    def add(self, group1: Union[Group, str], *groups: Union[Group, str]):
         """Add groups to the cluster.
 
         A group argument may be a name, in which case it references or creates

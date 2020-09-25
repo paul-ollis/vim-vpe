@@ -24,8 +24,6 @@ versions of *vpe* will be backwardly compatible with version 8.1.
 """
 # pylint: disable=too-many-lines
 
-from __future__ import annotations
-
 from typing import Optional, Any, Tuple, Dict
 import collections
 import functools
@@ -922,7 +920,7 @@ class AutoCmdGroup:
         common.vim_command('autocmd!')
 
     @staticmethod
-    def add(event, /, func, *, pat='<buffer>', once=False, nested=False):
+    def add(event, func, *, pat='<buffer>', once=False, nested=False):
         """Add a new auto command to the group.
 
         :event:  The name of the event.
