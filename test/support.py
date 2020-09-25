@@ -8,10 +8,10 @@ import pickle
 from typing import ClassVar, Optional, Callable, Iterator
 
 # pylint: disable=unused-wildcard-import,wildcard-import
-from CleverSheep.Test.Tester import *
+from cleversheep3.Test.Tester import *
 
 # Some explicit imports to make mypy happy.
-from CleverSheep.Test.Tester import fail, Suite
+from cleversheep3.Test.Tester import fail, Suite
 
 import vim_if
 
