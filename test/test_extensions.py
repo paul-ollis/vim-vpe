@@ -171,7 +171,7 @@ class Timers(support.Base):
             res = self.do_continue()
             count += 1
         failUnlessEqual(1, res.ticks)
-        failUnless(count > 1)
+        failUnless(count > 0)
         failUnless(500, res.init_time)
 
     @test(testID='timer-repeat')
