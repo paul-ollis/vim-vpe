@@ -1,0 +1,3 @@
+[submodule "cleversheep3"]
+	path = cleversheep3
+	url = https://github.com/paul-ollis/cleversheep3.git

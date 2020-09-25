@@ -10,8 +10,8 @@ import time
 import traceback
 
 # pylint: disable=unused-wildcard-import,wildcard-import
-from CleverSheep.Test.Tester import *
-from CleverSheep.Test.Tester import test, runModule
+from cleversheep3.Test.Tester import *
+from cleversheep3.Test.Tester import test, runModule
 
 import support
 
