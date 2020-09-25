@@ -66,6 +66,15 @@ class CodeSource:
             from vpe import vim
             import vpe
 
+            vim.current.buffer.name = '/tmp/test.txt'
+
+            try:
+                bufadd = vim.bufadd
+            except AttributeError:
+                def bufadd(name):
+                    vim.command(f'enew')
+                    vim.current.buffer.name = name
+
             # Remove all but the first buffer.
             def zap_bufs():
                 numbers = [buf.number for buf in vim.buffers]
@@ -75,7 +84,7 @@ class CodeSource:
             # Switch the current buffer to another.
             def get_alt_buffer():
                 if len(vim.buffers) < 2:
-                    vim.bufadd('two')
+                    bufadd('two')
                 n = vim.current.buffer.number
                 for b in vim.buffers:
                     if b.number != n:

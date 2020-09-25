@@ -108,16 +108,16 @@ class Windows(support.Base):
 
             res = Struct()
             window = vim.current.window
-            res.glob_sb = vim.options.showbreak
-            window.options.showbreak = vim.options.showbreak + '...'
-            res.win_sb = window.options.showbreak
-            res.glob_sb_two = vim.options.showbreak
+            res.glob_sl = vim.options.statusline
+            window.options.statusline = vim.options.statusline + 'xx'
+            res.win_sl = window.options.statusline
+            res.glob_sl_two = vim.options.statusline
 
             dump(res)
         """
         res = self.run_self()
-        failUnlessEqual(res.glob_sb + '...', res.win_sb)
-        failUnlessEqual(res.glob_sb, res.glob_sb_two)
+        failUnlessEqual(res.glob_sl + 'xx', res.win_sl)
+        failUnlessEqual(res.glob_sl, res.glob_sl_two)
 
     @test(testID='win-valid-flag')
     def window_valid_flag(self):
@@ -171,23 +171,23 @@ class Windows(support.Base):
             res = Struct()
             win = vim.current.window
 
-            res.orig_sb = win.options['showbreak']
+            res.orig_sl = win.options['statusline']
             with win.temp_options() as opts:
-                opts.showbreak = res.orig_sb + '...'
-                res.temp_sb = win.options['showbreak']
-            res.restored_sb = win.options['showbreak']
+                opts.statusline = res.orig_sl + 'xx'
+                res.temp_sl = win.options['statusline']
+            res.restored_sl = win.options['statusline']
 
-            with win.temp_options(showbreak=res.orig_sb + '...'):
-                res.temp_sb2 = win.options['showbreak']
-            res.restored_sb2 = win.options['showbreak']
+            with win.temp_options(statusline=res.orig_sl + 'xx'):
+                res.temp_sl2 = win.options['statusline']
+            res.restored_sl2 = win.options['statusline']
 
             dump(res)
         """
         res = self.run_self()
-        failUnlessEqual(res.orig_sb + '...', res.temp_sb)
-        failUnlessEqual(res.orig_sb, res.restored_sb)
-        failUnlessEqual(res.orig_sb + '...', res.temp_sb2)
-        failUnlessEqual(res.orig_sb, res.restored_sb2)
+        failUnlessEqual(res.orig_sl + 'xx', res.temp_sl)
+        failUnlessEqual(res.orig_sl, res.restored_sl)
+        failUnlessEqual(res.orig_sl + 'xx', res.temp_sl2)
+        failUnlessEqual(res.orig_sl, res.restored_sl2)
 
     @test(testID='win-save-view')
     def saved_window_view(self):

@@ -37,8 +37,8 @@ class BuffersList(support.Base):
             res = Struct()
             buffers = _vim.buffers
             res.init_len = len(buffers)
-            vim.bufadd('two')
-            vim.bufadd('three')
+            bufadd('two')
+            bufadd('three')
             res.len_three = len(buffers)
 
             vpe.commands.bwipeout('two')
@@ -151,7 +151,7 @@ class Buffers(support.Base):
         :<py>:
 
             res = Struct()
-            vim.bufadd('/tmp/one')
+            bufadd('/tmp/one')
             for b in vim.buffers:
                 if b.name == '/tmp/one':
                     break

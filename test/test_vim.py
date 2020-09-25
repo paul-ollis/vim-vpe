@@ -61,9 +61,10 @@ class VimSuite(support.Base):
         class used for this, which results in types like vim.Dictionary being
         returned. VPE automaticaly wraps these in easier to use types.
         """
-        print("A", type(self.eval('vim.environ()')))
+        print("A>>>", type(self.eval('vim.getcharsearch()')))
         failUnless(isinstance(
-            self.eval('vim.environ()'), vpe.wrappers.MutableMappingProxy))
+            self.eval('vim.getcharsearch()'),
+            vpe.wrappers.MutableMappingProxy))
         print(type(self.eval('vim.timer_info(0)')))
         failUnless(isinstance(
             self.eval('vim.timer_info(0)'), vpe.wrappers.MutableSequenceProxy))
@@ -75,7 +76,7 @@ class VimSuite(support.Base):
     def temp_options_context(self):
         """Vim.temp_options makes it easy to work with different option values.
 
-        Changes made via context manager is active get restored.
+        Changes made when the context manager is active get restored.
 
         :<py>:
 

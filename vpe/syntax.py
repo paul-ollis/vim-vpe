@@ -7,7 +7,6 @@ import functools
 import weakref
 
 import vpe
-from vpe import commands
 
 delimeter_chars = '"\'/\\+?!=^_:@$%&*;~#,.'
 
@@ -292,7 +291,6 @@ class Group(NamedSyntaxItem):
                 automtically have the contained option set.
     """
     region_type = Region
-    syn_cmd = commands.syntax
     _pre_pat_names = 'excludenl', 'keepend', 'grouphere', 'groupthere'
 
     def __init__(self, syn, name, std=False, contained=False):
@@ -300,6 +298,7 @@ class Group(NamedSyntaxItem):
         self.linked = set()
         self.contained = contained
         self.hl_args = {}
+        self.syn_cmd = vpe.commands.syntax
 
     def add_links(self, *groups):
         """Add groups to the set that link to this group."""
@@ -322,7 +321,7 @@ class Group(NamedSyntaxItem):
             options['contained'] = True
         options = convert_syntax_options(options)
         self.syn.schedule(
-            commands.syntax, 'keyword', f'{self.qual_name}',
+            vpe.commands.syntax, 'keyword', f'{self.qual_name}',
             ' '.join(keywords),
             *[s for opt in options.values() if (s := opt.vim_fmt())])
 
@@ -419,14 +418,16 @@ class Group(NamedSyntaxItem):
         This is only intended to be used by a `Syntax` instance.
         """
         hilink = functools.partial(
-            commands.highlight, 'default', 'link', bang=True)
+            vpe.commands.highlight, 'default', 'link', bang=True)
         for group in sorted(self.linked, key=lambda g: g.qual_name):
             hilink(group.qual_name, self.qual_name)
 
 
 class SyncGroup(Group):
     """A group use for synchronisation."""
-    syn_cmd = functools.partial(commands.syntax, 'sync')
+    def __init__(self, syn, name, std=False, contained=False):
+        super().__init__(syn, name, std=std,  contained=contained)
+        self.syn_cmd = functools.partial(vpe.commands.syntax, 'sync')
 
 
 class Syntax(SyntaxBase):
@@ -520,7 +521,7 @@ class Syntax(SyntaxBase):
         return func(*args, **kwargs, preview=True)
 
     def __enter__(self):
-        self._directives = [(commands.syntax, ('clear',), {})]
+        self._directives = [(vpe.commands.syntax, ('clear',), {})]
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -652,7 +653,8 @@ class Cluster(NamedSyntaxItem):
                     a relative path, the file is searched for within the
                     ::vim:`runtimepath`.
         """
-        self.syn.schedule(commands.syntax, 'include', self.arg_name, path_name)
+        self.syn.schedule(
+            vpe.commands.syntax, 'include', self.arg_name, path_name)
 
     def invoke(self) -> None:
         """Invoke any pending syntax commands.
@@ -662,7 +664,7 @@ class Cluster(NamedSyntaxItem):
         if not self.groups:
             return
         cont = Contains(*self.groups)
-        commands.syntax('cluster', self.qual_name, cont.vim_fmt())
+        vpe.commands.syntax('cluster', self.qual_name, cont.vim_fmt())
 
 
 class StdCluster(Cluster):

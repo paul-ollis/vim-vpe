@@ -219,7 +219,11 @@ class Function(Base):
     """Stub type for documentation, type hinting and linting."""
     # pylint: disable=too-few-public-methods
     def __init__(self, name: str, args=Optional[List[Any]]):
-        pass
+        self.name = name
+
+    def __call__(self, *args):
+        func = builtins.eval(self.name)
+        return func(*args)
 
 
 class Range(Base):

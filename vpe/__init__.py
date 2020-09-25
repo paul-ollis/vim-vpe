@@ -40,12 +40,11 @@ vim.vars[RET_VAR] = ''
 
 # pylint: disable=wrong-import-position
 from .channels import Channel  # noqa
-from . import commands  # noqa
 from . import mapping  # noqa
 from . import syntax  # noqa
 from .mapping import MapCallback  # noqa
 from .wrappers import Buffer, Buffers, Current, GlobalOptions, TabPage   # noqa
-from .wrappers import TabPages, Variables, Window, Windows               # noqa
+from .wrappers import TabPages, Variables, Window, Windows, commands     # noqa
 
 __api__ = [
     'AutoCmdGroup', 'Timer', 'Popup', 'PopupAtCursor', 'PopupBeval',

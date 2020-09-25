@@ -408,7 +408,7 @@ class JsonChannel(Channel):
 
     @test(testID='channel-remote-close')
     def remote_close(self):
-        """A remote close channel invokes the on_close callback.
+        """A remote close of channel invokes the on_close callback.
 
         The underlying Vim channel object is also released.
 

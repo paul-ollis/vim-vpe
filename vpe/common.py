@@ -77,5 +77,8 @@ def invoke_vim_function(func: Callable, *args) -> Any:
         raise VimError(e)  # pylint: disable=raise-missing-from
 
 
+_eval_func = _vim.Function('eval')
+
 vim_command = functools.partial(invoke_vim_function, _vim.command)
-vim_eval = functools.partial(invoke_vim_function, _vim.eval)
+vim_simple_eval = functools.partial(invoke_vim_function, _vim.eval)
+vim_eval = functools.partial(invoke_vim_function, _eval_func)

@@ -23,13 +23,13 @@ class Commands(support.Base):
 
         :<py>:
 
-            from vpe.commands import delete
+            from vpe import commands
 
             res = Struct()
 
             buf = vim.current.buffer
             buf[:] = [str(i) for i in range(1, 11)]
-            delete(a=9)
+            commands.delete(a=9)
             res.a = list(buf[7:])
 
             dump(res)
@@ -43,14 +43,14 @@ class Commands(support.Base):
 
         :<py>:
 
-            from vpe.commands import delete
+            from vpe import commands
 
             res = Struct()
 
             buf = vim.current.buffer
             buf[:] = [str(i) for i in range(1, 11)]
             vim.current.window.cursor = 2, 0
-            delete(b=3)
+            commands.delete(b=3)
             res.b = list(buf[0:2])
 
             dump(res)
@@ -64,13 +64,13 @@ class Commands(support.Base):
 
         :<py>:
 
-            from vpe.commands import delete
+            from vpe import commands
 
             res = Struct()
 
             buf = vim.current.buffer
             buf[:] = [str(i) for i in range(1, 11)]
-            delete(a=2, b=3, lrange=(1,5))
+            commands.delete(a=2, b=3, lrange=(1,5))
             res.b = list(buf[0:2])
 
             dump(res)
@@ -84,13 +84,13 @@ class Commands(support.Base):
 
         :<py>:
 
-            from vpe.commands import delete
+            from vpe import commands
 
             res = Struct()
 
             buf = vim.current.buffer
             buf[:] = [str(i) for i in range(1, 11)]
-            delete(lrange=(2, 3))
+            commands.delete(lrange=(2, 3))
             res.b = list(buf[0:2])
 
             dump(res)
@@ -104,13 +104,13 @@ class Commands(support.Base):
 
         :<py>:
 
-            from vpe.commands import delete
+            from vpe import commands
 
             res = Struct()
 
             buf = vim.current.buffer
             buf[:] = [str(i) for i in range(1, 11)]
-            delete(lrange=range(1, 3))
+            commands.delete(lrange=range(1, 3))
             res.b = list(buf[0:2])
 
             dump(res)
@@ -124,13 +124,13 @@ class Commands(support.Base):
 
         :<py>:
 
-            from vpe.commands import delete
+            from vpe import commands
 
             res = Struct()
 
             buf = vim.current.buffer
             buf[:] = [str(i) for i in range(1, 11)]
-            delete(lrange='2,3')
+            commands.delete(lrange='2,3')
             res.b = list(buf[0:2])
 
             dump(res)
@@ -144,13 +144,13 @@ class Commands(support.Base):
 
         :<py>:
 
-            from vpe.commands import delete
+            from vpe import commands
 
             res = Struct()
 
             buf = vim.current.buffer
             buf[:] = [str(i) for i in range(1, 11)]
-            delete('r', lrange=range(1, 3))
+            commands.delete('r', lrange=range(1, 3))
             res.r = vim.registers['r']
 
             dump(res)

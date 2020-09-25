@@ -39,9 +39,9 @@ import weakref
 import vim as _vim
 
 from . import colors
-from . import commands
 from . import common
 from . import wrappers
+import vpe
 
 __api__ = [
     'expr_arg', 'Callback',
@@ -116,7 +116,7 @@ class Scratch(wrappers.Buffer):
 
     def show(self) -> None:
         """Make this buffer visible in the current window."""
-        commands.buffer(self.number, bang=True)
+        vpe.commands.buffer(self.number, bang=True)
 
     def modifiable(self) -> wrappers.TemporaryOptions:
         """Create a context that allows the buffer to be modified."""
@@ -141,9 +141,9 @@ def get_display_buffer(name: str) -> Scratch:
         if b.name == buf_name:
             break
     else:
-        commands.new()
+        vpe.commands.new()
         b = wrappers.vim.current.buffer
-        commands.wincmd('c')
+        vpe.commands.wincmd('c')
 
     b = Scratch(buf_name, b)
     _known_special_buffers[buf_name] = b
@@ -229,7 +229,10 @@ class Log:
             with buf.modifiable():
                 buf.append(lines)
         self._trim()
-        win_execute = wrappers.vim.win_execute
+        try:
+            win_execute = wrappers.vim.win_execute
+        except AttributeError:
+            return
         if self.buf:
             for w in wrappers.vim.windows:
                 if w.buffer.number == self.buf.number:
@@ -278,9 +281,9 @@ class Log:
             if w.buffer.number == self.buf.number:
                 break
         else:
-            commands.wincmd('s')
+            vpe.commands.wincmd('s')
             self.buf.show()
-            commands.wincmd('w')
+            vpe.commands.wincmd('w')
 
     def set_maxlen(self, maxlen: int) -> None:
         """Set the maximum length of the log's FIFO.
@@ -303,7 +306,7 @@ class Timer:
     An example of usage:<py>:
 
         def handle_expire(t):
-            print(f'{t.repeat=}')
+            print(f'Remaining repeats = {t.repeat}')
 
         # This will cause handle_expire to be called twice. The output will be:
         #     t.repeat=2
@@ -762,7 +765,7 @@ class Callback:
             uid = wrappers.vim.vars['_vpe_args_']['uid']
             cb = cls.callbacks.get(uid, None)
             if cb is None:
-                log(f'{uid=} is dead!')
+                log(f'uid={uid} is dead!')
                 return 0
 
             vim_args = _vim.vars['_vpe_args_']['args']
@@ -984,16 +987,16 @@ def highlight(
         args.append('link')
         args.append(group)
         args.append(link)
-        return commands.highlight(*args)
+        return vpe.commands.highlight(*args)
     if group:
         args.append(group)
     if clear:
         args[0:0] = ['clear']
-        return commands.highlight(*args)
+        return vpe.commands.highlight(*args)
 
     if disable:
         args.append('NONE')
-        return commands.highlight(*args)
+        return vpe.commands.highlight(*args)
 
     if default:
         args.append('default')
@@ -1001,7 +1004,7 @@ def highlight(
     for name, value in kwargs.items():
         args.append(f'{name}={value}')
 
-    ret = commands.highlight(*args)
+    ret = vpe.commands.highlight(*args)
     return ret
 
 
@@ -1064,7 +1067,6 @@ def feedkeys(keys, mode=None, literal=False):
         cmd = f'call feedkeys({keys}, {mode})'
     else:
         cmd = f'call feedkeys({keys})'
-    print("FEED", repr(cmd))
     wrappers.vim.command(cmd)
 
 
@@ -1142,10 +1144,10 @@ def log_status():
     significantly between VPE releases.
     """
     # pylint: disable=protected-access
-    log(f'{len(Timer._timers)=}')
-    log(f'{len(Popup._popups)=}')
-    log(f'{len(Callback.callbacks)=}')
-    log(f'{len(Timer._timers)=}')
+    log(f'Timer._timers = {len(Timer._timers)}')
+    log(f'Popup._popups = {len(Popup._popups)}')
+    log(f'Callback.callbacks = {len(Callback.callbacks)}')
+    log(f'Timer._timers = {len(Timer._timers)}')
 
 
 def _setup_keys():

@@ -46,9 +46,13 @@ def single_quote(expr):
 
 
 class VimSession:
+    version_str = ''
+    version = []
+
     def __init__(self):
         self.proc = None
         self.execute_vim('qa!')
+        self.get_version()
         self.ensure_vim_session()
 
     def execute_vim(self, cmd):
@@ -81,12 +85,21 @@ class VimSession:
             return None
         return cproc.stdout.strip().decode()
 
+    @classmethod
+    def get_version(cls):
+        if not cls.version_str:
+            cproc = subprocess.run(['vim', '--version'], capture_output=True)
+            lines = cproc.stdout.strip().decode().splitlines()
+            cls.version_str = lines[0].split()[4]
+            cls.version = [int(p) for p in cls.version_str.split('.')[:2]]
+        return cls.version
+
     def ensure_vim_session(self):
         ret = self.eval_vim('0')
         if ret != '0':
             subprocess.run(
                 ['gvim', '--noplugin', '--servername', 'TEST',
-                 '-geometry', '+0+0'],
+                 '-geometry', '80x60+0+0'],
                 stderr=subprocess.DEVNULL)
 
             edvim = os.environ.get('EDVIM', '')
