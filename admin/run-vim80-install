@@ -1,0 +1,9 @@
+#!/bin/bash
+
+cp ~/.ssh/id_rsa* docker-files/
+docker build --target vpe-install -t vpe-install . && {
+    rm docker-files/id_rsa*
+    docker run -it --rm \
+        --net=host --env="DISPLAY" --volume="$HOME/.Xauthority:/home/paul/.Xauthority:rw" \
+        vpe-install
+}

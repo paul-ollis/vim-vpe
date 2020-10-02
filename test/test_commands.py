@@ -172,11 +172,17 @@ class Commands(support.Base):
                 res.v = func
             except AttributeError as e:
                 res.v = e
+            try:
+                func = commands.__iter__
+                res.v2 = func
+            except AttributeError as e:
+                res.v2 = e
 
             dump(res)
         """
         res = self.run_self()
         failUnless(isinstance(res.v, AttributeError))
+        failUnless(isinstance(res.v2, AttributeError))
 
 
 if __name__ == '__main__':

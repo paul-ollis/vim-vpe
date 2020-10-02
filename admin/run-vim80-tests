@@ -1,0 +1,10 @@
+#!/bin/bash
+
+cp ~/.ssh/id_rsa* docker-files/
+docker build --target vpe-test -t vim8-py36 . && {
+    rm docker-files/id_rsa*
+    docker run -it --rm \
+        --net=host --env="DISPLAY" --volume="$HOME/.Xauthority:/home/paul/.Xauthority:rw" \
+        --volume="$HOME/.vim/pack/vim-vpe:/home/paul/.vim/pack/vim-vpe" \
+        vim8-py36 
+}

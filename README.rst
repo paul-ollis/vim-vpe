@@ -70,9 +70,10 @@ This is a brief list of VPE's features.
   <https://vimhelp.org/map.txt.html#:nmap>`_.
 
 - Pythonic support for using `popup-windows
-  <https://vimhelp.org/popup.txt.html#popup-window>`_.
+  <https://vimhelp.org/popup.txt.html#popup-window>`_. (Requires Vim 8.2.)
 
-- Pythonic support for using `timers <https://vimhelp.org/eval.txt.html#timers>`_.
+- Pythonic support for using
+  `timers <https://vimhelp.org/eval.txt.html#timers>`_.
 
 - Pythonic support for `autocommands
   <https://vimhelp.org/autocmd.txt.html#autocommands>`_ that invoke Python

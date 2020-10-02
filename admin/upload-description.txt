@@ -1,0 +1,66 @@
+Introduction
+
+    VPE adds to Vim’s built-in support for Python scripting. This is a brief
+    list of VPE’s features.
+
+      - A Vim class that provides an enhanced, drop-in replacement for the
+        standard python-vim module.
+
+      - Classes Window, Buffer, TabPage are enhanced wrappers around the
+        standard vim versions.
+
+      - Support for cleanly invoking Python functions for keyboard mappings.
+
+      - Pythonic support for using popup-windows. (Requires Vim 8.2.)
+
+      - Pythonic support for using timers.
+
+      - Pythonic support for autocommands that invoke Python functions.
+
+      - Python support for channels.
+
+      - Logging to a buffer. Useful when developing and debugging plug-ins.
+
+
+Quick start
+
+    The quickest way to start using VPE is to import the vim object:
+
+        from vpe import vim
+
+    The vim object is an instance of the Vim class and is intended to be a drop
+    in replacement for Vim’s standard |python-vim| module, but with a number of
+    enhancements.
+
+      - Most of Vim’s functions appear as members, for example:
+          
+            vim.cursor(4, 10)            # Position cursor are row 4, column 10.
+            m = vim.execute('messages')  # Get all the recent Vim messagse.
+
+      - The attributes buffers, current, options, tabpages, vars, vvars and windows
+        provide enhanced access to the corresponding Vim objects. For example
+        vim.current.buffer provides a Buffer instance in place of Vim’s standard
+        python-buffer.
+
+      - The Vim registers are available using the |registers| attribute.
+
+      - When errors occur a VimError is raised, which provides a better breakdown
+        of the error. This is a subclass of vim.error so existing code that
+        catches vim.error still works.
+
+    The above just scratches the surface, see :help vpe.txt for detailed
+    documentation.
+
+
+Requirements
+
+    VPE requires a minimum of Vim 8.0.0700 and Python 3.6.
+
+    VPE has not been been tested on Windows (yet) or Mac. If you manage to test
+    it before me, let me know how it goes.
+ 
+
+Status
+
+    I consider the code to be quite stable. It passes a reasonably comprehensive set
+    of tests and I use VPE daily for my standard Vim configuration.

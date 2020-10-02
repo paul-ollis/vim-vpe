@@ -21,7 +21,7 @@ def ensure_dir_is_in_sys_path(path: Union[pathlib.Path, str]):
 
 # Make sure that we can import the doculate code and the VPE code.
 src_path = pathlib.Path.cwd().parent
-ensure_dir_is_in_sys_path('~/develop/main/cs-test-dev/cs-toolkit/doc')
+ensure_dir_is_in_sys_path('~/np/sw/sphinx-ext')
 ensure_dir_is_in_sys_path(src_path)
 ensure_dir_is_in_sys_path(src_path / 'stub')
 
@@ -30,13 +30,13 @@ print(f'{doculate.__file__=}')
 doculate.gen_api_tree(root_path=src_path, mod_name='vpe')
 
 # TODO: Sort this out! 
-from paul import paul_theme_path
+from cs_theme import cs_theme_path
 
 # Use the mym sphinx support add-ons.
 from mym_addons import sphinx
 
 # Edit the following lines to suite your needs.
-projectName = "cs-toolkit"
+projectName = "Vim Python Extensions"
 
 # Make sure that the Sphinx can load the vimhelp plugin.
 sphinxConfig = sphinx.Config(project=projectName)
@@ -58,8 +58,8 @@ sphinxConfig.conf["exclude_patterns"] = [
     'api/vpe.variables.rst',
     'api/vpe.windows.rst',
 ]
-sphinxConfig.conf["html_theme_path"] = [paul_theme_path]
-sphinxConfig.conf["html_theme"] = "paul"
+sphinxConfig.conf["html_theme_path"] = [cs_theme_path]
+sphinxConfig.conf["html_theme"] = "cs_theme"
 sphinxConfig.conf["pygments_style"] = "manni"
 sphinxConfig.conf["default_role"] = "any"
 sphinxConfig.conf['autodoc_typehints'] = "none"
