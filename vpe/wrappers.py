@@ -12,12 +12,12 @@ import weakref
 
 import vim as _vim
 
-from vpe import common
-import vpe
+from . import common
 
 __all__ = ('tabpages', 'TabPage', 'Vim', 'Registers', 'vim',
            'Function', 'windows', 'Window',
            'buffers', 'Buffer', 'Range', 'Struct')
+__api__ = ()
 
 # An object used to indicate that a parameter was not provided.
 _NOT_PROVIDED = object()
@@ -617,7 +617,7 @@ class Window(Proxy):
     def __init__(self, window):
         super().__init__()
         n_win, n_tab = window.number, window.tabpage.number
-        self.__dict__['id'] = vpe.vim.win_getid(n_win, n_tab)
+        self.__dict__['id'] = vim.win_getid(n_win, n_tab)
 
     @property
     def vars(self) -> "Variables":
@@ -636,11 +636,11 @@ class Window(Proxy):
 
         :return: True if the current window was set successfully.
         """
-        return bool(vpe.vim.win_gotoid(self.id))
+        return bool(vim.win_gotoid(self.id))
 
     @property
     def _proxied(self):
-        n_tab, n_win = vpe.vim.win_id2tabwin(self.id)
+        n_tab, n_win = vim.win_id2tabwin(self.id)
         if 0 in (n_win, n_tab):
             return _deadwin
         return _vim.tabpages[n_tab - 1].windows[n_win - 1]
@@ -705,7 +705,7 @@ class TabPages(ImmutableSequenceProxy):
         """
         flag = _position_name_to_flag.get(position, position)
         common.vim_command(f'{flag}tabnew')
-        return vpe.vim.current.tabpage
+        return vim.current.tabpage
 
 
 class Current(Proxy):
@@ -1004,16 +1004,17 @@ class Commands:
         commands.print(lrange=(10, 20))   # Print lines 1 to 20
         commands.write(bang=True)         # Same as :w!
 
-    Each command function is actually an instance of the `Command` class. See its
-    description for details of the arguments.
+    Each command function is actually an instance of the `Command` class. See
+    its description for details of the arguments.
 
-    Most commands that can be entered at the colon prompt are supported. Structural
-    parts of vim-script (such as function, while, try, *etc*) are excluded.
+    Most commands that can be entered at the colon prompt are supported.
+    Structural parts of vim-script (such as function, while, try, *etc*) are
+    excluded.
 
     The vpe, vpe.mapping and vpe.syntax modules provides some functions and
-    classes provide alternatives for some commands. You are encouraged to use these
-    alternatives in preference to the equivalent functions provided here. The
-    following is a summary of the alternatives.
+    classes provide alternatives for some commands. You are encouraged to use
+    these alternatives in preference to the equivalent functions provided here.
+    The following is a summary of the alternatives.
 
     `vpe.AutoCmdGroup`
         A replacement for augroup and autocmd.
@@ -1021,18 +1022,20 @@ class Commands:
     `vpe.highlight`
         Provides keyword style arguments. See also the `vpe.syntax` module.
     `vpe.error_msg`
-        Writes a message with error highlightling, but does not raise a vim.error.
+        Writes a message with error highlightling, but does not raise a
+        vim.error.
     `vpe.mapping`
         This provides functions to make key mappings that are handled by Python
         functions.
     `vpe.syntax`
-        Provides a set of classes, functions and context managers to help define
-        syntax highlighting.
+        Provides a set of classes, functions and context managers to help
+        define syntax highlighting.
 
     See also: `vpe.pedit`.
     """
-    @staticmethod
-    def __getattr__(name):
+    # pylint: disable=too-few-public-methods
+
+    def __getattr__(self, name: str) -> Command:
         if name.startswith('__'):
             raise AttributeError(
                 f'No command function called {name!r} available')

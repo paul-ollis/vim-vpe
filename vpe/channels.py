@@ -4,24 +4,22 @@ from typing import Any, Optional, Tuple, Dict, ClassVar, Union, List
 from functools import partial
 import weakref
 
-from vpe import common
-from vpe import core
-from vpe import wrappers
-import vpe
+from . import common
+from . import core
+from . import wrappers
 
-__all__ = ['RawChannel', 'JsonChannel', 'NLChannel', 'JSChannel']
-RET_VAR = vpe.RET_VAR
+__all__ = ['RawChannel', 'JsonChannel', 'NLChannel', 'JSChannel', 'VimChannel']
 
 _VIM_FUNC_DEFS = """
 function! VPEReadCallback(channel, message)
     let g:VPE_read_channel_info = ch_info(a:channel)
     let g:VPE_read_message = a:message
-    call py3eval('vpe.Channel._on_message()')
+    call py3eval('vpe.channels.Channel._on_message()')
 endfunction
 
 function! VPECloseCallback(channel)
     let g:VPE_read_channel_info = ch_info(a:channel)
-    call py3eval('vpe.Channel._on_close()')
+    call py3eval('vpe.channels.Channel._on_close()')
 endfunction
 """
 
@@ -131,8 +129,8 @@ class ChannelFunction:
         self.name = name
 
     def __call__(self, *args, **kwargs):
-        call_and_assign(RET_VAR, self.name, *args)
-        return core.coerce_arg(wrappers.vim.eval(RET_VAR))
+        call_and_assign(common.RET_VAR, self.name, *args)
+        return core.coerce_arg(wrappers.vim.eval(common.RET_VAR))
 
 
 def call_and_assign(varname: str, funcname: str, *args: Any) -> None:
@@ -171,7 +169,7 @@ class Channel:
     vim_channels: ClassVar[Dict[int, VimChannel]] = {}
     vch: VimChannel
 
-    def __init__(
+    def __init__(                          # pylint: disable=too-many-arguments
             self, net_address: str, drop: str = None, noblock: bool = None,
             waittime: int = None, timeout_ms: int = None):
         self.net_address = net_address
@@ -194,11 +192,12 @@ class Channel:
             return
         try:
             call_and_assign(
-                RET_VAR, 'ch_open', self.net_address, self._open_options)
+                common.RET_VAR, 'ch_open', self.net_address,
+                self._open_options)
         except common.VimError:                              # pragma: no cover
             return
 
-        self.vch = VimChannel(RET_VAR)
+        self.vch = VimChannel(common.RET_VAR)
         if self.vch.closed:
             return
 
@@ -209,7 +208,8 @@ class Channel:
 
     @property
     def is_open(self) -> bool:
-        return self.vch and not self.vch.closed
+        """Test whether the channel is open."""
+        return bool(self.vch) and not self.vch.closed
 
     @classmethod
     def _on_del(cls, chid, _ref):
@@ -305,14 +305,14 @@ class Channel:
                 info[name] = int(info[name])
         return info
 
-    def send(self, expr: Any) -> None:
-        """Send a raw expression to the server.
+    def send(self, message: Any) -> None:
+        """Send a message to the server.
 
         Related vim function = :vim:`ch_sendraw`.
 
-        :expr: The expression to send to the server.
+        :message: The message to send to the server.
         """
-        ch_sendraw(self.vch, expr)
+        ch_sendraw(self.vch, message)
 
     def settimeout(self, timeout_ms: Optional[int] = None):
         """Set the default teimout for the channel.

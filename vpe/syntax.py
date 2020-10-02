@@ -5,7 +5,8 @@ from typing import Set, Iterable
 import functools
 import weakref
 
-import vpe
+from . import core
+from . import wrappers
 
 delimeter_chars = '"\'/\\+?!=^_:@$%&*;~#,.'
 
@@ -276,7 +277,7 @@ class Region(SyntaxBase):
                 *[p.arg_str() for p in self.ends],
                 *[opt.vim_fmt() for opt in self.options.values()])
             if self.preview:                                 # pragma: no cover
-                vpe.log(self.syn.preview_last())
+                core.log(self.syn.preview_last())
 
 
 class Group(NamedSyntaxItem):
@@ -297,7 +298,7 @@ class Group(NamedSyntaxItem):
         self.linked = set()
         self.contained = contained
         self.hl_args = {}
-        self.syn_cmd = vpe.commands.syntax
+        self.syn_cmd = wrappers.commands.syntax
 
     def add_links(self, *groups):
         """Add groups to the set that link to this group."""
@@ -320,7 +321,7 @@ class Group(NamedSyntaxItem):
             options['contained'] = True
         options = convert_syntax_options(options)
         self.syn.schedule(
-            vpe.commands.syntax, 'keyword', f'{self.qual_name}',
+            wrappers.commands.syntax, 'keyword', f'{self.qual_name}',
             ' '.join(keywords),
             *[opt.vim_fmt() for opt in options.values() if opt.vim_fmt()])
 
@@ -360,7 +361,7 @@ class Group(NamedSyntaxItem):
             f'{deliminate(pat)}{offsets}',
             *[opt.vim_fmt() for opt in options.values()])
         if preview:                                          # pragma: no cover
-            vpe.log(self.syn.preview_last())
+            core.log(self.syn.preview_last())
 
     def add_region(
             self, *, start: str, end: str, skip: Optional[str] = None,
@@ -409,7 +410,7 @@ class Group(NamedSyntaxItem):
     def set_highlight(self):
         """Set up highlight definition for this group."""
         if self.hl_args:
-            vpe.highlight(group=self.qual_name, **self.hl_args)
+            core.highlight(group=self.qual_name, **self.hl_args)
 
     def invoke(self) -> None:
         """Invoke any pending syntax commands.
@@ -417,7 +418,7 @@ class Group(NamedSyntaxItem):
         This is only intended to be used by a `Syntax` instance.
         """
         hilink = functools.partial(
-            vpe.commands.highlight, 'default', 'link', bang=True)
+            wrappers.commands.highlight, 'default', 'link', bang=True)
         for group in sorted(self.linked, key=lambda g: g.qual_name):
             hilink(group.qual_name, self.qual_name)
 
@@ -425,8 +426,8 @@ class Group(NamedSyntaxItem):
 class SyncGroup(Group):
     """A group use for synchronisation."""
     def __init__(self, syn, name, std=False, contained=False):
-        super().__init__(syn, name, std=std,  contained=contained)
-        self.syn_cmd = functools.partial(vpe.commands.syntax, 'sync')
+        super().__init__(syn, name, std=std, contained=contained)
+        self.syn_cmd = functools.partial(wrappers.commands.syntax, 'sync')
 
 
 class Syntax(SyntaxBase):
@@ -520,7 +521,7 @@ class Syntax(SyntaxBase):
         return func(*args, **kwargs, preview=True)
 
     def __enter__(self):
-        self._directives = [(vpe.commands.syntax, ('clear',), {})]
+        self._directives = [(wrappers.commands.syntax, ('clear',), {})]
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -653,7 +654,7 @@ class Cluster(NamedSyntaxItem):
                     ::vim:`runtimepath`.
         """
         self.syn.schedule(
-            vpe.commands.syntax, 'include', self.arg_name, path_name)
+            wrappers.commands.syntax, 'include', self.arg_name, path_name)
 
     def invoke(self) -> None:
         """Invoke any pending syntax commands.
@@ -663,7 +664,7 @@ class Cluster(NamedSyntaxItem):
         if not self.groups:
             return
         cont = Contains(*self.groups)
-        vpe.commands.syntax('cluster', self.qual_name, cont.vim_fmt())
+        wrappers.commands.syntax('cluster', self.qual_name, cont.vim_fmt())
 
 
 class StdCluster(Cluster):

@@ -1,6 +1,6 @@
 """Very common code."""
 
-from typing import Any, Callable, Union
+from typing import Any, Callable
 import functools
 import re
 
@@ -12,6 +12,8 @@ __api__ = [
 __all__ = [
     'VimError', 'vim_command',
 ]
+RET_VAR = 'g:VPE_ret_value'
+_vim.vars[RET_VAR] = ''
 
 
 class VimError(_vim.error, Exception):

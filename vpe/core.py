@@ -11,16 +11,6 @@ module. It is intended that a Vim instance can be uses as a replacement for the
 This was developed for Vim version 8.1. It will probably work for Vim 8.0, but
 is very unlikely to be compatible with earlier versions. I plan that future
 versions of *vpe* will be backwardly compatible with version 8.1.
-
-@vim:
-    A replacement for (and wrapper around) the :vim:`python-vim` module.
-
-    This is in instance of the `Vim` class.
-
-@log:
-    The Vpe log support object.
-
-    This is in instance of the `Log` class.
 """
 # pylint: disable=too-many-lines
 
@@ -39,7 +29,6 @@ import vim as _vim
 from . import colors
 from . import common
 from . import wrappers
-import vpe
 
 __api__ = [
     'expr_arg', 'Callback',
@@ -60,9 +49,8 @@ id_source = itertools.count()
 # Set up some global Vim variables to support type testing.
 _vim.command('let g:_vpe_example_list_ = []')
 _vim.command('let g:_vpe_example_dict_ = {}')
-# pylint: disable=invalid-name
-_vim_list_type = _vim.vars['_vpe_example_list_'].__class__
-_vim_dict_type = _vim.vars['_vpe_example_dict_'].__class__
+_VimListType = _vim.vars['_vpe_example_list_'].__class__
+_VimDictType = _vim.vars['_vpe_example_dict_'].__class__
 _vim.command('unlet g:_vpe_example_list_ g:_vpe_example_dict_')
 
 _std_vim_colours = set((
@@ -79,7 +67,7 @@ _known_special_buffers: dict = {}
 
 _special_keymap: dict = {}
 
-_vim_func_defs = """
+_VIM_FUNC_DEFS = """
 function! VPE_Call(uid, ...)
     let g:_vpe_args_ = {}
     let g:_vpe_args_['uid'] = a:uid
@@ -87,7 +75,7 @@ function! VPE_Call(uid, ...)
     return py3eval('vpe.Callback.invoke()')
 endfunction
 """
-_vim.command(_vim_func_defs)
+_vim.command(_VIM_FUNC_DEFS)
 
 
 class Scratch(wrappers.Buffer):
@@ -114,7 +102,7 @@ class Scratch(wrappers.Buffer):
 
     def show(self) -> None:
         """Make this buffer visible in the current window."""
-        vpe.commands.buffer(self.number, bang=True)
+        wrappers.commands.buffer(self.number, bang=True)
 
     def modifiable(self) -> wrappers.TemporaryOptions:
         """Create a context that allows the buffer to be modified."""
@@ -139,9 +127,9 @@ def get_display_buffer(name: str) -> Scratch:
         if b.name == buf_name:
             break
     else:
-        vpe.commands.new()
+        wrappers.commands.new()
         b = wrappers.vim.current.buffer
-        vpe.commands.wincmd('c')
+        wrappers.commands.wincmd('c')
 
     b = Scratch(buf_name, b)
     _known_special_buffers[buf_name] = b
@@ -159,8 +147,8 @@ class Log:
         info("Created log", info)
         info("Starting process")
 
-    The output is stored in a Python FIFO structure, up to a maximum number
-    of lines; the default is 100, change this with `set_maxlen`. No actual Vim
+    The output is stored in a Python FIFO structure, up to a maximum number of
+    lines; the default is 500, change this with `set_maxlen`. No actual Vim
     buffer is created until required, which is when `show` is first
     invoked.:<py>:
 
@@ -170,7 +158,7 @@ class Log:
     available for general use. VPE also uses it to log significant occurrences
     - mainly error conditions.
 
-    :name:   A name that maps to the corresponding display buffer.
+    :@name:  A name that maps to the corresponding display buffer.
     :maxlen: The maximum number of lines to store.
 
     @buf: The corresponding Vim buffer. This will be ``None`` if the `show`
@@ -229,7 +217,7 @@ class Log:
         self._trim()
         try:
             win_execute = wrappers.vim.win_execute
-        except AttributeError:
+        except AttributeError:                               # pragma: no cover
             return
         if self.buf:
             for w in wrappers.vim.windows:
@@ -279,9 +267,9 @@ class Log:
             if w.buffer.number == self.buf.number:
                 break
         else:
-            vpe.commands.wincmd('s')
+            wrappers.commands.wincmd('s')
             self.buf.show()
-            vpe.commands.wincmd('w')
+            wrappers.commands.wincmd('w')
 
     def set_maxlen(self, maxlen: int) -> None:
         """Set the maximum length of the log's FIFO.
@@ -444,7 +432,7 @@ class _PopupRWPos(_PopupROPos, _PopupWOPos):
 
 
 class Popup:
-    """A Pythonic way to uses Vim's popup windows.
+    """A Pythonic way to use Vim's popup windows.
 
     This can be used as instead of the individual functions popup_create,
     popup_hide, popup_show, popup_settext, popup_close).
@@ -485,8 +473,7 @@ class Popup:
         p_options['callback'] = close_cb.as_vim_function()
         p_options['filter'] = filter_cb.as_vim_function()
         self._id = getattr(wrappers.vim, self._create_func)(content, p_options)
-        self._popups[self._id] = weakref.ref(
-            self, functools.partial(self._on_del, win_id=self._id))
+        self._popups[self._id] = weakref.ref(self, self._on_del)
         self._clean_up()
         self.result = -1
 
@@ -501,7 +488,7 @@ class Popup:
         return wrappers.vim.buffers[wrappers.vim.winbufnr(self._id)]
 
     @classmethod
-    def _on_del(cls, _, win_id):
+    def _on_del(cls, _, _win_id=None):
         cls._clean_up()
 
     def hide(self) -> None:
@@ -860,9 +847,9 @@ def coerce_arg(value: Any, keep_bytes=False) -> Any:
         value = value._proxied  # pylint: disable=protected-access
     except AttributeError:
         pass
-    if isinstance(value, _vim_list_type):
+    if isinstance(value, _VimListType):
         return [coerce_arg(el) for el in value]
-    if isinstance(value, (_vim_dict_type, wrappers.MutableMappingProxy)):
+    if isinstance(value, (_VimDictType, wrappers.MutableMappingProxy)):
         return {k.decode(): coerce_arg(v) for k, v in value.items()}
     return value
 
@@ -985,16 +972,16 @@ def highlight(
         args.append('link')
         args.append(group)
         args.append(link)
-        return vpe.commands.highlight(*args)
+        return wrappers.commands.highlight(*args)
     if group:
         args.append(group)
     if clear:
         args[0:0] = ['clear']
-        return vpe.commands.highlight(*args)
+        return wrappers.commands.highlight(*args)
 
     if disable:
         args.append('NONE')
-        return vpe.commands.highlight(*args)
+        return wrappers.commands.highlight(*args)
 
     if default:
         args.append('default')
@@ -1002,7 +989,7 @@ def highlight(
     for name, value in kwargs.items():
         args.append(f'{name}={value}')
 
-    ret = vpe.commands.highlight(*args)
+    ret = wrappers.commands.highlight(*args)
     return ret
 
 

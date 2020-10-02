@@ -9,9 +9,8 @@ import traceback
 
 import vim as _vim
 
-from vpe import core
-from vpe import vim
-import vpe
+from . import core
+from .wrappers import vim
 
 mode_to_map_command = {
     'normal': 'nnoremap',
@@ -49,8 +48,8 @@ class MapCallback(core.Callback):
             return ret
 
         except Exception as e:                   # pylint: disable=broad-except
-            vpe.log(f'{e.__class__.__name__} {e}')
-            traceback.print_exc(file=vpe.log)
+            core.log(f'{e.__class__.__name__} {e}')
+            traceback.print_exc(file=core.log)
 
         return -1
 

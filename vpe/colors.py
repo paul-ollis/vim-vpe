@@ -1042,12 +1042,12 @@ _vim_rgb = {
     (144, 238, 144): 'light green',
     (144, 238, 144): 'LightGreen',
     (220,  20,  60): 'crimson',
-     (75,   0, 130): 'indigo',
+    (75,   0, 130):  'indigo',
     (128, 128,   0): 'olive',
     (102,  51, 153): 'rebecca purple',
     (102,  51, 153): 'RebeccaPurple',
     (192, 192, 192): 'silver',
-    (0,   128,  128): 'teal',
+    (0,   128, 128): 'teal',
 }
 
 name_to_hex = {name.lower(): value for name, value in name_to_hex.items()}

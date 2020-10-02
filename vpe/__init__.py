@@ -8,9 +8,8 @@ module. It is intended that a Vim instance can be uses as a replacement for the
     # Now use 'vim' as an extended version of the *vim* module.
     # ...
 
-This was developed for Vim version 8.1. It will probably work for Vim 8.0, but
-is very unlikely to be compatible with earlier versions. I plan that future
-versions of *vpe* will be backwardly compatible with version 8.1.
+This is compatible for versions of Vim from 8.0. It also needs Python 3.6 or
+newer.
 
 @vim:
     A replacement for (and wrapper around) the :vim:`python-vim` module.
@@ -34,31 +33,29 @@ from .common import *
 from .core import *
 from .wrappers import vim, Vim
 
-# TODO: Clean up elaboration order mess.
-RET_VAR = 'g:VPE_ret_value'
-vim.vars[RET_VAR] = ''
-
 # pylint: disable=wrong-import-position
-from .channels import Channel  # noqa
-from . import mapping  # noqa
-from . import syntax  # noqa
+from . import channels                                                    # noqa
+from . import mapping                                                    # noqa
+from . import syntax                                                     # noqa
 from .mapping import MapCallback  # noqa
 from .wrappers import Buffer, Buffers, Current, GlobalOptions, TabPage   # noqa
 from .wrappers import TabPages, Variables, Window, Windows, commands     # noqa
+from .wrappers import Range, Struct, Registers                           # noqa
 
 __api__ = [
     'AutoCmdGroup', 'Timer', 'Popup', 'PopupAtCursor', 'PopupBeval',
     'PopupNotification', 'PopupDialog', 'PopupMenu', 'VimError', 'Vim',
     'Registers', 'Log', 'error_msg', 'call_soon', 'vim', 'log',
     'saved_winview', 'highlight', 'pedit', 'popup_clear',
-    'timer_stopall', 'find_buffer_by_name', 'script_py_path', 'Channel',
+    'timer_stopall', 'find_buffer_by_name', 'script_py_path',
     'get_display_buffer',
 
     'core', 'commands', 'mapping', 'syntax', 'wrappers',
 
     # Types and functions that should not be directly invoked.
     'Variables', 'Window', 'TabPage', 'Windows', 'TabPages', 'Buffers',
-    'Current', 'GlobalOptions', 'Function',
+    'Current', 'GlobalOptions', 'Function', 'Buffer',
+    'Range', 'Struct',
 ]
 
 
