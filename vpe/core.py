@@ -14,9 +14,9 @@ versions of *vpe* will be backwardly compatible with version 8.1.
 """
 # pylint: disable=too-many-lines
 
+from functools import partial
 from typing import Optional, Any, Tuple, Dict
 import collections
-import functools
 import io
 import itertools
 import sys
@@ -692,24 +692,54 @@ class PopupMenu(Popup):
 class Callback:
     """Wrapper for a function to be called from Vim.
 
-    :func:       The function to be invoked.
-    :py_args:    Positional arguments for the function.
-    :py_kwargs:  Keyword arguments for the function.
-    :vim_args:   Positional arguments for helper Vim function.
+    This encapsulates the mechanism used to arrange for a Python function to
+    be invoked in response to an event in the 'Vim World'. A Callback stores
+    the Python function together with an ID that is uniquely associated with
+    the function (the UID). If, for example this wraps function 'spam' giving
+    it UID=42 then the Vim script code:
+    ::
+
+        :call VPE_Call(42, 'hello', 123)
+
+    will result in the Python function 'spam' being invoked as:<py>:
+
+        spam('hello', 123)
+
+    The way this works is that the VPE_Call function first stores the UID
+    and arguments in the global Vim variable _vpe_args_ in a dictionary
+    as:<py>:
+
+        {
+            'uid': 42,
+            'args': ['hello', 123]
+        }
+
+    Then it calls this class's `invoke` method::
+
+        return py3eval('vpe.Callback.invoke()')
+
+    The `invoke` class method extracts the UID and uses it to find the
+    Callback instance.
+
+    :func:       The Python function to be called back.
+    :py_args:    Addition positional arguments to be passed to *func*.
+    :py_kwargs:  Additional keyword arguments to be passed to *func*.
+    :vim_exprs:  Expressions used as positional arguments for the VPE_Call
+                 helper function.
     :pass_bytes: If true then vim byte-strings will not be decoded to Python
                  strings.
-    :info:       Additional info to store with the callback.
-                 TODO: Only really for MapCallback!
+    :kwargs:     Additional info to store with the callback. This is used
+                 by subclasses - see 'MapCallback' for an example.
     """
     # pylint: disable=too-many-instance-attributes
     callbacks: dict = {}
-    caller = 'VPE_Call'
 
     def __init__(
-            self, func, *, py_args=(), py_kwargs={}, vim_args=(),
-            pass_bytes=False, info=()):
+            self, func, *, py_args=(), py_kwargs={}, vim_exprs=(),
+            pass_bytes=False, **kwargs):
         # pylint: disable=dangerous-default-value
         uid = self.uid = str(next(id_source))
+        self.callbacks[uid] = self
         self.method = None
         try:
             ref_inst = func.__self__
@@ -717,49 +747,68 @@ class Callback:
             ref_inst = func
         else:
             self.method = weakref.ref(func.__func__)
-        self.ref_inst = weakref.ref(
-            ref_inst, functools.partial(self.on_del, uid=uid))
-
-        self.callbacks[uid] = self
-        self.vim_args = vim_args
+        self.ref_inst = weakref.ref(ref_inst, partial(self.on_del, uid=uid))
+        self.vim_exprs = vim_exprs
         self.py_args = py_args
         self.py_kwargs = py_kwargs.copy()
+        self.extra_kwargs = kwargs
         self.pass_bytes = pass_bytes
-        self.info = info
 
-    def __call__(self, vim_args, callargs=()):
+    def __call__(self, vim_args):
         inst = self.ref_inst()
         if inst is not None:
             vim_args = [
                 coerce_arg(a, keep_bytes=self.pass_bytes) for a in vim_args]
             method = self.method and self.method()
+            args, kwargs = self.get_call_args()
             if method is not None:
-                return method(
-                    inst, *callargs, *self.py_args, *vim_args,
-                    **self.py_kwargs)
-            return inst(
-                *callargs, *self.py_args, *vim_args, **self.py_kwargs)
+                return method(inst, *args, *vim_args, **kwargs)
+            return inst(*args, *vim_args, **kwargs)
 
         self.on_del(None, uid=self.uid)
         return 0
 
+    def get_call_args(self):
+        """Get the Python positional and keyword arguments.
+
+        This may be over-ridden by subclasses.
+        """
+        return self.py_args, self.py_kwargs
+
     @classmethod
     def invoke(cls):
-        """Invoke this callback function."""
+        """Invoke a particular callback function instance.
+
+        This is invoked from the "Vim World" by VPE_Call. The global Vim
+        dictionary variable _vpe_args_ will have been set up to contain 'uid'
+        and 'args' entries. The 'uid' is used to find the actual `Callback`
+        instance and the 'args' is a sequence of Vim values, which are passed
+        to the callback as positional areguments.
+        """
         try:
+            # Use the UID to find the actual instance. This may fail if no
+            # reference to the instance exists, in which case we just log the
+            # fact.
             uid = wrappers.vim.vars['_vpe_args_']['uid']
             cb = cls.callbacks.get(uid, None)
             if cb is None:
                 log(f'uid={uid} is dead!')
                 return 0
 
+            # Get the arguments supplied from the "Vim World" and then invoke
+            # the callback instance.
             vim_args = _vim.vars['_vpe_args_']['args']
             ret = cb(vim_args)
+
+            # Make sure the returned value can be interpreted OK by Vim or an
+            # annoying message will be displayed.
             if ret is None:
                 ret = 0
             return ret
 
-        except Exception as e:  # pylint: disable=broad-except
+        except Exception as e:                   # pylint: disable=broad-except
+            # Log any exception, but do not allow it to disturb disrupt normal
+            # Vim behaviour.
             log(f'{e.__class__.__name__} {e}')
             traceback.print_exc(file=log)
 
@@ -775,13 +824,13 @@ class Callback:
 
         The result is a valid Vim script expression.
         """
-        vim_args = [quoted_string(self.uid)]
-        for a in self.vim_args:
+        vim_exprs = [quoted_string(self.uid)]
+        for a in self.vim_exprs:
             if isinstance(a, str):
-                vim_args.append(quoted_string(a))
+                vim_exprs.append(quoted_string(a))
             else:
-                vim_args.append(str(a))
-        return f'{self.caller}({", ".join(vim_args)})'
+                vim_exprs.append(str(a))
+        return f'VPE_Call({", ".join(vim_exprs)})'
 
     def as_call(self):
         """Format a command of the form 'call VPE_xxx(...)'
@@ -790,10 +839,10 @@ class Callback:
         """
         return f'call {self.as_invocation()}'
 
-    # TODO: This form ignores the vim_args.
+    # TODO: This form ignores the vim_exprs.
     def as_vim_function(self):
         """Create a vim.Function that will route to this callback."""
-        return _vim.Function(f'{self.caller}', args=[self.uid])
+        return _vim.Function('VPE_Call', args=[self.uid])
 
 
 class expr_arg:

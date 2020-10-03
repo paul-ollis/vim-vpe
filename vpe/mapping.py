@@ -21,37 +21,20 @@ mode_to_map_command = {
     # 'command':    cnoremap,
 }
 
-_VIM_FUNC_DEFS = """
-function! VPE_MappingCall(uid)
-    let g:vpe_args_ = {}
-    let g:vpe_args_['uid'] = a:uid
-    return py3eval('vpe.MapCallback.invoke()')
-endfunction
-"""
-_vim.command(_VIM_FUNC_DEFS)
-
 
 class MapCallback(core.Callback):
-    """Wrapper for a function to be invoked by a key mapping."""
-    caller = 'VPE_MappingCall'
+    """Wrapper for a function to be invoked by a key mapping.
 
-    @classmethod
-    def invoke(cls):
-        try:
-            uid = vim.vars.vpe_args_['uid']
-            cb = cls.callbacks.get(uid, None)
-            if cb is None:
-                return 0
-            ret = cb(vim_args=(), callargs=(MappingInfo(*cb.info),))
-            if ret is None:
-                ret = 0
-            return ret
+    This extends the core `Callback` to provide a `MappingInfo` as the first
+    positional argument.
+    """
+    def get_call_args(self):
+        """Get the Python positional and keyword arguments.
 
-        except Exception as e:                   # pylint: disable=broad-except
-            core.log(f'{e.__class__.__name__} {e}')
-            traceback.print_exc(file=core.log)
-
-        return -1
+        This makes the first positional argument a `MappingInfo` instance.
+        """
+        py_args = MappingInfo(*self.extra_kwargs.pop('info')), *self.py_args
+        return py_args, self.py_kwargs
 
 
 class MappingInfo:
@@ -113,7 +96,8 @@ def map(
         mode: str, keys: str, func: Callable,
         *, buffer: bool = True, silent: bool = True, unique: bool = False,
         nowait: bool = False, command: bool = False,
-        args=(), kwargs: Optional[dict] = None):
+        args=(), kwargs: Optional[dict] = None,
+        vim_exprs: Tuple[str, ...] = ()):
     """Set up a key mapping that invokes a Python function.
 
     By default, the effective map command has the form:
@@ -132,27 +116,28 @@ def map(
     do. It is recommended that these mode specific versions are use in
     preference to this function.
 
-    :mode:    A string defining the mode in which the mapping occurs. This
-              should be one of: normal, visual, op-pending, insert, command.
-    :keys:    The key sequence to be mapped.
-    :func:    The Python function to invoke for the mapping.
-    :buffer:  Use the <buffer> special argument. Defaults to True.
-    :silent:  Use the <silent> special argument. Defaults to True.
-    :unique:  Use the <unique> special argument. Defaults to False.
-    :nowait:  Use the <nowait> special argument. Defaults to False.
-    :command: Only applicable to insert mode. If true then the function
-              is invoked from the command prompt and the return value is not
-              used. Otherwise (the default) the function should return the
-              text to be inserted.
-    :args:    Additional arguments to pass to the mapped function.
-    :kwargs:  Additional keyword arguments to pass to the mapped function.
+    :mode:      A string defining the mode in which the mapping occurs. This
+                should be one of: normal, visual, op-pending, insert, command.
+    :keys:      The key sequence to be mapped.
+    :func:      The Python function to invoke for the mapping.
+    :buffer:    Use the <buffer> special argument. Defaults to True.
+    :silent:    Use the <silent> special argument. Defaults to True.
+    :unique:    Use the <unique> special argument. Defaults to False.
+    :nowait:    Use the <nowait> special argument. Defaults to False.
+    :command:   Only applicable to insert mode. If true then the function
+                is invoked from the command prompt and the return value is not
+                used. Otherwise (the default) the function should return the
+                text to be inserted.
+    :args:      Additional arguments to pass to the mapped function.
+    :kwargs:    Additional keyword arguments to pass to the mapped function.
+    :vim_exprs: Vim expressions to be evaluated and passed to the callback
+                function, when the mapping is triggered.
     """
     # pylint: disable=redefined-builtin
     # pylint: disable=too-many-arguments
     # pylint: disable=too-many-locals
-    mapinfo = mode, keys
-    kwargs = kwargs or {}
-    cb = MapCallback(func, info=mapinfo, py_args=args, py_kwargs=kwargs)
+    cb = MapCallback(
+        func, info=(mode, keys), py_args=args, py_kwargs=kwargs or {})
     specials = [el for el in [
         '<buffer>' if buffer else '',
         '<silent>' if silent else '',

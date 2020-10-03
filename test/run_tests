@@ -1,11 +1,8 @@
 #!/bin/bash
 
-COVERAGE_FILE=.coverage.run coverage run ./all_tests.py 
+COVERAGE_FILE=.coverage.run coverage run ./all_tests.py
 coverage combine .
 coverage report
 coverage html -d covhtml/
 coverage json --pretty
 coverage annotate -d ann
-
-# 12:03:07.813 DEBUG                      >>> ('<F4>', b'\x80k4')
-#                                                      b'\x80\xfd5')

@@ -626,7 +626,7 @@ class Miscellaneous(support.CommandsBase):
                 res.args = args
 
             res = Struct()
-            cb = vpe.core.Callback(callback, vim_args=(
+            cb = vpe.core.Callback(callback, vim_exprs=(
                 vpe.expr_arg('[1, 2]'), vpe.expr_arg('{"a": 1, "b": 2}'),
                 'hello'))
             print(cb.as_invocation())
