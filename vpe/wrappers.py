@@ -418,7 +418,7 @@ class BufferListContext(list):
     def __exit__(self, exc_type, exc_val, exc_tb):
         b = self._vim_buffer()
         if exc_type is None and b is not None:
-            with b.temp_options(modifiable=True):
+            with b.temp_options(modifiable=True, readonly=False):
                 b[:] = self
 
 
@@ -550,7 +550,7 @@ class Buffer(MutableSequenceProxy):
 
         As an example:<py>:
 
-            with vim.current.buffer.lines() as lines:
+            with vim.current.buffer.list() as lines:
                 # Now lines is a copy of the buffers lines.
                 lines[2:4] = ['one']  # Update lines in-place.
 
