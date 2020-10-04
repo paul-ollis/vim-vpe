@@ -33,7 +33,7 @@ class MapCallback(core.Callback):
 
         This makes the first positional argument a `MappingInfo` instance.
         """
-        py_args = MappingInfo(*self.extra_kwargs.pop('info')), *self.py_args
+        py_args = MappingInfo(*self.extra_kwargs.get('info')), *self.py_args
         return py_args, self.py_kwargs
 
 
@@ -137,7 +137,8 @@ def map(
     # pylint: disable=too-many-arguments
     # pylint: disable=too-many-locals
     cb = MapCallback(
-        func, info=(mode, keys), py_args=args, py_kwargs=kwargs or {})
+        func, info=(mode, keys), py_args=args, py_kwargs=kwargs or {},
+        vim_exprs=vim_exprs)
     specials = [el for el in [
         '<buffer>' if buffer else '',
         '<silent>' if silent else '',

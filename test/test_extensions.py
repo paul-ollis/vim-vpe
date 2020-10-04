@@ -643,6 +643,14 @@ class Miscellaneous(support.CommandsBase):
 
         :<py>:
 
+            class BadClass:
+                def fail(self):
+                    res.method_invoked = True
+                    res.method_count = 1
+                    assert False
+                    res.method_count += 1
+
+
             def callback_fail():
                 res.invoked = True
                 res.count = 1
@@ -655,18 +663,23 @@ class Miscellaneous(support.CommandsBase):
 
 
             res = Struct()
+            inst = BadClass()
             cb_fail = vpe.core.Callback(callback_fail)
+            cb_method_fail = vpe.core.Callback(inst.fail)
             cb_deleted = vpe.core.Callback(callback_deleted)
             del callback_deleted
 
             vim.command(cb_fail.as_call())
+            vim.command(cb_method_fail.as_call())
             vim.command(cb_deleted.as_call())
 
             dump(res)
         """
         res = self.run_self()
         failUnless(res.invoked)
+        failUnless(res.method_invoked)
         failUnlessEqual(1, res.count)
+        failUnlessEqual(1, res.method_count)
         failIf(res.impossible)
 
     @test(testID='misc-build-dict-arg')

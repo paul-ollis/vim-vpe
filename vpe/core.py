@@ -755,18 +755,32 @@ class Callback:
         self.pass_bytes = pass_bytes
 
     def __call__(self, vim_args):
-        inst = self.ref_inst()
-        if inst is not None:
-            vim_args = [
-                coerce_arg(a, keep_bytes=self.pass_bytes) for a in vim_args]
-            method = self.method and self.method()
-            args, kwargs = self.get_call_args()
-            if method is not None:
-                return method(inst, *args, *vim_args, **kwargs)
-            return inst(*args, *vim_args, **kwargs)
+        inst, method = self._get_inst_and_method()
+        if inst is None:
+            self.on_del(None, uid=self.uid)
+            return 0
 
-        self.on_del(None, uid=self.uid)
-        return 0
+        vim_args = [
+            coerce_arg(a, keep_bytes=self.pass_bytes) for a in vim_args]
+        args, kwargs = self.get_call_args()
+        if method is not None:
+            return method(inst, *args, *vim_args, **kwargs)
+        return inst(*args, *vim_args, **kwargs)
+
+    def _get_inst_and_method(self):
+        """Get the instance and method for this callback.
+
+        :return:
+            A tuple of (instance, method). The method may be ``None`` in which
+            case the instance is the callable. If the method is not ``None``
+            then it is the callable. If the instance is None then the callback
+            function is no longer reachable.
+        """
+        method = None
+        instance = self.ref_inst()
+        if instance is not None:
+            method = self.method and self.method()
+        return instance, method
 
     def get_call_args(self):
         """Get the Python positional and keyword arguments.
@@ -807,9 +821,10 @@ class Callback:
             return ret
 
         except Exception as e:                   # pylint: disable=broad-except
-            # Log any exception, but do not allow it to disturb disrupt normal
-            # Vim behaviour.
-            log(f'{e.__class__.__name__} {e}')
+            # Log any exception, but do not allow it to disrupt normal Vim
+            # behaviour.
+            log(f'{e.__class__.__name__} invocation failed: {e}')
+            log(cb.format_call_fail_message())
             traceback.print_exc(file=log)
 
         return -1
@@ -843,6 +858,27 @@ class Callback:
     def as_vim_function(self):
         """Create a vim.Function that will route to this callback."""
         return _vim.Function('VPE_Call', args=[self.uid])
+
+    def format_call_fail_message(self):
+        """Generate a message to give details of a failed callback invocation.
+
+        This is used when the `Callback` instance exists, but the call raised
+        an exception.
+        """
+        inst, method = self._get_inst_and_method()
+        s = []
+        try:
+            if method:
+                s.append(
+                    f'Method: "{inst.__class__.__name__}.{method.__name__}"')
+            else:
+                s.append(f'Function "{inst.__name__}"')
+        except AttributeError:                               # pragma: no cover
+            s.append(f'Instance={inst}, method={method}')
+        s.append(f'    vim_exprs={self.vim_exprs}')
+        s.append(f'    py_args={self.py_args}')
+        s.append(f'    py_kwargs={self.py_kwargs}')
+        return '\n'.join(s)
 
 
 class expr_arg:

@@ -1,2 +1,6 @@
 test.log
 .csdata
+/ann
+/.coverage
+/coverage.json
+/covhtml
