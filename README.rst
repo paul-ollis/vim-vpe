@@ -8,8 +8,8 @@
 
 
 :status:
-    It must considered alpha, but I am personally using VPE to configure nearly
-    all of my Vim environment and for some quite complex plug-ins.
+    It must be considered alpha, but I am personally using VPE to configure
+    nearly all of my Vim environment and for some quite complex plug-ins.
 
 
 Introduction
