@@ -44,7 +44,6 @@ FROM build-base AS vim80-py36
 # Build Python interpreter that will be built into Vim.
 #
 WORKDIR /root/cpython
-#RUN git checkout v3.6.9
 RUN git checkout v3.6.0
 COPY docker-files/py-do-config do_config
 RUN chmod u+x do_config
@@ -79,7 +78,7 @@ USER root
 # ----------------------------------------------------------------------------
 FROM vim80-py36 AS vpe-test
 
-COPY requirements.txt test-requirements.txt ./
+COPY admin/requirements.txt admin/test-requirements.txt ./
 RUN python3.9 -m pip install -r requirements.txt -r test-requirements.txt 
 
 USER paul
@@ -97,7 +96,7 @@ FROM vim80-py36 AS vpe-install
 
 RUN apt-get install -y zip
 
-COPY requirements.txt test-requirements.txt ./
+COPY admin/requirements.txt admin/test-requirements.txt ./
 RUN python3.9 -m pip install -r requirements.txt -r test-requirements.txt 
 
 USER paul
