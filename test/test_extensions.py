@@ -50,13 +50,21 @@ class DisplayBuffer(support.Base):
         self.run_self()
 
     def setUp(self):
-        """Per test set up."""
+        """Per test set up.
+
+        :<py>:
+
+            commands.wincmd('o')
+            commands.buffer('1')
+        """
+        super().setUp()
+        self.run_self()
 
     def tearDown(self):
         """Per test clean up."""
 
     @test(testID='dispbuf-create')
-    def create_scratch(self):
+    def create_display_buffer(self):
         """Create a display-only buffer.
 
         The modifiable context manager is used when changes need to be made.
@@ -74,6 +82,79 @@ class DisplayBuffer(support.Base):
         res = self.run_self()
         failUnlessEqual('/[[test]]', res.cur_buf)
         failUnlessEqual(['One', 'Two'], res.lines)
+
+    @test(testID='dispbuf-split-show')
+    def show_display_buffer_in_split(self):
+        """A display buffer can be shown in the upper part of a split window.
+
+        The number of lines left in the lower buffer is specified using the
+        splitlines argument.
+
+        :<py>:
+            res = Struct()
+            buf = vpe.get_display_buffer('test')
+            win = vim.current.window
+            res.orig_lines = win.height
+            buf.show(splitlines=3)
+            win = vim.current.window
+            res.top_lines = win.height
+            res.bottom_lines = vim.windows[win.number].height
+            with buf.modifiable():
+                buf[:] = ['One', 'Two']
+            res.cur_buf = vim.current.buffer.name
+            res.lines = list(vim.current.buffer)
+            dump(res)
+        """
+        res = self.run_self()
+        failUnlessEqual('/[[test]]', res.cur_buf)
+        failUnlessEqual(['One', 'Two'], res.lines)
+        failUnlessEqual(3, res.bottom_lines)
+        failUnlessEqual(res.orig_lines, res.top_lines + 4)
+
+    @test(testID='dispbuf-split-squeeze-lower')
+    def lower_window_is_made_smaller(self):
+        """The display buffer will be given a minimum of one line.
+
+        If necessary the lower window is given fewer lines than requested.
+        :<py>:
+            res = Struct()
+            buf = vpe.get_display_buffer('test')
+            win = vim.current.window
+            res.orig_lines = win.height
+            res.ok = buf.show(splitlines=res.orig_lines - 1)
+            win = vim.current.window
+            res.top_lines = win.height
+            res.bottom_lines = vim.windows[win.number].height
+            with buf.modifiable():
+                buf[:] = ['One', 'Two']
+            res.cur_buf = vim.current.buffer.name
+            res.lines = list(vim.current.buffer)
+            dump(res)
+        """
+        res = self.run_self()
+        failUnlessEqual('/[[test]]', res.cur_buf)
+        failUnlessEqual(['One', 'Two'], res.lines)
+        failUnlessEqual(res.orig_lines - 2, res.bottom_lines)
+        failUnlessEqual(1, res.top_lines)
+        failUnless(res.ok)
+
+    @test(testID='dispbuf-split-fails')
+    def split_fails(self):
+        """Split and show will fail if the window iss too short.
+
+        Basically, it must be at least 3 lines.
+        :<py>:
+            res = Struct()
+            buf = vpe.get_display_buffer('test')
+            commands.wincmd('s')
+            win = vim.current.window
+            win.height = 2
+            res.ok = buf.show(splitlines=1)
+            dump(res)
+        """
+        res = self.run_self()
+        failIf(res.ok)
+        failIfEqual('/[[test]]', res.cur_buf)
 
     @test(testID='dispbuf-get')
     def get_twice(self):

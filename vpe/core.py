@@ -89,9 +89,33 @@ class Scratch(wrappers.Buffer):
         options.bufhidden = 'hide'
         options.buflisted = True
 
-    def show(self) -> None:
-        """Make this buffer visible in the current window."""
+    def show(self, splitlines: Optional[int] = None) -> bool:
+        """Make this buffer visible.
+
+        Without a splitlines argument, this will use the current window to show
+        this buffer. If the *splitlines* argument is provided and greater than
+        zero then:
+
+        1. The current window is split.
+        2. The lower split is set to be *splitlines* high.
+        3. This buffer is displayed in the upper window.
+
+        :splitlines: Number of lines to leave in the bottom window.
+        :return:     True if the window is successfully split.
+        """
+        if splitlines is not None and splitlines > 0:
+            win = wrappers.vim.current.window
+            if win.height < 3:
+                error_msg('Window is too small to split')
+                return False
+            lower_height = min(splitlines, win.height - 2)
+            wrappers.commands.wincmd('s')
+            win = wrappers.vim.current.window
+            lower_win = wrappers.vim.windows[win.number]
+            lower_win.height = lower_height
+
         wrappers.commands.buffer(self.number, bang=True)
+        return True
 
     def modifiable(self) -> wrappers.TemporaryOptions:
         """Create a context that allows the buffer to be modified."""
