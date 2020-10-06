@@ -170,8 +170,9 @@ class Channel:
     vch: VimChannel
 
     def __init__(                          # pylint: disable=too-many-arguments
-            self, net_address: str, drop: str = None, noblock: bool = None,
-            waittime: int = None, timeout_ms: int = None):
+            self, net_address: str, drop: Optional[str] = None,
+            noblock: Optional[bool] = None, waittime: Optional[int] = None,
+            timeout_ms: Optional[int] = None):
         self.net_address = net_address
         options = self._build_options(
             ('drop', drop), ('noblock', noblock), ('waittime', waittime),

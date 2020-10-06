@@ -7,10 +7,6 @@ module. It is intended that a Vim instance can be uses as a replacement for the
     from vpe import vim
     # Now use 'vim' as an extended version of the *vim* module.
     # ...
-
-This was developed for Vim version 8.1. It will probably work for Vim 8.0, but
-is very unlikely to be compatible with earlier versions. I plan that future
-versions of *vpe* will be backwardly compatible with version 8.1.
 """
 # pylint: disable=too-many-lines
 
@@ -45,13 +41,6 @@ __all__ = [
     *__api__
 ]
 id_source = itertools.count()
-
-# Set up some global Vim variables to support type testing.
-_vim.command('let g:_vpe_example_list_ = []')
-_vim.command('let g:_vpe_example_dict_ = {}')
-_VimListType = _vim.vars['_vpe_example_list_'].__class__
-_VimDictType = _vim.vars['_vpe_example_dict_'].__class__
-_vim.command('unlet g:_vpe_example_list_ g:_vpe_example_dict_')
 
 _std_vim_colours = set((
     "Black", "DarkBlue", "DarkGreen", "DarkCyan",
@@ -932,9 +921,9 @@ def coerce_arg(value: Any, keep_bytes=False) -> Any:
         value = value._proxied  # pylint: disable=protected-access
     except AttributeError:
         pass
-    if isinstance(value, _VimListType):
+    if isinstance(value, _vim.List):
         return [coerce_arg(el) for el in value]
-    if isinstance(value, (_VimDictType, wrappers.MutableMappingProxy)):
+    if isinstance(value, (_vim.Dictionary, wrappers.MutableMappingProxy)):
         return {k.decode(): coerce_arg(v) for k, v in value.items()}
     return value
 
@@ -1197,7 +1186,7 @@ def find_buffer_by_name(name: str) -> Optional[wrappers.Buffer]:
 
 class saved_winview:
     """Context manager that saves and restores the current window's view."""
-    view: dict
+    view: dict = {}
 
     def __enter__(self):
         self.view = wrappers.vim.winsaveview()

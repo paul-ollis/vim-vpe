@@ -8,8 +8,9 @@ unpicked types will work as expected.
 """
 from __future__ import annotations
 
-from typing import Any, ClassVar, List, Dict, Generator, Tuple, Set, Optional
-from typing import Callable, Union
+from typing import (
+    Any, ClassVar, Dict, Generator, Tuple, Set, Optional,
+    Callable, Union, List as ListType)
 
 import builtins
 import re
@@ -64,6 +65,13 @@ class Dictionary(Base):
         if name not in self.settable:
             raise error(f'Cannot set variable v:{name!r}.')
         self.__dict__[name] = value
+
+
+class List(Base):
+    """Stub for a Vim List."""
+
+    def __iter__(self):
+        return iter([])
 
 
 class BufferList(Base):
@@ -152,7 +160,7 @@ class TabPage(Base):
 
     def __init__(self, n):
         super().__init__()
-        self.windows: List[Window] = [Window(1)]
+        self.windows: ListType[Window] = [Window(1)]
         self.vars: Dict[str, Any] = {}
         self.number: int = n
         self.valid: bool = True
@@ -181,7 +189,7 @@ class Options(Base):
     """Stub type for documentation, type hinting and linting."""
     _unknown: Set[str] = set(('aardvark',))
 
-    def __init__(self, read_only: Optional[List[str]] = None):
+    def __init__(self, read_only: Optional[ListType[str]] = None):
         super().__init__()
         self.__dict__['_read_only'] = read_only or []
 
@@ -218,7 +226,7 @@ class Options(Base):
 class Function(Base):
     """Stub type for documentation, type hinting and linting."""
     # pylint: disable=too-few-public-methods
-    def __init__(self, name: str, args=Optional[List[Any]]):
+    def __init__(self, name: str, args=Optional[ListType[Any]]):
         self.name = name
 
     def __call__(self, *args):
@@ -318,6 +326,14 @@ def win_id2tabwin(_id: Any) -> Tuple[int, int]:
 def win_getid(_win, _tab=None):
     """Get the ID of a window."""
     return 111
+
+
+def win_gotoid(_win):
+    """Goto a window with the given ID"""
+
+
+def setreg(_name, _value):
+    """Set a register's value."""
 
 
 def register_command_callback(func: Union[Callable, None]):

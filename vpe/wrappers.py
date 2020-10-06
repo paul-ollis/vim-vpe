@@ -1207,7 +1207,7 @@ vim: Vim = Vim()
 
 
 # =============================================================================
-# Below this point, the code merely provide shadow objects for API
+# Below this point, the code merely provides shadow objects for API
 # documentation.
 # =============================================================================
 
@@ -1218,22 +1218,26 @@ class _VimDesc:
     This is a instance object not a module, but it provides a API that is
     extremely compatible with the :vim:`python-vim` module.
     """
-    __doc_shadow__: Vim
+    __doc_shadow__: Optional[Vim] = None
 
     @property
     def buffers(self) -> "Buffers":
+        # pyre-ignore[7]:
         """A read-only container of the all the buffers."""
 
     @property
     def windows(self) -> 'Windows':
+        # pyre-ignore[7]:
         """A read-only container of the windows of the current tab page."""
 
     @property
     def tabpages(self) -> "TabPages":
+        # pyre-ignore[7]:
         """A read-only container of the all the tab pages."""
 
     @property
     def current(self) -> "Current":
+        # pyre-ignore[7]:
         """Convenient access to currently active objects.
 
         Note: Does not support assigment to window, buffer or tabpage.
@@ -1241,17 +1245,21 @@ class _VimDesc:
 
     @property
     def vars(self) -> "Variables":
+        # pyre-ignore[7]:
         """An object providing access to global Vim variables."""
 
     @property
     def vvars(self) -> "Variables":
+        # pyre-ignore[7]:
         """An object providing access to Vim (v:) variables."""
 
     @property
     def options(self) -> "GlobalOptions":
+        # pyre-ignore[7]:
         """An object providing access to Vim's global options."""
 
     def eval(self, expr: str) -> Union[dict, list, str]:
+        # pyre-ignore[7]:
         """Evaluate a Vim expression.
 
         :return:

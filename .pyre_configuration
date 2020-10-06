@@ -1,0 +1,11 @@
+{
+  "binary": "/home/paul/.local/bin/pyre.bin",
+  "source_directories": [
+    "vpe"
+  ],
+  "search_path": [
+    "/home/paul/.vim/pack/vim-vpe/stub"
+  ],
+  "taint_models_path": "/home/paul/.local/lib",
+  "typeshed": "/home/paul/.local/lib/pyre_check/typeshed"
+}

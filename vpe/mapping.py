@@ -5,9 +5,6 @@ calls.
 """
 
 from typing import Tuple, Optional, List, Callable
-import traceback
-
-import vim as _vim
 
 from . import core
 from .wrappers import vim
