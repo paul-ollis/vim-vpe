@@ -29,7 +29,7 @@ def _init_vpe_():
 
 def VPE_run_this_as_py():
     """Run a Python shadow of the current Vim script.
-    
+
     For example, if invoked from .vim/syntax/mysyntax.vim then
     .vim/syntax/mysyntax.py is imported its 'run()' function invoked.
     """

@@ -1,3 +1,8 @@
+News
+    I have added an examples directory vim-vpe/examples. The examples in here
+    aim to be a useful learning resource users of VPE. See later for how to
+    run the examples.
+
 Introduction
 
     VPE adds to Vim’s built-in support for Python scripting. This is a brief
@@ -21,7 +26,6 @@ Introduction
 
       - Logging to a buffer. Useful when developing and debugging plug-ins.
 
-
 Quick start
 
     The quickest way to start using VPE is to import the vim object:
@@ -34,23 +38,36 @@ Quick start
 
       - Most of Vim’s functions appear as members, for example:
           
-            vim.cursor(4, 10)            # Position cursor are row 4, column 10.
-            m = vim.execute('messages')  # Get all the recent Vim messagse.
+            vim.cursor(4, 10)            # Position cursor at row 4, column 10.
+            m = vim.execute('messages')  # Get all the recent Vim messages.
 
-      - The attributes buffers, current, options, tabpages, vars, vvars and windows
-        provide enhanced access to the corresponding Vim objects. For example
-        vim.current.buffer provides a Buffer instance in place of Vim’s standard
-        python-buffer.
+      - The attributes buffers, current, options, tabpages, vars, vvars and
+        windows provide enhanced access to the corresponding Vim objects. For
+        example vim.current.buffer provides a Buffer instance in place of Vim’s
+        standard python-buffer.
 
       - The Vim registers are available using the |registers| attribute.
 
-      - When errors occur a VimError is raised, which provides a better breakdown
-        of the error. This is a subclass of vim.error so existing code that
-        catches vim.error still works.
+      - When errors occur a VimError is raised, which provides a better
+        breakdown of the error. This is a subclass of vim.error so existing
+        code that catches vim.error still works.
 
     The above just scratches the surface, see :help vpe.txt for detailed
     documentation.
 
+Examples
+
+    The examples provided with VPE are:
+
+        vpe_filenav - start with, ':runtime examples/vpe_filenav.vim'
+
+            A simple file explorer that can be used to open files.
+
+        vpe_bufnav - start with, ':runtime examples/vpe_bufnav.vim'
+
+            An explorer for buffers. This is heavily inspired by Jeff
+            Lanzarotta's excellent vimscript #42, but it does not attempt to be
+            a clone.
 
 Requirements
 
@@ -59,8 +76,8 @@ Requirements
     VPE has not been been tested on Windows (yet) or Mac. If you manage to test
     it before me, let me know how it goes.
  
-
 Status
 
-    I consider the code to be quite stable. It passes a reasonably comprehensive set
-    of tests and I use VPE daily for my standard Vim configuration.
+    I consider the code to be quite stable. It passes a reasonably
+    comprehensive set of tests and I use VPE daily for my standard Vim
+    configuration.

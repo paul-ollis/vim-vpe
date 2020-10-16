@@ -29,8 +29,8 @@ RUN ssh-keyscan ${HOST} >> /root/.ssh/known_hosts
 
 # Clone my local Vim and Python repositories.
 WORKDIR /root
-RUN git clone paul@${HOST}:develop/tracking/vim/vim 
-RUN git clone paul@${HOST}:develop/tracking/python/cpython 
+RUN git clone paul@${HOST}:develop/tracking/vim/vim
+RUN git clone paul@${HOST}:develop/tracking/python/cpython
 
 
 # ----------------------------------------------------------------------------
@@ -79,7 +79,7 @@ USER root
 FROM vim80-py36 AS vpe-test
 
 COPY admin/requirements.txt admin/test-requirements.txt ./
-RUN python3.9 -m pip install -r requirements.txt -r test-requirements.txt 
+RUN python3.9 -m pip install -r requirements.txt -r test-requirements.txt
 
 USER paul
 WORKDIR /home/paul/
@@ -97,7 +97,7 @@ FROM vim80-py36 AS vpe-install
 RUN apt-get install -y zip
 
 COPY admin/requirements.txt admin/test-requirements.txt ./
-RUN python3.9 -m pip install -r requirements.txt -r test-requirements.txt 
+RUN python3.9 -m pip install -r requirements.txt -r test-requirements.txt
 
 USER paul
 WORKDIR /home/paul/

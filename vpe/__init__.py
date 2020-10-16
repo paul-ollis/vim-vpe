@@ -45,7 +45,7 @@ from .core import *
 from .wrappers import vim, Vim
 
 # pylint: disable=wrong-import-position
-from . import channels                                                    # noqa
+from . import channels                                                   # noqa
 from . import mapping                                                    # noqa
 from . import syntax                                                     # noqa
 from .mapping import MapCallback  # noqa
