@@ -3,9 +3,9 @@ The Vim Python Extensions (VPE)
 ===============================
 
 .. toctree::
-    :maxdepth: 2
+    :maxdepth: 1
 
-    api/vpe
+    api/api.vpe
 
 
 Introduction
@@ -69,7 +69,7 @@ a number of enhancements.
 
   .. code:: python
 
-      vim.cursor(4, 10)            # Position cursor are row 4, column 10.
+      vim.cursor(4, 10)            # Position cursor at row 4, column 10.
       m = vim.execute('messages')  # Get all the recent Vim messagse.
 
 - The attributes buffers, current, options, tabpages, vars, vvars and windows

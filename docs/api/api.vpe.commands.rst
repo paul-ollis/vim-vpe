@@ -11,6 +11,7 @@ provide an easier approach to using :vim:`python-command`. For example:
 .. code-block:: py
 
     from vpe import commands
+
     commands.edit('README.txt')       # Start editing README.txt
     commands.print(a=10, b=20)        # Print lines 1 to 20
     commands.print(lrange=(10, 20))   # Print lines 1 to 20
@@ -22,14 +23,13 @@ description for details of the arguments.
 Most commands that can be entered at the colon prompt are supported. Structural
 parts of vim-script (such as function, while, try, *etc*) are excluded.
 
-The vpe, vpe.mapping and vpe.syntax modules provides some functions and
+The vpe, vpe.mapping and vpe.syntax modules provide some functions and
 classes provide alternatives for some commands. You are encouraged to use these
 alternatives in preference to the equivalent functions provided here. The
 following is a summary of the alternatives.
 
 `vpe.AutoCmdGroup`
     A replacement for augroup and autocmd.
-
 `vpe.highlight`
     Provides keyword style arguments. See also the `vpe.syntax` module.
 `vpe.error_msg`
@@ -52,7 +52,7 @@ Command
 
     Invocation takes the form of:
 
-    ::
+    .. code-block:: py
 
         func(arg[, arg[, arg...]], [bang=<flag>], [a=<start>], [b=<end>])
         func(arg[, arg[, arg...]], [bang=<flag>], [lrange=<range>])
@@ -65,7 +65,7 @@ Command
     set to '.'.
 
     The *a* and *b* values may be strings or numbers. The *lrange*
-    argument may be a string (*e.g.* '2,7',a vim.Range object, a standard
+    argument may be a string (*e.g.* '2,7', a vim.Range object, a standard
     Python range object or a tuple.
 
     **Parameters**

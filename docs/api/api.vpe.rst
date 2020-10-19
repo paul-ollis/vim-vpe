@@ -4,11 +4,11 @@ Module vpe
 .. toctree::
     :maxdepth: 1
 
-    vpe.commands
-    vpe.core
-    vpe.mapping
-    vpe.syntax
-    vpe.wrappers
+    api.vpe.commands
+    api.vpe.core
+    api.vpe.mapping
+    api.vpe.syntax
+    api.vpe.wrappers
 .. py:module:: vpe
 
 Enhanced module for using Python3 in Vim.
@@ -412,7 +412,9 @@ Buffers
 
     Wrapper around the built-in vim.buffers.
 
-    User code should not directly instantiate this class.
+    User code should not directly instantiate this class. VPE creates and
+    manages instances of this class as required.
+
     This is a proxy that extends the vim.Buffer behaviour in various ways.
 
 Current
@@ -895,8 +897,6 @@ TabPage
     User code should not directly instantiate this class.
     This is a proxy that extends the vim.Window behaviour in various ways.
 
-    intended that user code creates TabPage instances directly.
-
     **Properties**
 
         .. py:method:: vpe.TabPage.vars()
@@ -911,8 +911,10 @@ TabPages
 
     Wrapper around the built-in vim.tabpages.
 
-    User code should not directly instantiate this class.
-    VPE creates and manages instances of this class as required. It is not
+    User code should not directly instantiate this class. VPE creates and
+    manages instances of this class as required.
+
+    This is a proxy that extends the vim.TabPages behaviour in various ways.
 
     **Static methods**
 
@@ -1171,7 +1173,7 @@ VimError
     A parsed version of vim.error.
 
     VPE code raises this in place of the standard vim.error exception. It is
-    a subclass of vim.error, so code that handles vime.error will still work
+    a subclass of vim.error, so code that handles vim.error will still work
     when converted to use the `vpe.vim` object.
 
     This exception attempts to parse the Vim error string to provide additional
@@ -1205,10 +1207,10 @@ Window
 
     Wrapper around a :vim:`python-window`.
 
-    User code should not directly instantiate this class.
-    This is a proxy that extends the vim.Buffer behaviour in various ways.
+    User code should not directly instantiate this class. VPE creates and
+    manages instances of this class as required.
 
-    intended that user code creates Window instances directly.
+    This is a proxy that extends the vim.Window behaviour in various ways.
 
     **Properties**
 
@@ -1243,8 +1245,8 @@ Windows
 
     Wrapper around the built-in vim.windows.
 
-    User code should not directly instantiate this class.
-    VPE creates and manages instances of this class as required. It is not
+    User code should not directly instantiate this class. VPE creates and
+    manages instances of this class as required.
 
     **Parameters**
 

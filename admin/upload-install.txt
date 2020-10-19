@@ -5,8 +5,25 @@ directory and install VPE into the “~/.vim/pack” directory.
     $ cd ~/.vim/pack
     $ unzip vim-vpe.zip
 
-The package includes a “vim-vpe/start/vpe/plugin/vpe.vim” startup script that
-updates the Python path so that the vpe package can be imported.
+This will create a vim-vpe directory. The most significant sub-directories
+within vim-vpe are:
+
+vpe
+    The vpe package itself.
+
+docs/html
+    The VPE documentation in HTML format. I find this easier to read, but less
+    convenient than the help.
+
+start/vpe/doc
+    Contains the VPE help file plus pre-generated tags.
+
+start/vpe/examples
+    Some examples, intended as an aid to learning what you can do with VPE.
+
+start/vpe/plugin
+    Containes the vpe.vim start up script, which initialises support for
+    importing and using the vpe package.
 
 The source code is at https://github.com/paul-ollis/vim-vpe.git. You can clone
 this into ~/.vim/pack, but that will, currently, not include the Vim help file.

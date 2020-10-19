@@ -34,7 +34,7 @@ __shadow_api__ = [
 ]
 __all__ = [
     'AutoCmdGroup', 'Timer', 'Popup', 'PopupAtCursor', 'PopupBeval',
-    'PopupNotification', 'PopupDialog', 'PopupMenu',
+    'PopupNotification', 'PopupDialog', 'PopupMenu', 'ScratchBuffer',
     'Log', 'error_msg', 'call_soon', 'log',
     'saved_winview', 'highlight', 'pedit', 'popup_clear',
     'timer_stopall', 'find_buffer_by_name', 'feedkeys', 'get_display_buffer',
@@ -67,7 +67,7 @@ endfunction
 _vim.command(_VIM_FUNC_DEFS)
 
 
-class Scratch(wrappers.Buffer):
+class ScratchBuffer(wrappers.Buffer):
     """A scratch buffer.
 
     A scratch buffer has no associated file, has no swap file, never gets
@@ -122,7 +122,7 @@ class Scratch(wrappers.Buffer):
         return self.temp_options(modifiable=True, readonly=False)
 
 
-def get_display_buffer(name: str) -> Scratch:
+def get_display_buffer(name: str) -> ScratchBuffer:
     """Get a named display-only buffer.
 
     The actual buffer name will be of the form '/[[name]]'. The
@@ -144,7 +144,7 @@ def get_display_buffer(name: str) -> Scratch:
         b = wrappers.vim.current.buffer
         wrappers.commands.wincmd('c')
 
-    b = Scratch(buf_name, b)
+    b = ScratchBuffer(buf_name, b)
     _known_special_buffers[buf_name] = b
     return b
 

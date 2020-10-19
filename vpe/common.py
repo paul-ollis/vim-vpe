@@ -20,7 +20,7 @@ class VimError(_vim.error, Exception):
     """A parsed version of vim.error.
 
     VPE code raises this in place of the standard vim.error exception. It is
-    a subclass of vim.error, so code that handles vime.error will still work
+    a subclass of vim.error, so code that handles vim.error will still work
     when converted to use the `vpe.vim` object.
 
     This exception attempts to parse the Vim error string to provide additional
@@ -66,7 +66,7 @@ class VimError(_vim.error, Exception):
 
 
 def invoke_vim_function(func: Callable, *args) -> Any:
-    """Invoke a Vim function, converting the vim.errro to VimError.
+    """Invoke a Vim function, converting the vim.error to VimError.
 
     :func:   The function to invoke.
     :args:   Positional arguments, passed unmodified.

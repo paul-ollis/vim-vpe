@@ -22,11 +22,12 @@ newer.
     This is an instance of the `Log` class.
 
 The VPE module uses certain global Vim variables for its own internal purposes.
-The names are chose to be suitably obscurem but obviously associated with VPE.
+The names are chosen to be suitably obscure, but obviously associated with VPE.
 
 _vpe_args_
     This is a dictionary that is used by a Vim function to pass information to
     Python callback functions. Predefined entries are:
+
         'uid'
             The unique ID for the callback function to be invoked.
         'args'
@@ -66,7 +67,7 @@ __api__ = [
     # Types and functions that should not be directly invoked.
     'Variables', 'Window', 'TabPage', 'Windows', 'TabPages', 'Buffers',
     'Current', 'GlobalOptions', 'Function', 'Buffer',
-    'Range', 'Struct',
+    'Range', 'Struct', 'ScratchBuffer',
 ]
 
 

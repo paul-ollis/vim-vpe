@@ -21,7 +21,7 @@ __all__ = ('tabpages', 'TabPage', 'Vim', 'Registers', 'vim',
            'buffers', 'Buffer', 'Range', 'Struct')
 __api__ = ()
 
-# An object used to indicate that a parameter was not provided.
+# A sentinel object used to indicate that a parameter was not provided.
 _NOT_PROVIDED = object()
 
 _blockedVimCommands = set((
@@ -159,16 +159,16 @@ class Struct:
         return self.__dict__.get(name)
 
     def __setattr__(self, name: str, value: Any):
-        # This exists to let checkers like MyPy allow arbitrary attribute
+        # This exists to let checkers, like MyPy, accept arbitrary attribute
         # assignment.
         self.__dict__[name] = value
 
     def __getstate__(self):
-        """Support picking - only intended for testing."""
+        """Support pickling - only intended for testing."""
         return self.__dict__
 
     def __setstate__(self, state):
-        """Support picking - only intended for testing."""
+        """Support pickling - only intended for testing."""
         self.__dict__.update(state)
 
 
@@ -372,6 +372,9 @@ class MutableMappingProxy(ContainerProxy):
 class TemporaryOptions:
     """Context manager that allows options to be temporarily modified
 
+    User code should not directly instantiate this class. VPE creates and
+    manages instances of this class as required.
+
     :options: The options object.
     :presets: Keyword arguments use to preset option values to be set while the
               context us active.
@@ -427,7 +430,9 @@ class BufferListContext(list):
 class Range(MutableSequenceProxy):
     """Wrapper around the built-in vim.Range type.
 
-    This is a proxy that extends the vim.Buffer behaviour in various ways.
+    User code should not directly instantiate this class.
+
+
     """
     def append(self, line_or_lines, nr=None):
         """Append one or more lines to the range.
@@ -446,17 +451,7 @@ class Range(MutableSequenceProxy):
 class Buffer(MutableSequenceProxy):
     """Wrapper around a :vim:`python-window`.
 
-    VPE creates and manages instances of this class as required. It is not
-    intended that user code creates Buffer instances directly.
-
-    A number of extensions to the standard :vim:`python-buffer` are provided.
-
-    - The `vars` property provides access to the buffer's variables.
-    - The `list` context manager provides a clean, and often more efficient,
-      way to access the buffer's content.
-    - The `temp_options` context manager provides a clean way to work with a
-      buffer with some of its options temporarily modified.
-    - Buffer specific meta-data can be attached using the `store`.
+    The official documentation is provided by _BufferDesc.
     """
     _known: Dict[int, "Buffer"] = {}
     _writeable = set(('name',))
@@ -624,7 +619,7 @@ class Buffer(MutableSequenceProxy):
         """
         return BufferListContext(self)
 
-    def temp_options(self, **presets):
+    def temp_options(self, **presets) -> TemporaryOptions:
         """Context used to temporarily change options.
 
         This makes it easy, for example, to use a normally unmodifiable buffer
@@ -696,7 +691,11 @@ class Buffer(MutableSequenceProxy):
 class Buffers(ImmutableSequenceProxy):
     """Wrapper around the built-in vim.buffers.
 
+    User code should not directly instantiate this class. VPE creates and
+    manages instances of this class as required.
+
     This is a proxy that extends the vim.Buffer behaviour in various ways.
+
     """
     # pylint: disable=too-few-public-methods
     @property
@@ -707,8 +706,10 @@ class Buffers(ImmutableSequenceProxy):
 class Window(Proxy):
     """Wrapper around a :vim:`python-window`.
 
-    VPE creates and manages instances of this class as required. It is not
-    intended that user code creates Window instances directly.
+    User code should not directly instantiate this class. VPE creates and
+    manages instances of this class as required.
+
+    This is a proxy that extends the vim.Window behaviour in various ways.
     """
     _writeable = set(('cursor', 'width', 'height'))
 
@@ -747,9 +748,10 @@ class Window(Proxy):
 class Windows(ImmutableSequenceProxy):
     """Wrapper around the built-in vim.windows.
 
-    This is a proxy that extends the vim.Window behaviour in various ways.
+    User code should not directly instantiate this class. VPE creates and
+    manages instances of this class as required.
 
-    :vim_windows: A :vim:`python-windows` object.
+    :obj: A :vim:`python-windows` object.
     """
     # pylint: disable=too-few-public-methods
     pass  # pylint: disable=unnecessary-pass
@@ -763,8 +765,8 @@ class _DeadWin:
 class TabPage(Proxy):
     """Wrapper around a :vim:`python-tabpage`.
 
-    VPE creates and manages instances of this class as required. It is not
-    intended that user code creates TabPage instances directly.
+    User code should not directly instantiate this class.
+    This is a proxy that extends the vim.Window behaviour in various ways.
     """
     # pylint: disable=too-few-public-methods
     _writeable: Set[str] = set()
@@ -777,6 +779,9 @@ class TabPage(Proxy):
 
 class TabPages(ImmutableSequenceProxy):
     """Wrapper around the built-in vim.tabpages.
+
+    User code should not directly instantiate this class. VPE creates and
+    manages instances of this class as required.
 
     This is a proxy that extends the vim.TabPages behaviour in various ways.
     """
@@ -791,8 +796,8 @@ class TabPages(ImmutableSequenceProxy):
 
         :position:
             The position relative to this tab. The standard character prefixes
-            for the ':tabnew' command can be used or one of the more readable
-            strings:
+            for the :vim:`:tabnew` command can be used or one of the more
+            readable strings:
 
             'after', 'before'
                 Immediately after or before the current tab (same as '.', '-'),
@@ -1171,7 +1176,7 @@ class Vim:
             cls._myself = super().__new__(cls, *args, **kwargs)
         return cls._myself
 
-    def temp_options(self, **presets):
+    def temp_options(self, **presets) -> TemporaryOptions:
         """Context used to temporarily change options."""
         return TemporaryOptions(self.options, **presets)
 

@@ -4,8 +4,6 @@ import pathlib
 import os
 import sys
 
-print()
-
 
 def ensure_dir_is_in_sys_path(path: Union[pathlib.Path, str], first=True):
     """Ensure that a given directory is in sys.path.
@@ -52,12 +50,12 @@ sphinxConfig.add_to_syspath('os.path.abspath(".")', literal=True)
 sphinxConfig.add_extension("cs_vimhelp")
 sphinxConfig.conf["exclude_patterns"] = []
 sphinxConfig.conf["html_theme_path"] = ['.']
-sphinxConfig.conf["html_theme"] = "cs_theme"
+sphinxConfig.conf["html_theme"] = "sphinx_rtd_theme"
 sphinxConfig.conf["html_theme_options"] = {}
 sphinxConfig.conf["pygments_style"] = "manni"
 sphinxConfig.conf["default_role"] = "any"
 sphinxConfig.conf['autodoc_typehints'] = "none"
-sphinxConfig.conf['master_doc'] = "vpe-help"
+sphinxConfig.conf['master_doc'] = "index"
 
 # Generate the config file.
 confPath = sphinxConfig.create(MYMFILE)
@@ -68,7 +66,7 @@ KeepEnviron("PYTHONPATH")
 path = EnvironPath("PATH")
 # path.prepend('~/develop/main/epysphinx')
 
-srcFiles = ["api/vpe.rst"]
+srcFiles = ["api/api.vpe.rst"]
 
 # pySources = GlobTree("../src", inclFiles=["*.py"])
 # flat = '--flat'
@@ -85,7 +83,7 @@ Command("vimhelp/vpe-help.txt", srcFiles,
           AutoDep=sphinx.scanSphinx,
           Local=1)
 
-InstallFile("../start/vpe/doc/vpe-help.txt", "vimhelp/vpe-help.txt")
+InstallFile("../start/vpe/doc/vpe-help.txt", "vimhelp/index.txt")
 
 #Command("api-rst/index.rst", pySources,
 #     Cmd = "epysphinx %s -v --warn-undoc $SOURCES" % (flat, ),
