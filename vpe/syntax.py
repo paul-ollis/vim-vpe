@@ -455,15 +455,19 @@ class Syntax(SyntaxBase):
             self.std_groups[name] = self.group_type(self, name, std=True)
         return self.std_groups[name]
 
-    def group(self, name, **options):
+    def group(self, name, link_to=None, **options):
         """Create a group within this `syntax` object's namespace.
 
         :name:    The group's name.
+        :link_to: The full name of a group to link to.
         :options: Options for the group.
         """
         if name not in self.groups:
             self.groups[name] = self.group_type(self, name, **options)
-        return self.groups[name]
+        group = self.groups[name]
+        if link_to is not None:
+            self.std_group(link_to).add_links(group)
+        return group
 
     def sync_group(self, name, **options):
         """Create a sync group within this `syntax` object's namespace.
