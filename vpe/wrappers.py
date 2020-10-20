@@ -7,7 +7,9 @@ You should not normally need to import this module directly.
 from typing import Set, ClassVar, Any, Dict, Optional, List, Tuple, Union
 from typing import Type, Callable
 import collections
+import itertools
 import functools
+import pathlib
 import weakref
 
 import vim as _vim
@@ -532,6 +534,64 @@ class Buffer(MutableSequenceProxy):
         """The buffar vars wrapped as a `Variables` instance."""
         return Variables(self._proxied.vars)
 
+    @property
+    def type(buf) -> str:
+        """The type name of this buffer.
+
+        This is similar to the :vim:`'buftype'` option, but normal buffers
+        have the type 'normal'.
+        """
+        typename = buf.options.buftype
+        if typename:
+            return typename
+        return 'normal'
+
+    @property
+    def location(self) -> str:
+        """The location of the file loaded in this buffer.
+
+        :return:
+            If the buffer is not associated with a file then an empty string.
+            Otherwise the absolute directory part of the file's name.
+        """
+        if self.name and self.type in ('normal', 'help', 'acwrite'):
+            return str(pathlib.Path(self.name).parent)
+        return ''
+
+    @property
+    def long_display_name(self) -> str:
+        """A long-form name for display purposes."""
+        if self.type == 'quickfix':
+            title = vim.getqflist({'title': 1})['title']
+            return f'[quickfix]: {title}'
+        if self.name:
+            return self.name
+        return '[No name]'
+
+    @property
+    def short_display_name(self) -> str:
+        """A short-form name for display purposes."""
+        if self.type in ('terminal', 'popup'):
+            return f'[{self.type}]'
+        if self.name:
+            return pathlib.Path(self.name).name
+        return '[No name]'
+
+    @property
+    def short_description(self) -> str:
+        """A short description for the buffer.
+
+        :return:
+            For a quickfix window this is the title string. For a terminal this
+            is the buffer's name. For other types that are associated with a
+            file the `location` property is provided.
+        """
+        if self.type == 'quickfix':
+            return vim.getqflist({'title': 1})['title']
+        if self.type == 'terminal':
+            return self.name
+        return self.location
+
     def append(self, line_or_lines, nr=None):
         """Append one or more lines to the buffer.
 
@@ -589,6 +649,44 @@ class Buffer(MutableSequenceProxy):
                   entered.
         """
         return TemporaryOptions(self.options, **presets)
+
+    def goto_active_window(self) -> bool:
+        """Goto a window where this buffer is active.
+
+        Windows are search in the following order. The current window, windows
+        in the current tab page, all windows in all tab pages.
+
+        This has no effect (and returns False) if the buffer is not active in
+        any window.
+
+        :return: True if an active window was found
+        """
+        if vim.current.window.buffer is self:
+            return True
+        for win in vim.current.tabpage.windows:
+            if win.buffer is self:
+                win.goto()
+                return True
+        for page in itertools.chain([vim.current.tabpage], vim.tabpages):
+            for win in page.windows:
+                if win.buffer is self:
+                    win.goto()
+                    return True
+        return False
+
+    def __getattr__(self, name):
+        """Make the values from getbufinfo() available as attributes.
+
+        This extends the base class implementation.
+        """
+        try:
+            return super().__getattr__(name)
+        except AttributeError as e:
+            info = vim.getbufinfo(self.number)[0]
+            try:
+                return info[name]
+            except KeyError:
+                raise e
 
     @property
     def _proxied(self):
@@ -1054,7 +1152,7 @@ class Vim:
 
     This is a instance object not a module, but it provides a API that is
     extremely compatible with the :vim:`python-vim` module. Details of the API
-    are provided by _Vim_doc.
+    are provided by _VimDesc.
     """
     _registers: ClassVar[Registers] = Registers()
 
@@ -1218,7 +1316,7 @@ class _VimDesc:
     This is a instance object not a module, but it provides a API that is
     extremely compatible with the :vim:`python-vim` module.
     """
-    __doc_shadow__: Optional[Vim] = None
+    __doc_shadow__ = 'Vim'
 
     @property
     def buffers(self) -> "Buffers":
@@ -1275,4 +1373,106 @@ class _VimDesc:
 
         :raise VimError:
             A more detailed version vim.error (:vim:`python-error`).
+        """
+
+
+class _BufferDesc:
+    """Wrapper around a :vim:`python-buffer`.
+
+    User code should not directly instantiate this class. VPE creates and
+    manages instances of this class as required.
+
+    A number of extensions to the standard :vim:`python-buffer` are provided.
+
+    - The `vars` property provides access to the buffer's variables.
+    - The `list` context manager provides a clean, and often more efficient,
+      way to access the buffer's content.
+    - The `temp_options` context manager provides a clean way to work with a
+      buffer with some of its options temporarily modified.
+    - Buffer specific meta-data can be attached using the `store`.
+    - The values provided by :vim:`getbufinfo()` are effectively available as
+      properties of this class.
+    """
+    __doc_shadow__ = 'Buffer'
+
+    @property
+    def bufnr(self) -> int:
+        # pyre-ignore[7]:
+        """The same as the `number` attribute.
+
+        This exists as a side effect of providing :vim:`getbufinfo()` values as
+        properties. It is more  efficient to use the `number` attribute.
+        """
+
+    @property
+    def changed(self) -> int:
+        # pyre-ignore[7]:
+        """Modified flag; 0=unchanged, 1=changed."""
+
+    @property
+    def changedtick(self) -> int:
+        # pyre-ignore[7]:
+        """Same as :vim:`changetick`."""
+
+    @property
+    def changed(self) -> int:
+        # pyre-ignore[7]:
+        """Hidden flag; 0=buffer visible in a window, 1=buffer hidden."""
+
+    @property
+    def lastused(self) -> int:
+        # pyre-ignore[7]:
+        """Time (in seconds) when buffer was last used.
+
+        This is a time in seconds a returned by :vim:`localtime()`.
+        """
+
+    @property
+    def lnum(self) -> int:
+        # pyre-ignore[7]:
+        """The current line number for the buffer."""
+
+    @property
+    def linecount(self) -> int:
+        # pyre-ignore[7]:
+        """The number of lines in the buffer."""
+
+    @property
+    def loaded(self) -> int:
+        # pyre-ignore[7]:
+        """Buffer loaded flag; 0=not loaded, 1=buffer loaded."""
+
+    # TODO: Gives me attribute error. May be only available when at least one
+    # sign is placed.
+    # @property
+    # def signs(self) -> int:
+    #     # pyre-ignore[7]:
+    #     """A list of all the signs placed in the buffer.
+    #
+    #     See :vim:`getbufinfo()` for more details.
+    #     """
+
+    @property
+    def variables(self) -> int:
+        # pyre-ignore[7]:
+        """The same as the `vars` attribute.
+
+        This exists as a side effect of providing :vim:`getbufinfo()` values as
+        properties. It is more  efficient to use the `vars` attribute.
+        """
+
+    @property
+    def windows(self) -> int:
+        # pyre-ignore[7]:
+        """A list popup windows displaying this buffer.
+
+        Each entry is a :vim:`window-ID`.
+        """
+
+    @property
+    def popups(self) -> int:
+        # pyre-ignore[7]:
+        """A list windows displaying this buffer.
+
+        Each entry is a :vim:`window-ID`.
         """
