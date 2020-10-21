@@ -34,6 +34,44 @@ RUN git clone paul@${HOST}:develop/tracking/python/cpython
 
 
 # ----------------------------------------------------------------------------
+#  Base image for current Vim, Python testing.
+# ----------------------------------------------------------------------------
+FROM build-base AS current
+
+#
+# Build Python interpreter that will be built into Vim.
+#
+WORKDIR /root/cpython
+RUN git checkout master
+COPY docker-files/py-do-config do_config
+RUN chmod u+x do_config
+RUN ./do_config
+RUN make -j5
+RUN make install
+RUN ldconfig
+RUN python3.9 -m pip install coverage
+
+#
+# Build Vim with GUI support.
+#
+WORKDIR /root/vim
+RUN git checkout master
+COPY docker-files/vim-do-config do_config
+RUN chmod u+x do_config
+RUN ./do_config
+RUN make -j5
+RUN make install
+RUN ldconfig
+
+RUN groupadd -g 1000 paul
+RUN useradd -rm -s /bin/bash -g paul -G sudo -u 1000 paul
+USER paul
+WORKDIR /home/paul/
+RUN mkdir -p .vim/pack
+USER root
+
+
+# ----------------------------------------------------------------------------
 #  Base image for Vim-Python testing.
 #
 #  A build of Python and Vim.
@@ -87,6 +125,37 @@ COPY --chown=paul:paul docker-files/test-vim.rc .vimrc
 COPY --chown=paul:paul docker-files/test-bash.rc .bashrc
 WORKDIR /home/paul/.vim/pack/vim-vpe/test
 CMD ./run_tests
+
+
+# ----------------------------------------------------------------------------
+#  Image for building a release.
+# ----------------------------------------------------------------------------
+FROM current AS release
+
+COPY admin/requirements.txt ./
+COPY docs/requirements.txt docs-requirements.txt
+RUN python3.9 -m pip install -r requirements.txt -r docs-requirements.txt
+RUN apt-get install -y strace
+
+USER paul
+WORKDIR /home/paul/
+RUN mkdir -p .vim/pack/vim-vpe
+COPY --chown=paul:paul docker-files/test-vim.rc .vimrc
+COPY --chown=paul:paul docker-files/test-bash.rc .bashrc
+WORKDIR /home/paul/.vim/pack/vim-vpe
+COPY --chown=paul:paul .git .git/
+WORKDIR /home/paul/.vim/pack/vim-vpe
+RUN git reset --hard do-doc
+WORKDIR /home/paul/.vim/pack/vim-vpe/docs
+RUN sphinx-build -NaE -b html . html
+RUN sphinx-build -NaE -b vimhelp . vimhelp
+RUN mkdir -p ../start/vpe/doc/
+CMD /bin/bash
+RUN cp vimhelp/vpe-help.txt ../start/vpe/doc/
+RUN echo 'helptags ../start/vpe/doc' | ex | true
+WORKDIR /home/paul/.vim/pack/vim-vpe
+RUN ./admin/mk-release.py
+CMD cp vim-vpe.zip ~/release/
 
 
 # ----------------------------------------------------------------------------

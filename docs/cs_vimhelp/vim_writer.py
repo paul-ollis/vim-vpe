@@ -17,15 +17,72 @@ import weakref
 from docutils import nodes
 from docutils import writers
 
-from CleverSheep.Prog.Iter import PushBackIterator
-
-import vimhelp
+import cs_vimhelp
 from . import table
 from . import visitor
 
 _source_path = None
 _uc_open_quote = chr(8216)
 _uc_close_quote = chr(8217)
+
+
+class PushBackIterator:
+    """An iterator that supports pushing items back.
+
+    This was written to support simple text parsing, in which you need some
+    amount of look-ahead and back-tracking. Whilst back-tracking may be
+    considered harmful in parsers, for many simple tasks it is actually
+    a perfectly adequate approach.
+    """
+    def __init__(self, it):
+        """Constructor:
+
+        :Param it:
+            An iterable object.
+        """
+        self._it = iter(it)
+        self._ungotten = []
+
+    def __next__(self):
+        """Iterator protocol: get next element
+
+        If any items have been pushed back, then the most recently pushed item
+        is returned. Otherwise we try to get the next new item.
+        """
+        if self._ungotten:
+            return self._ungotten.pop()
+        return next(self._it)
+    next = __next__
+
+    def peek(self):
+        """Peek the next element
+
+        If any items have been pushed back, then the most recently pushed item
+        is returned. Otherwise we try to get the next new item.
+
+        """
+        if not self._ungotten:
+            try:
+                self.pushBack(next(self._it))
+            except StopIteration:
+                return
+        return self._ungotten[-1]
+
+    def pushBack(self, v):
+        """Push `v` back into the iterator.
+
+        :Param v:
+            This can be anything, although it would normally be an item
+            previously returned by `next`.
+        """
+        self._ungotten.append(v)
+
+    #: An alias for pushBack
+    unget = pushBack
+
+    def __iter__(self):
+        """A PushBackIterator is its own iterator."""
+        return self
 
 
 def handler():
@@ -589,7 +646,7 @@ class VimReferator(visitor.Visitor):
 class VimVisitor(visitor.Visitor):
     def __init__(self, document, ref_map, *args, **kwargs):
         visitor.Visitor.__init__(self, document, *args, **kwargs)
-        vimhelp.setLogPath('/tmp/wibble.log')
+        # cs_vimhelp.setLogPath('/tmp/wibble.log')
 
 
 def flattenSphinxTree(node):

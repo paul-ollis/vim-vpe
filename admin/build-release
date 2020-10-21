@@ -1,0 +1,14 @@
+#!/bin/bash
+
+# export DOCKER_BUILDKIT=1
+cp ~/.ssh/id_rsa* docker-files/
+mkdir release
+docker build --target release -t release . && {
+    rm docker-files/id_rsa*
+    docker run -it --rm \
+        --net=host --env="DISPLAY" --volume="$HOME/.Xauthority:/home/paul/.Xauthority:rw" \
+        --volume="$HOME/np/sw/vim-vpe/release:/home/paul/release/" \
+        release
+}
+
+

@@ -1,12 +1,13 @@
 from typing import Union
 
 import pathlib
+import os
 import sys
 
 print()
 
 
-def ensure_dir_is_in_sys_path(path: Union[pathlib.Path, str]):
+def ensure_dir_is_in_sys_path(path: Union[pathlib.Path, str], first=True):
     """Ensure that a given directory is in sys.path.
 
     :path: May refer to a directory or a file within the required directory.
@@ -16,20 +17,28 @@ def ensure_dir_is_in_sys_path(path: Union[pathlib.Path, str]):
         full_path = full_path.parent
     path_name = str(full_path)
     if path_name not in sys.path:
-        sys.path[0:0] = [path_name]
+        if first:
+            sys.path[0:0] = [path_name]
+        else:
+            sys.path.append(path_name)
 
 
 # Make sure that we can import the doculate code and the VPE code.
-src_path = pathlib.Path.cwd().parent
-ensure_dir_is_in_sys_path('~/np/sw/sphinx-ext')
+doc_path = pathlib.Path.cwd()
+src_path = doc_path.parent
+ensure_dir_is_in_sys_path('~/np/sw/sphinx-ext', first=False)
 ensure_dir_is_in_sys_path(src_path)
 ensure_dir_is_in_sys_path(src_path / 'stub')
+ensure_dir_is_in_sys_path(doc_path)
+for p in sys.path:
+    Info(p)
 
 import doculate
 print(f'{doculate.__file__=}')
 doculate.gen_api_tree(root_path=src_path, mod_name='vpe')
 
-# TODO: Sort this out! 
+# TODO: Sort this out!
+import cs_theme
 from cs_theme import cs_theme_path
 
 # Use the mym sphinx support add-ons.
@@ -38,33 +47,17 @@ from mym_addons import sphinx
 # Edit the following lines to suite your needs.
 projectName = "Vim Python Extensions"
 
-# Make sure that the Sphinx can load the vimhelp plugin.
 sphinxConfig = sphinx.Config(project=projectName)
-root_path = pathlib.Path('~/np/sw/sphinx-ext/vimhelp')
-root_path = root_path.expanduser()
-sphinxConfig.add_to_syspath(str(root_path))
-
-sphinxConfig.add_extension("vimhelp")
-sphinxConfig.add_extension("sphinx.ext.graphviz")
-sphinxConfig.add_extension("sphinx.ext.autodoc")
-sphinxConfig.conf["exclude_patterns"] = [
-    'api/vpe.channels.rst',
-    'api/vpe.colors.rst',
-    'api/vpe.current.rst',
-    'api/vpe.dictionaries.rst',
-    'api/vpe.options.rst',
-    'api/vpe.proxies.rst',
-    'api/vpe.tabpages.rst',
-    'api/vpe.variables.rst',
-    'api/vpe.windows.rst',
-]
-sphinxConfig.conf["html_theme_path"] = [cs_theme_path]
+sphinxConfig.add_to_syspath('os.path.abspath(".")', literal=True)
+sphinxConfig.add_extension("cs_vimhelp")
+sphinxConfig.conf["exclude_patterns"] = []
+sphinxConfig.conf["html_theme_path"] = ['.']
 sphinxConfig.conf["html_theme"] = "cs_theme"
+sphinxConfig.conf["html_theme_options"] = {}
 sphinxConfig.conf["pygments_style"] = "manni"
 sphinxConfig.conf["default_role"] = "any"
 sphinxConfig.conf['autodoc_typehints'] = "none"
 sphinxConfig.conf['master_doc'] = "vpe-help"
-
 
 # Generate the config file.
 confPath = sphinxConfig.create(MYMFILE)

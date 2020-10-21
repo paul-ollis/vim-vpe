@@ -6,7 +6,7 @@ __docformat__ = "restructuredtext"
 
 import docutils.nodes
 
-import vimhelp
+import cs_vimhelp
 
 
 class ProxyDict:
@@ -33,7 +33,7 @@ class Visitor(docutils.nodes.NodeVisitor):
     """
     def __init__(self, *args, **kwargs):
         docutils.nodes.NodeVisitor.__init__(self, *args, **kwargs)
-        vimhelp.setLogPath(None)
+        cs_vimhelp.setLogPath(None)
         self.level = 0
         self.skipLevel = 0
         self._contextStack = []
@@ -130,12 +130,12 @@ class Visitor(docutils.nodes.NodeVisitor):
                 text = ' '.join(
                     f'{n}={node.attributes[n]!r}' for n in sel_keys
                     if n in non_empty)
-        vimhelp.log.write(
+        cs_vimhelp.log.write(
             f'{prefix}ENTER {level:<2}{" "*level} {node.__class__.__name__}'
             f' {text}\n')
 
     def log_leave(self, node, level, prefix=""):
         return
-        vimhelp.log.write("%sLEAVE %s %s %s\n" % (prefix,
+        cs_vimhelp.log.write("%sLEAVE %s %s %s\n" % (prefix,
                 level + 1, "  " * (level + 1),
                 node.__class__.__name__))

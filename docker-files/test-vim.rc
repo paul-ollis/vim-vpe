@@ -1,0 +1,9 @@
+set nocompatible
+set loadplugins
+set hidden
+set laststatus=2
+runtime! pack/**/vpe.vim
+
+nnoremap <F1> :py3 vpe.log.show()<cr>
+py3 import vpe
+py3 vpe.log.redirect()
