@@ -1,0 +1,6 @@
+#!/bin/bash
+
+cp ~/.ssh/id_rsa* docker-files/
+docker build --target build-base -t build-base . && {
+    rm docker-files/id_rsa*
+}
