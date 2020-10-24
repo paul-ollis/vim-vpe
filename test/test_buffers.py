@@ -8,6 +8,7 @@ from cleversheep3.Test.Tester import *
 from cleversheep3.Test.Tester import test, runModule
 
 import support
+import vim_if
 
 import vpe
 
@@ -541,9 +542,10 @@ class Buffers(support.Base):
         :<py>:
 
             res = Struct()
-            vpe.commands.terminal('echo')
-            res.terminal = vim.current.buffer.short_display_name
-            vpe.commands.bdelete('.')
+            if vim.vvars.version >= 810:
+                vpe.commands.terminal('echo')
+                res.terminal = vim.current.buffer.short_display_name
+                vpe.commands.bdelete('.')
 
             vpe.commands.edit('/tmp/nodir/nofile.txt')
             res.stem = vim.current.buffer.short_display_name
@@ -554,7 +556,8 @@ class Buffers(support.Base):
             dump(res)
         """
         res = self.run_self()
-        failUnlessEqual('[terminal]', res.terminal)
+        if vim_if.VimSession.get_version() >= [8, 1]:
+            failUnlessEqual('[terminal]', res.terminal)
         failUnlessEqual('nofile.txt', res.stem)
         failUnlessEqual('[No name]', res.empty)
 
@@ -574,15 +577,17 @@ class Buffers(support.Base):
             res.location = vim.current.buffer.short_description
             vpe.commands.bdelete('.')
 
-            vpe.commands.terminal('echo 9')
-            res.terminal = vim.current.buffer.short_description
+            if vim.vvars.version >= 810:
+                vpe.commands.terminal('echo 9')
+                res.terminal = vim.current.buffer.short_description
             vpe.commands.bdelete('.')
             dump(res)
         """
         res = self.run_self()
         failUnlessEqual('Test title', res.qf)
         failUnlessEqual('/tmp/nodir', res.location)
-        failUnlessEqual('!echo 9', res.terminal)
+        if vim_if.VimSession.get_version() >= [8, 1]:
+            failUnlessEqual('!echo 9', res.terminal)
 
     @test(testID='buf-goto-same-window')
     def goto_same_window(self):
@@ -688,7 +693,8 @@ class Buffers(support.Base):
 
             buf = vim.current.buffer
             buf[:] = ['1', '2']
-            res.nlines = buf.linecount
+            if vim.vvars.version >= 810:
+                res.nlines = buf.linecount
             res.loaded = buf.loaded
             res.lnum = buf.lnum
             try:
@@ -698,7 +704,8 @@ class Buffers(support.Base):
             dump(res)
         """
         res = self.run_self()
-        failUnlessEqual(2, res.nlines)
+        if vim_if.VimSession.get_version() >= [8, 1]:
+            failUnlessEqual(2, res.nlines)
         failUnlessEqual(1, res.loaded)
         failUnlessEqual(1, res.lnum)
         failUnlessEqual('Nothing', res.nothing)
