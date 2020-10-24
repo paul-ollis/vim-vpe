@@ -449,7 +449,7 @@ class Range(MutableSequenceProxy):
 
 
 class Buffer(MutableSequenceProxy):
-    """Wrapper around a :vim:`python-window`.
+    """Wrapper around a :vim:`python-buffer`.
 
     The official documentation is provided by _BufferDesc.
     """
@@ -695,7 +695,6 @@ class Buffers(ImmutableSequenceProxy):
     manages instances of this class as required.
 
     This is a proxy that extends the vim.Buffer behaviour in various ways.
-
     """
     # pylint: disable=too-few-public-methods
     @property
@@ -765,7 +764,9 @@ class _DeadWin:
 class TabPage(Proxy):
     """Wrapper around a :vim:`python-tabpage`.
 
-    User code should not directly instantiate this class.
+    User code should not directly instantiate this class. VPE creates and
+    manages instances of this class as required.
+
     This is a proxy that extends the vim.Window behaviour in various ways.
     """
     # pylint: disable=too-few-public-methods

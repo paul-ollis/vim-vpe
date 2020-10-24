@@ -4,7 +4,6 @@ Module vpe
 .. toctree::
     :maxdepth: 1
 
-    api.vpe.commands
     api.vpe.core
     api.vpe.mapping
     api.vpe.syntax
@@ -894,7 +893,9 @@ TabPage
 
     Wrapper around a :vim:`python-tabpage`.
 
-    User code should not directly instantiate this class.
+    User code should not directly instantiate this class. VPE creates and
+    manages instances of this class as required.
+
     This is a proxy that extends the vim.Window behaviour in various ways.
 
     **Properties**
