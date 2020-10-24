@@ -465,6 +465,244 @@ class Buffers(support.Base):
         failUnlessEqual('hello', res.a.y)
         failUnless(res.none is None)
 
+    @test(testID='buf-type')
+    def type_property(self):
+        """The type property is a single word description.
+
+        :<py>:
+
+            res = Struct()
+            res.normal_type = vim.current.buffer.type
+
+            vpe.commands.enew()
+            buf = vim.current.buffer
+            buf.options.buftype = 'nofile'
+            res.nofile_type = buf.type
+            vpe.commands.bdelete('.')
+
+            dump(res)
+        """
+        res = self.run_self()
+        failUnlessEqual('normal', res.normal_type)
+        failUnlessEqual('nofile', res.nofile_type)
+
+    @test(testID='buf-location')
+    def location_property(self):
+        """The location property is the file's directory.
+
+        If the buffer has no file then it is an empty string.
+
+        :<py>:
+
+            res = Struct()
+            vpe.commands.edit('/tmp/nodir/nofile.txt')
+            res.location = vim.current.buffer.location
+
+            buf = vim.current.buffer
+            buf.options.buftype = 'nofile'
+            res.empty = buf.location
+            vpe.commands.bdelete('.')
+
+            dump(res)
+        """
+        res = self.run_self()
+        failUnlessEqual('/tmp/nodir', res.location)
+        failUnlessEqual('', res.empty)
+
+    @test(testID='buf-long-name')
+    def long_display_name_property(self):
+        """The long_display_name property depends on the buffer's type.
+
+        :<py>:
+
+            res = Struct()
+            vpe.commands.cbuffer()
+            vim.setqflist([], 'a', {'title': 'Test title'})
+            vpe.commands.copen()
+            res.qf = vim.current.buffer.long_display_name
+
+            vpe.commands.edit('/tmp/nodir/nofile.txt')
+            res.full_path = vim.current.buffer.long_display_name
+            vpe.commands.bdelete('.')
+
+            vpe.commands.enew()
+            res.empty = vim.current.buffer.long_display_name
+            dump(res)
+        """
+        res = self.run_self()
+        failUnlessEqual('[quickfix]: Test title', res.qf)
+        failUnlessEqual('/tmp/nodir/nofile.txt', res.full_path)
+        failUnlessEqual('[No name]', res.empty)
+
+    @test(testID='buf-short-name')
+    def short_display_name_property(self):
+        """The short_display_name property depends on the buffer's type.
+
+        :<py>:
+
+            res = Struct()
+            vpe.commands.terminal('echo')
+            res.terminal = vim.current.buffer.short_display_name
+            vpe.commands.bdelete('.')
+
+            vpe.commands.edit('/tmp/nodir/nofile.txt')
+            res.stem = vim.current.buffer.short_display_name
+            vpe.commands.bdelete('.')
+
+            vpe.commands.enew()
+            res.empty = vim.current.buffer.short_display_name
+            dump(res)
+        """
+        res = self.run_self()
+        failUnlessEqual('[terminal]', res.terminal)
+        failUnlessEqual('nofile.txt', res.stem)
+        failUnlessEqual('[No name]', res.empty)
+
+    @test(testID='buf-short_desc')
+    def short_description_property(self):
+        """The short_description property depends on the buffer's type.
+
+        :<py>:
+
+            res = Struct()
+            vpe.commands.cbuffer()
+            vim.setqflist([], 'a', {'title': 'Test title'})
+            vpe.commands.copen()
+            res.qf = vim.current.buffer.short_description
+
+            vpe.commands.edit('/tmp/nodir/nofile.txt')
+            res.location = vim.current.buffer.short_description
+            vpe.commands.bdelete('.')
+
+            vpe.commands.terminal('echo 9')
+            res.terminal = vim.current.buffer.short_description
+            vpe.commands.bdelete('.')
+            dump(res)
+        """
+        res = self.run_self()
+        failUnlessEqual('Test title', res.qf)
+        failUnlessEqual('/tmp/nodir', res.location)
+        failUnlessEqual('!echo 9', res.terminal)
+
+    @test(testID='buf-goto-same-window')
+    def goto_same_window(self):
+        """The goto_active_window method prefers the current window.
+
+        Otherwise is uses the lowest numbered matching window.
+        :<py>:
+
+            res = Struct()
+            res.r = []
+            vpe.commands.tabonly()
+            vpe.commands.wincmd('o')
+
+            vpe.commands.wincmd('s')
+            w1 = vim.current.window
+            b1 = vim.current.buffer
+            vpe.commands.wincmd('w', a=2)
+            w2 = vim.current.window
+
+            vpe.commands.wincmd('s')
+            vpe.commands.wincmd('w', a=3)
+            vpe.commands.enew()
+            b2 = vim.current.buffer
+
+            vpe.commands.wincmd('w', a=1)
+            res.r.append(b1.goto_active_window())
+            res.same_win = vim.current.window.number
+
+            vpe.commands.wincmd('w', a=2)
+            res.r.append(b1.goto_active_window())
+            res.same_win2 = vim.current.window.number
+
+            vpe.commands.wincmd('w', a=3)
+            res.r.append(b1.goto_active_window())
+            res.same_win3 = vim.current.window.number
+
+            dump(res)
+        """
+        res = self.run_self()
+        failUnlessEqual(1, res.same_win)
+        failUnlessEqual(2, res.same_win2)
+        failUnlessEqual(1, res.same_win3)
+        failUnlessEqual([True, True, True], res.r)
+
+    @test(testID='buf-goto-search-tabs')
+    def goto_same_search_tabs(self):
+        """The goto_active_window will use a different tab.
+
+        The lowest numbered tab is preferred. If no window is found then
+        nothing changes and False is returned.
+        :<py>:
+
+            res = Struct()
+            res.r = []
+            vpe.commands.tabonly()
+            vpe.commands.wincmd('o')
+            t1 = vim.current.tabpage
+            hidden_buf = vim.current.buffer
+            vpe.commands.tabnew()
+            t2 = vim.current.tabpage
+            vpe.commands.tabnew()
+            t3 = vim.current.tabpage
+            vpe.commands.tabnew()
+            t4 = vim.current.tabpage
+
+            vpe.commands.tabnext(a=2)
+            vpe.commands.enew()
+            target = vim.current.buffer
+
+            vpe.commands.tabnext(a=4)
+            vpe.commands.buffer(target.number)
+
+            vpe.commands.tabnext(a=3)
+            res.start_tab = vim.current.tabpage.number
+            res.r.append(target.goto_active_window())
+            res.tab_found = vim.current.tabpage.number
+
+            vpe.commands.tabnext(a=1)
+            vpe.commands.tabclose()
+            vpe.commands.tabnext(a=2)
+            res.start_tab2 = vim.current.tabpage.number
+            res.r.append(hidden_buf.goto_active_window())
+            res.end_tab = vim.current.tabpage.number
+
+            dump(res)
+        """
+        res = self.run_self()
+        failUnlessEqual(3, res.start_tab)
+        failUnlessEqual(2, res.tab_found)
+        failUnlessEqual(2, res.start_tab2)
+        failUnlessEqual(2, res.end_tab)
+        failUnlessEqual([True, False], res.r)
+
+    @test(testID='buf-info')
+    def getbufinfo_as_properties(self):
+        """The getbufinfo() values appear as properties.
+
+        There are a few exceptions. This test just checks a few values
+        because all values use the same implementation code.
+        :<py>:
+
+            res = Struct()
+
+            buf = vim.current.buffer
+            buf[:] = ['1', '2']
+            res.nlines = buf.linecount
+            res.loaded = buf.loaded
+            res.lnum = buf.lnum
+            try:
+                res.nothing = buf.wibble
+            except AttributeError:
+                res.nothing = 'Nothing'
+            dump(res)
+        """
+        res = self.run_self()
+        failUnlessEqual(2, res.nlines)
+        failUnlessEqual(1, res.loaded)
+        failUnlessEqual(1, res.lnum)
+        failUnlessEqual('Nothing', res.nothing)
+
 
 if __name__ == '__main__':
     runModule()

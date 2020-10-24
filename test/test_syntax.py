@@ -296,17 +296,20 @@ class Groups(support.CommandsBase):
     def syntax_grp_links(self):
         """Groups can be linked, which sets up highlight link commands.
 
-        Group arguments may be Group instances or names.
+        Group arguments may be Group instances or names. The group method also
+        supports a link_to argument.
 
         :<vim>:
 
             syntax clear
             highlight! default link TestMain Constant
             highlight! default link TestOther Constant
+            highlight! default link TestThird Constant
         """
         with syntax.Syntax('Test') as syn:
             main = syn.group('Main')
             other = syn.group('Other')
+            other = syn.group('Third', link_to='Constant')
             ext_grp = syn.std_group('Constant')
             ext_grp.add_links(main, "Other")
         self.check_commands()

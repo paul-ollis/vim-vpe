@@ -17,6 +17,18 @@ class Commands(support.Base):
 
     The vpe.commands module provide function equivalents for most Ex commands.
     """
+    def suiteSetUp(self):
+        """Called to set up the suite.
+
+        :<py>:
+
+            from vpe import commands
+
+            commands.enew()
+        """
+        super().suiteSetUp()
+        self.run_self()
+
     @test(testID='command-a')
     def run_command_on_single_line(self):
         """A command can be run on a single line.
