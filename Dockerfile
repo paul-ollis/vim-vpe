@@ -151,7 +151,7 @@ RUN sphinx-build -NaE -b html . html
 RUN sphinx-build -NaE -b vimhelp . vimhelp
 RUN mkdir -p ../start/vpe/doc/
 CMD /bin/bash
-RUN cp vimhelp/vpe-help.txt ../start/vpe/doc/
+RUN cp vimhelp/index.txt ../start/vpe/doc/vpe-help.txt
 RUN echo 'helptags ../start/vpe/doc' | ex | true
 WORKDIR /home/paul/.vim/pack/vim-vpe
 RUN ./admin/mk-release.py
@@ -172,7 +172,7 @@ USER paul
 WORKDIR /home/paul/
 COPY --chown=paul:paul docker-files/install-vim.rc .vimrc
 COPY --chown=paul:paul docker-files/test-bash.rc .bashrc
-COPY --chown=paul:paul vim-vpe.zip .
+COPY --chown=paul:paul release/vim-vpe.zip .
 COPY --chown=paul:paul docker-files/demo.vim .
 WORKDIR /home/paul/.vim/pack
 RUN unzip ~/vim-vpe.zip
