@@ -1,0 +1,16 @@
+Version 0.2.
+
+Documentation improvements (still needs work).
+Some internal code refactoring.
+Improved logging of run-time errors (to log buffer).
+Syntax class:
+  - Added link_to argument to group method.
+ScratchBuffer:
+  - Prevent annoying warning message.
+Buffer class:
+  - Added new properties: type, location, long_display_name,
+    short_display_name, short_description, bufnr, changed, changedtick,
+    lastused, lnum, linecount, loaded, variables, windows and popups.
+  - Added goto_active_window method.
+Started adding some examples as a supplement to the documentation.
+The HTML help is not available on readthdocs.

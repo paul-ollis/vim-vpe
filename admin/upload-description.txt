@@ -1,83 +1,75 @@
-News
-    I have added an examples directory vim-vpe/examples. The examples in here
-    aim to be a useful learning resource users of VPE. See later for how to
-    run the examples.
-
 Introduction
 
-    VPE adds to Vim’s built-in support for Python scripting. This is a brief
-    list of VPE’s features.
+  VPE adds to Vim’s built-in support for Python scripting. This is a brief
+  list of VPE’s features.
 
-      - A Vim class that provides an enhanced, drop-in replacement for the
-        standard python-vim module.
-
-      - Classes Window, Buffer, TabPage are enhanced wrappers around the
-        standard vim versions.
-
-      - Support for cleanly invoking Python functions for keyboard mappings.
-
-      - Pythonic support for using popup-windows. (Requires Vim 8.2.)
-
-      - Pythonic support for using timers.
-
-      - Pythonic support for autocommands that invoke Python functions.
-
-      - Python support for channels.
-
-      - Logging to a buffer. Useful when developing and debugging plug-ins.
+  - A Vim class that provides an enhanced, drop-in replacement for the
+    standard python-vim module.
+  - Classes Window, Buffer, TabPage are enhanced wrappers around the
+    standard vim versions.
+  - Support for cleanly invoking Python functions for keyboard mappings.
+  - Pythonic support for using popup-windows. (Requires Vim 8.2.)
+  - Pythonic support for using timers.
+  - Pythonic support for autocommands that invoke Python functions.
+  - Python support for channels.
+  - Logging to a buffer. Useful when developing and debugging plug-ins.
+    When active in a window, the window automatically scrolls to show new
+    output.
 
 Quick start
 
-    The quickest way to start using VPE is to import the vim object:
+  The quickest way to start using VPE is to import the vim object:
 
-        from vpe import vim
+    from vpe import vim
 
-    The vim object is an instance of the Vim class and is intended to be a drop
-    in replacement for Vim’s standard |python-vim| module, but with a number of
-    enhancements.
+  The vim object is an instance of the Vim class and is intended to be a drop
+  in replacement for Vim’s standard python-vim module, but with a number of
+  enhancements.
 
-      - Most of Vim’s functions appear as members, for example:
-          
-            vim.cursor(4, 10)            # Position cursor at row 4, column 10.
-            m = vim.execute('messages')  # Get all the recent Vim messages.
+  - Most of Vim’s functions appear as members, for example:
+      
+      vim.cursor(4, 10)            # Position cursor at row 4, column 10.
+      m = vim.execute('messages')  # Get all the recent Vim messages.
 
-      - The attributes buffers, current, options, tabpages, vars, vvars and
-        windows provide enhanced access to the corresponding Vim objects. For
-        example vim.current.buffer provides a Buffer instance in place of Vim’s
-        standard python-buffer.
+  - The attributes buffers, current, options, tabpages, vars, vvars and
+    windows provide enhanced access to the corresponding Vim objects. For
+    example vim.current.buffer provides a Buffer instance in place of Vim’s
+    standard python-buffer.
 
-      - The Vim registers are available using the |registers| attribute.
+  - The Vim registers are available using the registers attribute.
 
-      - When errors occur a VimError is raised, which provides a better
-        breakdown of the error. This is a subclass of vim.error so existing
-        code that catches vim.error still works.
+  - When errors occur a VimError is raised, which provides a better
+    breakdown of the error. This is a subclass of vim.error so existing
+    code that catches vim.error still works.
 
-    The above just scratches the surface, see :help vpe.txt for detailed
-    documentation.
+  The above just scratches the surface, see :help vpe.txt for detailed
+  documentation or https://vim-vpe.readthedocs.io/en/latest/.
 
 Examples
 
-    The examples provided with VPE are:
+  Please treat the examples as demo, minimally tested code.
 
-        vpe_filenav - start with, ':runtime examples/vpe_filenav.vim'
+  The examples provided with VPE are:
 
-            A simple file explorer that can be used to open files.
+    vpe_filenav - start with, ':runtime examples/vpe_filenav.vim'
 
-        vpe_bufnav - start with, ':runtime examples/vpe_bufnav.vim'
+      A simple file explorer that can be used to open files.
 
-            An explorer for buffers. This is heavily inspired by Jeff
-            Lanzarotta's excellent vimscript #42, but it does not attempt to be
-            a clone.
+    vpe_bufnav - start with, ':runtime examples/vpe_bufnav.vim'
+
+      An explorer for buffers. This is heavily inspired by Jeff
+      Lanzarotta's excellent vimscript #42, but it does not attempt to be
+      a clone.
 
 Requirements
 
-    VPE requires a minimum of Vim 8.0.0700 and Python 3.6.
+  VPE requires a minimum of Vim 8.0.0700 and Python 3.6.
 
-    VPE has not been been tested on Windows (yet) or Mac. If you manage to test
-    it before me, let me know how it goes.
+  VPE has not been been tested on Windows (yet) or Mac. If you manage to test
+  it before me, let me know how it goes.
  
 Status
 
-    I consider the code to be quite stable. It passes a reasonably
-    comprehensive set of tests and I use VPE daily for my standard Vim
-    configuration.
+  I consider the code to be quite stable. It passes a reasonably
+  comprehensive set of tests and I use VPE daily for my standard Vim
+  configuration.
