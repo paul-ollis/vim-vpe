@@ -13,4 +13,4 @@ Buffer class:
     lastused, lnum, linecount, loaded, variables, windows and popups.
   - Added goto_active_window method.
 Started adding some examples as a supplement to the documentation.
-The HTML help is not available on readthdocs.
+The HTML help is now available on readthdocs.

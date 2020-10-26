@@ -1,0 +1,21 @@
+# ----------------------------------------------------------------------------
+#  Image for testing installation.
+# ----------------------------------------------------------------------------
+FROM vim80-py36 AS vpe-install
+
+ARG version
+
+RUN apt-get install -y zip
+
+COPY admin/requirements.txt admin/test-requirements.txt ./
+RUN python3.9 -m pip install -r requirements.txt -r test-requirements.txt
+
+USER paul
+WORKDIR /home/paul/
+COPY --chown=paul:paul docker-files/install-vim.rc .vimrc
+COPY --chown=paul:paul docker-files/test-bash.rc .bashrc
+COPY --chown=paul:paul release/vim-vpe-${version}.zip .
+COPY --chown=paul:paul docker-files/demo.vim .
+WORKDIR /home/paul/.vim/pack
+RUN unzip ~/vim-vpe-${version}.zip
+CMD gvim -f -c 'source ~/demo.vim'

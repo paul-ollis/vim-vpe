@@ -1,0 +1,38 @@
+# ----------------------------------------------------------------------------
+#  Base image for Vim-Python testing.
+#
+#  A build of Python and Vim.
+# ----------------------------------------------------------------------------
+FROM build-base AS vim80-py36
+
+#
+# Build Python interpreter that will be built into Vim.
+#
+WORKDIR /root/cpython
+RUN git checkout v3.6.0
+COPY docker-files/py-do-config do_config
+RUN chmod u+x do_config
+RUN ./do_config
+RUN make -j5
+RUN make install
+RUN ldconfig
+RUN python3.6 -m pip install coverage
+
+#
+# Build Vim with GUI support.
+#
+WORKDIR /root/vim
+RUN git checkout v8.0.0700
+COPY docker-files/vim-do-config do_config
+RUN chmod u+x do_config
+RUN ./do_config
+RUN make -j5
+RUN make install
+RUN ldconfig
+
+RUN groupadd -g 1000 paul
+RUN useradd -rm -s /bin/bash -g paul -G sudo -u 1000 paul
+USER paul
+WORKDIR /home/paul/
+RUN mkdir -p .vim/pack
+USER root

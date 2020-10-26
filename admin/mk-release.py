@@ -24,7 +24,7 @@ def generate():
     with zipfile.ZipFile(
             'vim-vpe.zip', mode='w', compression=zipfile.ZIP_DEFLATED) as zf:
         os.chdir('..')
-        for sub_dir in ('docs/html', 'start', 'vpe'):
+        for sub_dir in ('examples', 'start', 'vpe'):
             subdir_path = root / 'vim-vpe'/ sub_dir
             for path in walk_relpaths(subdir_path):
                 relpath = path.relative_to(root)

@@ -1,0 +1,32 @@
+# ----------------------------------------------------------------------------
+#  Image for building a release.
+# ----------------------------------------------------------------------------
+FROM current AS release
+
+ARG version
+
+COPY admin/requirements.txt ./
+COPY docs/requirements.txt docs-requirements.txt
+RUN python3.9 -m pip install -r requirements.txt -r docs-requirements.txt
+RUN apt-get install -y strace
+
+USER paul
+WORKDIR /home/paul/
+RUN mkdir -p .vim/pack/vim-vpe
+COPY --chown=paul:paul docker-files/test-vim.rc .vimrc
+COPY --chown=paul:paul docker-files/test-bash.rc .bashrc
+WORKDIR /home/paul/.vim/pack/vim-vpe
+COPY --chown=paul:paul .git .git/
+WORKDIR /home/paul/.vim/pack/vim-vpe
+RUN git reset --hard ${version}
+WORKDIR /home/paul/.vim/pack/vim-vpe/docs
+RUN sphinx-build -NaE -b html . html
+RUN sphinx-build -NaE -b vimhelp . vimhelp
+RUN mkdir -p ../start/vpe/doc/
+CMD /bin/bash
+RUN cp vimhelp/index.txt ../start/vpe/doc/vpe-help.txt
+RUN echo 'helptags ../start/vpe/doc' | ex | true
+WORKDIR /home/paul/.vim/pack/vim-vpe
+RUN ./admin/mk-release.py
+ENV version=${version}
+CMD cp vim-vpe.zip ~/release/vim-vpe-${version}.zip 

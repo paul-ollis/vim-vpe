@@ -1,0 +1,14 @@
+# ----------------------------------------------------------------------------
+#  Image for running Vim tests.
+# ----------------------------------------------------------------------------
+FROM vim80-py36 AS vpe-test
+
+COPY admin/requirements.txt admin/test-requirements.txt ./
+RUN python3.9 -m pip install -r requirements.txt -r test-requirements.txt
+
+USER paul
+WORKDIR /home/paul/
+COPY --chown=paul:paul docker-files/test-vim.rc .vimrc
+COPY --chown=paul:paul docker-files/test-bash.rc .bashrc
+WORKDIR /home/paul/.vim/pack/vim-vpe/test
+CMD ./run_tests

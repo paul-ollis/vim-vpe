@@ -2,8 +2,8 @@
 
 # export DOCKER_BUILDKIT=1
 cp ~/.ssh/id_rsa* docker-files/
-mkdir release
-docker build --target release -t release . && {
+mkdir -p release
+dockit --arg version=0.2 release && {
     rm docker-files/id_rsa*
     docker run -it --rm \
         --net=host --env="DISPLAY" --volume="$HOME/.Xauthority:/home/paul/.Xauthority:rw" \

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 cp ~/.ssh/id_rsa* docker-files/
-docker build --target vpe-install -t vpe-install . && {
+dockit --arg version=0.2 vpe-install && {
     rm docker-files/id_rsa*
     docker run -it --rm \
         --net=host --env="DISPLAY" --volume="$HOME/.Xauthority:/home/paul/.Xauthority:rw" \
