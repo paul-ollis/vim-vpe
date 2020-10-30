@@ -1,3 +1,13 @@
+Version 0.3.
+
+- Added define_command function.
+  - User commands that call Python.
+- Timers
+  - Added fire_count attribute.
+  - Added dead attribute.
+  - Fixed timer clean up.
+
+
 Version 0.2.
 
 Documentation improvements (still needs work).

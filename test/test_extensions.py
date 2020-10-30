@@ -24,7 +24,7 @@ class DisplayBuffer(support.Base):
     """Special display buffer.
 
     This is a buffer configured to be under (Python) plugin code control. It is
-    usefule for displaying information without allowing the user to
+    useful for displaying information without allowing the user to
     accidentally edit it.
     """
 
@@ -215,6 +215,7 @@ class Timers(support.Base):
         """Called to set up the suite.
 
         :<py>:
+            import time
 
             vpe.timer_stopall()
         """
@@ -226,21 +227,25 @@ class Timers(support.Base):
 
         :<py>:
             res.paused = timer.paused
-            res.num_timers = len(vpe.Timer._timers)
+            res.num_timers = len(vpe.Timer._one_shot_timers)
+            res.dead = timer.dead
+            res.fire_count = timer.fire_count
+            res.elapsed = time.time() - res.start_time
             dump(res)
        """
        return self.run_self()
 
     @test(testID='timer-one-shot')
     def create_one_shot(self):
-        """Create a simple on-shot timer using.
+        """Create a simple one-shot timer using.
 
         :<py>:
             def on_expire(timer):
                 res.ticks += 1
 
-            timer = vpe.Timer(ms=500, func=on_expire)
             res = Struct()
+            res.start_time = time.time()
+            timer = vpe.Timer(ms=10, func=on_expire)
             res.init_time = timer.time
             res.ticks = 0
             dump(res)
@@ -253,7 +258,9 @@ class Timers(support.Base):
             count += 1
         failUnlessEqual(1, res.ticks)
         failUnless(count > 0)
-        failUnless(500, res.init_time)
+        failUnlessEqual(10, res.init_time)
+        failUnless(res.dead)
+        failUnlessEqual(1, res.fire_count)
 
     @test(testID='timer-repeat')
     def create_repeating(self):
@@ -266,8 +273,9 @@ class Timers(support.Base):
                 res.rems.append(timer.remaining)
                 res.paused = timer.paused
 
-            timer = vpe.Timer(ms=100, func=on_expire, repeat=3)
             res = Struct()
+            res.start_time = time.time()
+            timer = vpe.Timer(ms=1, func=on_expire, repeat=3)
             res.ticks = 0
             res.repeats = []
             res.rems = []
@@ -281,44 +289,10 @@ class Timers(support.Base):
             res = self.do_continue()
             count += 1
         failUnlessEqual(3, res.ticks)
-        failUnless(count > 1)
+        failUnless(count >= 1)
         failUnlessEqual([3, 2, 1], res.repeats)
         failUnless(max(res.rems) <= 100)
         failIf(res.paused)
-
-    @test(testID='timer-control')
-    def control_timer(self):
-        """The pause,resume and stop functions control an active timer.
-
-        :<py>:
-
-            def on_expire(timer):
-                res.ticks += 1
-                if res.ticks == 1:
-                    timer.pause()
-                elif res.ticks == 2:
-                    timer.stop()
-                res.paused = timer.paused
-
-            timer = vpe.Timer(ms=100, func=on_expire, repeat=3)
-            res = Struct()
-            res.ticks = 0
-            dump(res)
-        """
-        res = self.run_self()
-        a = time.time()
-        count = 0
-        while time.time() - a < 1.0 and res.ticks < 1:
-            res = self.do_continue()
-        failUnless(res.paused)
-
-        res = self.resume_timer()
-        failIf(res.paused)
-
-        while time.time() - a < 1.0 and res.ticks < 2:
-            res = self.do_continue()
-        failUnlessEqual(3, res.ticks)
-        failUnlessEqual(0, (vpe.Timers.timers))
 
     def resume_timer(self):
        """Resume execution of the test timer.
@@ -337,6 +311,7 @@ class Timers(support.Base):
         :<py>:
 
             def on_expire(timer):
+                print(">>>", timer.fire_count)
                 res.ticks += 1
                 if res.ticks == 1:
                     timer.pause()
@@ -344,23 +319,25 @@ class Timers(support.Base):
                     timer.stop()
                 res.paused = timer.paused
 
-            timer = vpe.Timer(ms=100, func=on_expire, repeat=3)
             res = Struct()
+            res.start_time = time.time()
+            timer = vpe.Timer(ms=50, func=on_expire, repeat=3)
             res.ticks = 0
             dump(res)
         """
         res = self.run_self()
         a = time.time()
         count = 0
-        while time.time() - a < 1.0 and res.ticks < 1:
+        while time.time() - a < 0.5 and res.ticks < 1:
             res = self.do_continue()
         failUnless(res.paused)
 
         res = self.resume_timer()
         failIf(res.paused)
 
-        while time.time() - a < 1.0 and res.ticks < 2:
+        while time.time() - a < 0.5 and res.ticks < 2:
             res = self.do_continue()
+        failUnlessEqual(2, res.ticks)
         failUnlessEqual(0, res.num_timers)
 
     @test(testID='timer-stopall')
@@ -372,10 +349,11 @@ class Timers(support.Base):
             def on_expire(timer):
                 res.ticks += 1
 
-            timer = vpe.Timer(ms=100, func=on_expire, repeat=-1)
-            timer2 = vpe.Timer(ms=100, func=on_expire, repeat=-1)
-            vpe.Timer.stop_all()
             res = Struct()
+            res.start_time = time.time()
+            timer = vpe.Timer(ms=100, func=on_expire, repeat=-1)
+            timer2 = vpe.Timer(ms=100, func=on_expire)
+            vpe.Timer.stop_all()
             dump(res)
         """
         self.run_self()
@@ -392,6 +370,7 @@ class Timers(support.Base):
                 res.ticks += 1
 
             res = Struct()
+            res.start_time = time.time()
             res.ticks = 0
             vpe.call_soon(on_expire)
             dump(res)
@@ -400,11 +379,82 @@ class Timers(support.Base):
         failUnlessEqual(0, res.ticks)
         res = self.do_continue()
         failUnlessEqual(1, res.ticks)
+        failUnlessEqual(0, res.num_timers)
 
-    # TODO: Need to make timers self-clean-up.
-    #
-    #       1. Single shot is forgotten upon expiration.
-    #       2. Repeating timers self-delete when last reference goes.
+    @test(testID='timer-dead-func-single_shot')
+    def dead_callback_single_shot(self):
+        """A single shot timer keeps hard reference to a function and timer.
+
+        This means the user does not need to keep a reference to the function
+        or timer instance. The VPE code cleans up the Timer instance once the
+        timer has expired.
+
+        :<py>:
+            def on_expire(timer):
+                res.ticks += 1
+
+            res = Struct()
+            res.start_time = time.time()
+            vpe.Timer(ms=10, func=on_expire)
+            del on_expire
+            res.ticks = 0
+            dump(res)
+        """
+        res = self.run_self()
+        a = time.time()
+        while time.time() - a < 1.0 and res.ticks < 1:
+            res = self.do_continue()
+        failUnlessEqual(1, res.ticks)
+        failUnlessEqual(0, res.num_timers)
+
+    @test(testID='timer-dead-method-single_shot')
+    def dead_method_single_shot(self):
+        """A single shot timer keeps hard reference to a function and method.
+
+        This means the user does not need to keep a reference to the function
+        or timer instance. The VPE code cleans up the Timer instance once the
+        timer has expired.
+
+        :<py>:
+            class Test:
+                def on_expire(self, timer):
+                    res.ticks += 1
+
+            res = Struct()
+            res.start_time = time.time()
+            inst = Test()
+            vpe.Timer(ms=10, func=inst.on_expire)
+            del inst
+            res.ticks = 0
+            dump(res)
+        """
+        res = self.run_self()
+        a = time.time()
+        while time.time() - a < 1.0 and res.ticks < 1:
+            res = self.do_continue()
+        failUnlessEqual(1, res.ticks)
+        failUnlessEqual(0, res.num_timers)
+
+    @test(testID='timer-dead-func-repeating')
+    def dead_callback_repeating(self):
+        """A single shot timer keeps weak reference to a function.
+
+        This means that is the user drops the reference to the
+        function then the timer becomes dead.
+
+        :<py>:
+            def on_expire(timer):
+                res.ticks += 1
+
+            res = Struct()
+            res.start_time = time.time()
+            vpe.Timer(ms=10, func=on_expire, repeat=2)
+            del on_expire
+            res.dead = timer.dead
+            dump(res)
+        """
+        res = self.run_self()
+        failUnless(res.dead)
 
 
 class Log(support.Base):
@@ -823,7 +873,7 @@ class Miscellaneous(support.CommandsBase):
 
         # Perform a sanity check on the output.
         text = '\n'.join(res.lines)
-        failUnless('Timer._timers =' in  text)
+        failUnless('Timer._one_shot_timers =' in  text)
         failUnless('Popup._popups =' in  text)
         failUnless('Callback.callbacks =' in  text)
 
@@ -839,7 +889,6 @@ class DefineCommand(support.Base):
         :<py>:
 
             def do_command(info, *args, **kwargs):
-                print("Do command", args, kwargs)
                 res.info = info
                 res.args = args
                 res.kwargs = kwargs

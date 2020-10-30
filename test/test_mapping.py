@@ -368,7 +368,6 @@ class ErrorConditions(Mapping):
 
             def handle(info):
                 res.info = info
-                assert False
 
             res = Struct()
             res.raised = None

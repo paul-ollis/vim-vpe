@@ -2,6 +2,7 @@
 
 import inspect
 import itertools
+import os
 import pathlib
 import pickle
 
@@ -16,6 +17,8 @@ from cleversheep3.Test.Tester import fail, Suite
 import vim_if
 
 import vpe
+
+OBJ_DUMP_PATH = '/tmp/vpe-test-dump.bin'
 
 
 def clean_code_block(code):
@@ -191,7 +194,9 @@ class CodeSource:
     @staticmethod
     def result():
         """Get the result from a remote Vim execution."""
-        with open('/tmp/vpe-test-dump.bin', 'rb') as f:
+        if not os.path.exists(OBJ_DUMP_PATH):
+            return None
+        with open(OBJ_DUMP_PATH, 'rb') as f:
             data = f.read()
         try:
             v = pickle.loads(data)
@@ -203,6 +208,8 @@ class CodeSource:
 
     def run_self(self, py_path=None):
         """Run the Python code in the caller's docstring."""
+        if os.path.exists(OBJ_DUMP_PATH):
+            os.unlink(OBJ_DUMP_PATH)
         self.vs.execute(self.mycode(stack_level=2), py_path=py_path)
         return self.result()
 
