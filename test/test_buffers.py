@@ -542,7 +542,7 @@ class Buffers(support.Base):
         :<py>:
 
             res = Struct()
-            if vim.vvars.version >= 810:
+            if vim.vvars.version >= 801:
                 vpe.commands.terminal('echo')
                 res.terminal = vim.current.buffer.short_display_name
                 vpe.commands.bdelete('.')
@@ -577,7 +577,7 @@ class Buffers(support.Base):
             res.location = vim.current.buffer.short_description
             vpe.commands.bdelete('.')
 
-            if vim.vvars.version >= 810:
+            if vim.vvars.version >= 801:
                 vpe.commands.terminal('echo 9')
                 res.terminal = vim.current.buffer.short_description
             vpe.commands.bdelete('.')
@@ -693,7 +693,7 @@ class Buffers(support.Base):
 
             buf = vim.current.buffer
             buf[:] = ['1', '2']
-            if vim.vvars.version >= 810:
+            if vim.vvars.version >= 801:
                 res.nlines = buf.linecount
             res.loaded = buf.loaded
             res.lnum = buf.lnum
