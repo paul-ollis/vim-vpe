@@ -218,9 +218,25 @@ class BasicSyntaxUse(support.CommandsBase):
             third.add_match('Goodbyte')
         self.check_commands()
 
+    @test(testID='syntax-simple-include')
+    def syntax_simple_include(self):
+        """An external syntax file can be included.
+
+        :<vim>:
+
+            syntax clear
+            runtime syntax/python.vim
+            syntax match TestMain "Hello"
+        """
+        with syntax.Syntax('Test') as syn:
+            grp = syn.group('Main')
+            syn.include('python')
+            grp.add_match('Hello')
+        self.check_commands()
+
     @test(testID='syntax-cluster-include')
     def syntax_cluster_include(self):
-        """The cluster can include an external syntax.
+        """A cluster can include an external syntax.
 
         :<vim>:
 

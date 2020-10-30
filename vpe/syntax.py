@@ -445,6 +445,7 @@ class Syntax(SyntaxBase):
         self.groups = {}
         self.std_groups = {}
         self.clusters = {}
+        self.simple_includes = []
 
     def std_group(self, name):
         """Create a standard (externally defined) group.
@@ -500,6 +501,15 @@ class Syntax(SyntaxBase):
             cluster.add(*add_groups)
         return cluster
 
+    def include(self, name):
+        """Do a simple include of syntax file.
+
+        The command executed is: runtime syntax/name.vim
+
+        :name: The syntax name.
+        """
+        self.simple_includes.append(name)
+
     def fmt_group(self, name: str) -> str:
         """Format the name of a group, adding the Syntax object's prefix.
 
@@ -525,10 +535,13 @@ class Syntax(SyntaxBase):
         return func(*args, **kwargs, preview=True)
 
     def __enter__(self):
-        self._directives = [(wrappers.commands.syntax, ('clear',), {})]
+        self._directives = []
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        wrappers.commands.syntax('clear')
+        for syn_name in self.simple_includes:
+            wrappers.commands.runtime(f'syntax/{syn_name}.vim')
         for func, args, kwargs in self._directives:
             func(*args, **kwargs)
         for cluster in self.clusters.values():
