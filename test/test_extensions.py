@@ -666,7 +666,7 @@ class Miscellaneous(support.CommandsBase):
         self.run_self()
 
     def do_continue(self):
-       """Contine executions to things to flush.
+       """Contine executions to allow things to flush.
 
         :<py>:
 
@@ -809,7 +809,7 @@ class Miscellaneous(support.CommandsBase):
 
     @test(testID='misc-status')
     def log_status(self):
-        """The core.log_status funciton provide diagnostic information.
+        """The core.log_status function provides diagnostic information.
 
         :<py>:
 
@@ -826,7 +826,6 @@ class Miscellaneous(support.CommandsBase):
         failUnless('Timer._timers =' in  text)
         failUnless('Popup._popups =' in  text)
         failUnless('Callback.callbacks =' in  text)
-        failUnless('Timer._timers =' in  text)
 
 
 class DefineCommand(support.Base):

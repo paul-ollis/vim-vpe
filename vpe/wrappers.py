@@ -1470,7 +1470,7 @@ class _BufferDesc:
     @property
     def windows(self) -> int:
         # pyre-ignore[7]:
-        """A list popup windows displaying this buffer.
+        """A list of windows displaying this buffer.
 
         Each entry is a :vim:`window-ID`.
         """

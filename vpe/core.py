@@ -1366,7 +1366,6 @@ def log_status():
     log(f'Timer._timers = {len(Timer._timers)}')
     log(f'Popup._popups = {len(Popup._popups)}')
     log(f'Callback.callbacks = {len(Callback.callbacks)}')
-    log(f'Timer._timers = {len(Timer._timers)}')
 
 
 def _setup_keys():

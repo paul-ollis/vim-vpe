@@ -171,7 +171,7 @@ class Popup(support.Base):
     def handle_keys(self):
         """The on_key method is invoked when keys are pressed.
 
-        Special keys are converted oto symbolic names suash as '<F6>'.
+        Special keys are converted into symbolic names such as '<F6>'.
 
         :<py>:
             res = Struct()
