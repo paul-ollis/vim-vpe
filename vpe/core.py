@@ -11,7 +11,7 @@ module. It is intended that a Vim instance can be uses as a replacement for the
 # pylint: disable=too-many-lines
 
 from functools import partial
-from typing import Optional, Any, Tuple, Dict
+from typing import Optional, Any, Tuple, Dict, Union, Callable
 import collections
 import io
 import itertools
@@ -38,6 +38,7 @@ __all__ = [
     'Log', 'error_msg', 'call_soon', 'log',
     'saved_winview', 'highlight', 'pedit', 'popup_clear',
     'timer_stopall', 'find_buffer_by_name', 'feedkeys', 'get_display_buffer',
+    'define_command', 'CommandInfo',
     *__api__
 ]
 id_source = itertools.count()
@@ -60,6 +61,20 @@ _VIM_FUNC_DEFS = """
 function! VPE_Call(uid, ...)
     let g:_vpe_args_ = {}
     let g:_vpe_args_['uid'] = a:uid
+    let g:_vpe_args_['args'] = a:000
+    return py3eval('vpe.Callback.invoke()')
+endfunction
+
+function! VPE_CmdCall(uid, line1, line2, range, count, bang, mods, reg, ...)
+    let g:_vpe_args_ = {}
+    let g:_vpe_args_['uid'] = a:uid
+    let g:_vpe_args_['line1'] = a:line1
+    let g:_vpe_args_['line2'] = a:line2
+    let g:_vpe_args_['range'] = a:range
+    let g:_vpe_args_['count'] = a:count
+    let g:_vpe_args_['bang'] = a:bang
+    let g:_vpe_args_['mods'] = a:mods
+    let g:_vpe_args_['reg'] = a:reg
     let g:_vpe_args_['args'] = a:000
     return py3eval('vpe.Callback.invoke()')
 endfunction
@@ -745,6 +760,7 @@ class Callback:
                  by subclasses - see 'MapCallback' for an example.
     """
     # pylint: disable=too-many-instance-attributes
+    vim_func = 'VPE_Call'
     callbacks: dict = {}
 
     def __init__(
@@ -767,7 +783,7 @@ class Callback:
         self.extra_kwargs = kwargs
         self.pass_bytes = pass_bytes
 
-    def __call__(self, vim_args):
+    def __call__(self, vim_args, vpe_args):
         inst, method = self._get_inst_and_method()
         if inst is None:
             self.on_del(None, uid=self.uid)
@@ -775,7 +791,7 @@ class Callback:
 
         vim_args = [
             coerce_arg(a, keep_bytes=self.pass_bytes) for a in vim_args]
-        args, kwargs = self.get_call_args()
+        args, kwargs = self.get_call_args(vpe_args)
         if method is not None:
             return method(inst, *args, *vim_args, **kwargs)
         return inst(*args, *vim_args, **kwargs)
@@ -795,10 +811,12 @@ class Callback:
             method = self.method and self.method()
         return instance, method
 
-    def get_call_args(self):
+    def get_call_args(self, _vpe_args: Dict[str, Any]):
         """Get the Python positional and keyword arguments.
 
         This may be over-ridden by subclasses.
+
+        :_vpe_args: The dictionary passed from the Vim domain.
         """
         return self.py_args, self.py_kwargs
 
@@ -816,7 +834,9 @@ class Callback:
             # Use the UID to find the actual instance. This may fail if no
             # reference to the instance exists, in which case we just log the
             # fact.
-            uid = wrappers.vim.vars['_vpe_args_']['uid']
+            vpe_args = {
+                n: v for n, v in wrappers.vim.vars['_vpe_args_'].items()}
+            uid = vpe_args.pop('uid')
             cb = cls.callbacks.get(uid, None)
             if cb is None:
                 log(f'uid={uid} is dead!')
@@ -824,8 +844,8 @@ class Callback:
 
             # Get the arguments supplied from the "Vim World" and then invoke
             # the callback instance.
-            vim_args = _vim.vars['_vpe_args_']['args']
-            ret = cb(vim_args)
+            vim_args = vpe_args.pop('args')
+            ret = cb(vim_args, vpe_args)
 
             # Make sure the returned value can be interpreted OK by Vim or an
             # annoying message will be displayed.
@@ -858,7 +878,7 @@ class Callback:
                 vim_exprs.append(quoted_string(a))
             else:
                 vim_exprs.append(str(a))
-        return f'VPE_Call({", ".join(vim_exprs)})'
+        return f'{self.vim_func}({", ".join(vim_exprs)})'
 
     def as_call(self):
         """Format a command of the form 'call VPE_xxx(...)'
@@ -870,7 +890,7 @@ class Callback:
     # TODO: This form ignores the vim_exprs.
     def as_vim_function(self):
         """Create a vim.Function that will route to this callback."""
-        return _vim.Function('VPE_Call', args=[self.uid])
+        return _vim.Function(self.vim_func, args=[self.uid])
 
     def format_call_fail_message(self):
         """Generate a message to give details of a failed callback invocation.
@@ -892,6 +912,47 @@ class Callback:
         s.append(f'    py_args={self.py_args}')
         s.append(f'    py_kwargs={self.py_kwargs}')
         return '\n'.join(s)
+
+
+class CommandCallback(Callback):
+    """Wrapper for a function to be invoked by a user defined command.
+
+    This extends the core `Callback` to provide a `CommandInfo` as the first
+    positional argument.
+    """
+    vim_func = 'VPE_CmdCall'
+
+    def get_call_args(self, vpe_args: Dict[str, Any]):
+        """Get the Python positional and keyword arguments.
+
+        This makes the first positional argument a `CommandInfo` instance.
+        """
+        vpe_args['bang'] = bool(vpe_args['bang'])
+        py_args = CommandInfo(**vpe_args), *self.py_args
+        return py_args, self.py_kwargs
+
+
+class CommandInfo:
+    """Information passed to a user command callback handler.
+
+    @line1: The start line of the command range.
+    @line2: The end line of the command range.
+    @range: The number of items in the command range: 0, 1 or 2
+    @count: Any count value supplied (see vim:`command:count`).
+    @bang:  True if the command was invoked with a '!'.
+    @mods:  The command modifiers (see :vim:`:command-modifiers`).
+    @reg:   The optional register, if provided.
+    """
+    def __init__(
+            self, *, line1: int, line2: int, range: int, count: int,
+            bang: bool, mods: str, reg: str):
+        self.line1 = line1
+        self.line2 = line2
+        self.range = range
+        self.count = count
+        self.bang = bang
+        self.mods = mods
+        self.reg = reg
 
 
 class expr_arg:
@@ -1183,6 +1244,81 @@ def call_soon(func):
     def do_call(_):
         func()
     Timer(0, do_call)
+
+
+def define_command(
+        name: str, func: Callable, *, nargs: Union[int, str] = 0,
+        complete: str = '', range: str = '', count: str = '', addr: str = '',
+        bang: bool = False, bar: bool = False, register: bool = False,
+        buffer: bool = False, replace: bool = True, args=(),
+        kwargs: Optional[dict] = None):
+    """Create a user defined command that invokes a Python function.
+
+    When the command is executed, the function is invoked as:<py>:
+
+        func(info, *args, *cmd_args, **kwargs)
+
+    The *info* parameter is `CommandInfo` instance which carries all the meta
+    information, such as the command name, range, modifiers, *etc*. The
+    *cmd_args* are those provided to the command; each a string.
+    The *args* and *kwargs* are those provided to this function.
+
+    :name:     The command name; must follow the rules for :vim:`:command`.
+    :func:     The function that implements the command.
+    :nargs:    The number of supported arguments; must follow the rules for
+               :vim:`:command-nargs', except that integer values of 0, 1 are
+               permitted.
+    :complete: Argument completion mode (see :vim:`command-complete`). Does not
+               currently support 'custom' or 'customlist'.
+    :range:    The permitted type of range; must follow the rules for
+               :vim:`:command-range', except that the N value may be an
+               integer.
+    :count:    The permitted type of count; must follow the rules for
+               :vim:`:command-count', except that the N value may be an
+               integer. Use count=0 to get the same behaviour as '-count'.
+    :addr:     How range or count valuesa re interpreted :vim:`:command-addr`).
+    :bang:     If set then the '!' modifieer is supported (see
+               :vim:`@command-register`).
+    :bar:      If set then the command may be followed by a '|' (see
+               :vim:`@command-register`).
+    :register: If set then an optional register is supported (see
+               :vim:`@command-register`).
+    :buffer:   If set then the command is only for the current buffer (see
+               :vim:`@command-register`).
+    :replace:  If set (the detault) then 'command!' is used to replace an
+               existing command of the same name.
+    :args:     Additional arguments to pass to the mapped function.
+    :kwargs:   Additional keyword arguments to pass to the mapped function.
+    """
+    cmd_args =(
+        expr_arg('<line1>'), expr_arg('<line2>'), expr_arg('<range>'),
+        expr_arg('<count>'), expr_arg('<q-bang>'), expr_arg('<q-mods>'),
+        expr_arg('<q-reg>'), expr_arg('<f-args>'))
+    cb = CommandCallback(
+        func, name=name, py_args=args, py_kwargs=kwargs or {},
+        vim_exprs=cmd_args)
+    cmd = ['command' + '!' if replace else '']
+    if nargs:
+        cmd.append(f'-nargs={nargs}')
+    if complete:
+        cmd.append(f'-complete={complete}')
+    if range:
+        cmd.append(f'-range={range}')
+    if count:
+        cmd.append(f'-count={count}')
+    if addr:
+        cmd.append(f'-addr={addr}')
+    if bang:
+        cmd.append(f'-bang')
+    if bar:
+        cmd.append(f'-bar')
+    if register:
+        cmd.append(f'-register')
+    if buffer:
+        cmd.append(f'-buffer')
+    cmd.append(name)
+    cmd.append(cb.as_call())
+    wrappers.vim.command(' '.join(cmd))
 
 
 def timer_stopall():

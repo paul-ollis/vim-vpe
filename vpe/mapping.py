@@ -4,7 +4,7 @@ This module provides support for mapping key sequences to Python function
 calls.
 """
 
-from typing import Tuple, Optional, List, Callable
+from typing import Tuple, Optional, List, Callable, Dict, Any
 
 from . import core
 from .wrappers import vim
@@ -25,10 +25,12 @@ class MapCallback(core.Callback):
     This extends the core `Callback` to provide a `MappingInfo` as the first
     positional argument.
     """
-    def get_call_args(self):
+    def get_call_args(self, _vpe_args: Dict[str, Any]):
         """Get the Python positional and keyword arguments.
 
         This makes the first positional argument a `MappingInfo` instance.
+
+        :_vpe_args: The dictionary passed from the Vim domain.
         """
         py_args = MappingInfo(*self.extra_kwargs.get('info')), *self.py_args
         return py_args, self.py_kwargs

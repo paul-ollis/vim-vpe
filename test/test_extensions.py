@@ -829,5 +829,187 @@ class Miscellaneous(support.CommandsBase):
         failUnless('Timer._timers =' in  text)
 
 
+class DefineCommand(support.Base):
+    """User defined commands.
+
+    Things that do not really need their own suite.
+    """
+    def suiteSetUp(self):
+        """Per test set up.
+
+        :<py>:
+
+            def do_command(info, *args, **kwargs):
+                print("Do command", args, kwargs)
+                res.info = info
+                res.args = args
+                res.kwargs = kwargs
+        """
+        super().suiteSetUp()
+        self.run_self()
+
+    @test(testID='ucmd-basic')
+    def basic_command(self):
+        """A user defined command maps to a Python function.
+
+        :<py>:
+
+            res = Struct()
+            vpe.define_command('TestCommand', do_command)
+            vim.vim().command('TestCommand')
+            dump(res)
+        """
+        res = self.run_self()
+        failUnlessEqual((), res.args)
+        failUnlessEqual({}, res.kwargs)
+        failUnlessEqual(1, res.info.line1)
+        failUnlessEqual(1, res.info.line2)
+        failUnlessEqual(0, res.info.range)
+        failUnlessEqual(-1, res.info.count)
+        failUnless(res.info.bang is False)
+        failUnlessEqual('silent!', res.info.mods)
+        failUnlessEqual('', res.info.reg)
+
+    @test(testID='ucmd-single-arg')
+    def single_arg_command(self):
+        """A user defined command  can tage a single argument.
+
+        :<py>:
+
+            res = Struct()
+            vpe.define_command('TestCommand', do_command, nargs=1)
+            vim.vim().command('TestCommand 1')
+            dump(res)
+        """
+        res = self.run_self()
+        failUnlessEqual(('1',), res.args)
+        failUnlessEqual({}, res.kwargs)
+        failUnlessEqual(1, res.info.line1)
+        failUnlessEqual(1, res.info.line2)
+        failUnlessEqual(0, res.info.range)
+        failUnlessEqual(-1, res.info.count)
+        failUnless(res.info.bang is False)
+        failUnlessEqual('silent!', res.info.mods)
+        failUnlessEqual('', res.info.reg)
+
+    @test(testID='ucmd-completion')
+    def command_completion(self):
+        """A user defined command can have completion specified.
+
+        :<py>:
+
+            res = Struct()
+            vpe.define_command(
+                'TestCommand', do_command, nargs='*', complete='file')
+            res.captured = vim.execute('command TestCommand').splitlines()[2]
+            dump(res)
+        """
+        res = self.run_self()
+        failUnless(' file ' in res.captured)
+
+    @test(testID='ucmd-bool-options')
+    def command_bool_options(self):
+        """A user defined command can support bang and bar
+
+        :<py>:
+
+            res = Struct()
+            vpe.define_command(
+                'TestCommand', do_command, nargs=1, bang=True, bar=True)
+            res.captured = vim.execute('command TestCommand').splitlines()[2]
+            dump(res)
+        """
+        res = self.run_self()
+        failUnlessEqual('!|', res.captured[:2])
+
+    @test(testID='ucmd-buffer')
+    def command_buffer(self):
+        """A user defined command can be buffer specific.
+
+        :<py>:
+
+            res = Struct()
+            vpe.define_command(
+                'TestBufCommand', do_command, buffer=True)
+            res.captured = vim.execute('command TestBufCommand').splitlines()[2]
+            dump(res)
+        """
+        res = self.run_self()
+        failUnlessEqual('b ', res.captured[:2])
+
+    @test(testID='ucmd-register')
+    def command_taking_reg_arg(self):
+        """A user defined command can take register argument.
+
+        :<py>:
+
+            res = Struct()
+            vpe.define_command(
+                'TestCommand', do_command, register=True, nargs='*')
+            vim.vim().command('TestCommand c 1 2')
+            res.info1 = res.info
+            dump(res)
+        """
+        res = self.run_self()
+        failUnlessEqual(('1', '2'), res.args)
+        failUnlessEqual({}, res.kwargs)
+        failUnlessEqual(1, res.info.line1)
+        failUnlessEqual(1, res.info.line2)
+        failUnlessEqual(0, res.info.range)
+        failUnlessEqual(-1, res.info.count)
+        failUnless(res.info.bang is False)
+        failUnlessEqual('silent!', res.info.mods)
+        failUnlessEqual('c', res.info.reg)
+
+    @test(testID='ucmd-range')
+    def command_taking_range(self):
+        """A user defined command can take an optional range.
+
+        :<py>:
+
+            res = Struct()
+            vpe.define_command('TestCommand', do_command, range='%')
+            vim.current.buffer[:] = [str(i) for i in range(20)]
+            vim.vim().command('5,9 TestCommand')
+            dump(res)
+        """
+        res = self.run_self()
+        failUnlessEqual((), res.args)
+        failUnlessEqual({}, res.kwargs)
+        failUnlessEqual(5, res.info.line1)
+        failUnlessEqual(9, res.info.line2)
+        failUnlessEqual(2, res.info.range)
+        failUnlessEqual(9, res.info.count)
+        failUnless(res.info.bang is False)
+        failUnlessEqual('silent!', res.info.mods)
+        failUnlessEqual('', res.info.reg)
+
+    @test(testID='ucmd-count')
+    def command_taking_count(self):
+        """A user defined command can take an optional count, with meaning.
+
+        :<py>:
+
+            res = Struct()
+            vpe.define_command(
+                'TestCommand', do_command, count=3, addr='other')
+            vim.current.buffer[:] = [str(i) for i in range(20)]
+            vim.vim().command('TestCommand')
+            res.captured = vim.execute('command TestCommand').splitlines()[2]
+            dump(res)
+        """
+        res = self.run_self()
+        failUnlessEqual((), res.args)
+        failUnlessEqual({}, res.kwargs)
+        failUnlessEqual(1, res.info.line1)
+        failUnlessEqual(1, res.info.line2)
+        failUnlessEqual(0, res.info.range)
+        failUnlessEqual(3, res.info.count)
+        failUnless(res.info.bang is False)
+        failUnlessEqual('silent!', res.info.mods)
+        failUnlessEqual('', res.info.reg)
+        failUnless('?' in res.captured)
+
+
 if __name__ == '__main__':
     runModule()
