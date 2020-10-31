@@ -1171,7 +1171,10 @@ def error_msg(*args):
     """
     msg = ' '.join(str(a) for a in args)
     common.vim_command('echohl ErrorMsg')
-    common.vim_command(f'echomsg {msg!r}')
+    try:
+        common.vim_command(f'echomsg {msg!r}')
+    finally:
+        common.vim_command('echohl None')
 
 
 def pedit(path: str, silent=True, noerrors=False):
