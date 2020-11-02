@@ -709,6 +709,8 @@ class Window(Proxy):
     manages instances of this class as required.
 
     This is a proxy that extends the vim.Window behaviour in various ways.
+
+    @id: This is the window's unique ID (as obtained by :vim'`win_getid`).
     """
     _writeable = set(('cursor', 'width', 'height'))
 
