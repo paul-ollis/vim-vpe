@@ -626,8 +626,20 @@ class Popup:
             ret = self.on_key(k, byte_seq)
         return ret
 
+    # TODO: Investigate why bytes are now sometimes strings.
+    #       I think there has been an improvement in Vim that converts bytes
+    #       to strings when calling Python code. This is generally better, but
+    #       technically wrong for raw key handling.
+    #       I am not really happy with the work-around for this.
     @staticmethod
     def _split_key_sequences(s):
+        if isinstance(s, str):
+            try:
+                s = s.encode()
+            except UnicodeError:                             # pragma: no cover
+                # Really should not occur, but...
+                yield s
+
         s_char = b'\x80'
         if not s.startswith(s_char):
             yield s
@@ -1029,10 +1041,12 @@ def coerce_arg(value: Any, keep_bytes=False) -> Any:
     :raise UnicodeError:
         If a dictionay key cannot be decoded.
     """
-    if isinstance(value, bytes) and not keep_bytes:
+    # TODO: It seems that this block is never executed any more. Investigate
+    #       why rather than simply mark as uncovered.
+    if isinstance(value, bytes) and not keep_bytes:          # pragma: no cover
         try:
             return value.decode()
-        except UnicodeError:                                 # pragma: no cover
+        except UnicodeError:
             return value
     try:
         value = value._proxied  # pylint: disable=protected-access
