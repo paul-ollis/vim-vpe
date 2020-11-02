@@ -36,6 +36,7 @@ _vpe_args_
 # pylint: disable=too-many-lines
 
 import pathlib
+from typing import Tuple
 
 import vim as _vim
 
@@ -69,6 +70,15 @@ __api__ = [
     'Current', 'GlobalOptions', 'Function', 'Buffer',
     'Range', 'Struct', 'ScratchBuffer',
 ]
+
+
+def version() -> Tuple[int, int, int]:
+    """The current VPE version as a 3 part tuple.
+
+    The tuple follows the conventions of semantic versioning 2.0
+    (https://semver.org/); *i.e.* (major, minor, patch).
+    """
+    return 0, 3, 0
 
 
 def script_py_path() -> str:

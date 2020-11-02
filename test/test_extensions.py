@@ -20,6 +20,20 @@ import vpe
 _run_after = ['test_vim.py', 'test_mapping_x.py']
 
 
+class TestInfo(support.Base):
+    """General information features."""
+    @test(testID='version')
+    def version(self):
+        """VPE provides a version function.
+
+        :<py>:
+            res.version = vpe.version()
+            dump(res)
+        """
+        res = self.run_self()
+        failUnlessEqual((0, 3, 0), res.version)
+
+
 class DisplayBuffer(support.Base):
     """Special display buffer.
 

@@ -1,11 +1,14 @@
 Version 0.3.
 
+- Added a version() function to the vpe module.
 - Added define_command function.
   - User commands that call Python.
 - Timers
   - Added fire_count attribute.
   - Added dead attribute.
   - Fixed timer clean up.
+- Fix to error_msg to restore message colour.
+- Add Syntax.include method.
 
 
 Version 0.2.
