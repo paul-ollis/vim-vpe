@@ -14,6 +14,7 @@ from cleversheep3.Test.Tester import *
 from cleversheep3.Test.Tester import test, runModule
 
 import support
+import vim_if
 
 import vpe
 
@@ -926,7 +927,10 @@ class DefineCommand(support.Base):
         failUnlessEqual({}, res.kwargs)
         failUnlessEqual(1, res.info.line1)
         failUnlessEqual(1, res.info.line2)
-        failUnlessEqual(0, res.info.range)
+        if vim_if.VimSession.has_patch("patch-8.0.1089"):
+            failUnlessEqual(0, res.info.range)
+        else:
+            failUnlessEqual(-1, res.info.range)
         failUnlessEqual(-1, res.info.count)
         failUnless(res.info.bang is False)
         failUnlessEqual('silent!', res.info.mods)
@@ -948,7 +952,10 @@ class DefineCommand(support.Base):
         failUnlessEqual({}, res.kwargs)
         failUnlessEqual(1, res.info.line1)
         failUnlessEqual(1, res.info.line2)
-        failUnlessEqual(0, res.info.range)
+        if vim_if.VimSession.has_patch("patch-8.0.1089"):
+            failUnlessEqual(0, res.info.range)
+        else:
+            failUnlessEqual(-1, res.info.range)
         failUnlessEqual(-1, res.info.count)
         failUnless(res.info.bang is False)
         failUnlessEqual('silent!', res.info.mods)
@@ -982,7 +989,10 @@ class DefineCommand(support.Base):
             dump(res)
         """
         res = self.run_self()
-        failUnlessEqual('!|', res.captured[:2])
+        if vim_if.VimSession.has_patch("patch-8.1.1204"):
+            failUnlessEqual('!|', res.captured[:2])
+        else:
+            failUnlessEqual('! ', res.captured[:2])
 
     @test(testID='ucmd-buffer')
     def command_buffer(self):
@@ -997,7 +1007,7 @@ class DefineCommand(support.Base):
             dump(res)
         """
         res = self.run_self()
-        failUnlessEqual('b ', res.captured[:2])
+        failUnlessEqual('b', res.captured[:4].strip())
 
     @test(testID='ucmd-register')
     def command_taking_reg_arg(self):
@@ -1017,7 +1027,10 @@ class DefineCommand(support.Base):
         failUnlessEqual({}, res.kwargs)
         failUnlessEqual(1, res.info.line1)
         failUnlessEqual(1, res.info.line2)
-        failUnlessEqual(0, res.info.range)
+        if vim_if.VimSession.has_patch("patch-8.0.1089"):
+            failUnlessEqual(0, res.info.range)
+        else:
+            failUnlessEqual(-1, res.info.range)
         failUnlessEqual(-1, res.info.count)
         failUnless(res.info.bang is False)
         failUnlessEqual('silent!', res.info.mods)
@@ -1040,7 +1053,10 @@ class DefineCommand(support.Base):
         failUnlessEqual({}, res.kwargs)
         failUnlessEqual(5, res.info.line1)
         failUnlessEqual(9, res.info.line2)
-        failUnlessEqual(2, res.info.range)
+        if vim_if.VimSession.has_patch("patch-8.0.1089"):
+            failUnlessEqual(2, res.info.range)
+        else:
+            failUnlessEqual(-1, res.info.range)
         failUnlessEqual(9, res.info.count)
         failUnless(res.info.bang is False)
         failUnlessEqual('silent!', res.info.mods)
@@ -1054,7 +1070,7 @@ class DefineCommand(support.Base):
 
             res = Struct()
             vpe.define_command(
-                'TestCommand', do_command, count=3, addr='other')
+                'TestCommand', do_command, count=3, addr='buffers')
             vim.current.buffer[:] = [str(i) for i in range(20)]
             vim.vim().command('TestCommand')
             res.captured = vim.execute('command TestCommand').splitlines()[2]
@@ -1065,12 +1081,15 @@ class DefineCommand(support.Base):
         failUnlessEqual({}, res.kwargs)
         failUnlessEqual(1, res.info.line1)
         failUnlessEqual(1, res.info.line2)
-        failUnlessEqual(0, res.info.range)
+        if vim_if.VimSession.has_patch("patch-8.0.1089"):
+            failUnlessEqual(0, res.info.range)
+        else:
+            failUnlessEqual(-1, res.info.range)
         failUnlessEqual(3, res.info.count)
         failUnless(res.info.bang is False)
         failUnlessEqual('silent!', res.info.mods)
         failUnlessEqual('', res.info.reg)
-        failUnless('?' in res.captured)
+        failUnless('buf' in res.captured)
 
 
 if __name__ == '__main__':

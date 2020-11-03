@@ -238,12 +238,13 @@ class Base(Suite, CodeSource):
         self.vim_options = vpe.vim.options
         if Base.cov_running:
             self.vim_cov_continue()
-        else:
+        elif vim_if.VimSession.get_version() >= [8, 2]:
             self.vim_cov_start()
             Base.cov_running = True
 
     def suiteTearDown(self):
-        self.vim_cov_stop()
+        if Base.cov_running:
+            self.vim_cov_stop()
         super().suiteTearDown()
 
     def setUp(self):

@@ -981,7 +981,8 @@ class CommandInfo:
 
     @line1: The start line of the command range.
     @line2: The end line of the command range.
-    @range: The number of items in the command range: 0, 1 or 2
+    @range: The number of items in the command range: 0, 1 or 2 Requires at
+            least vim 8.0.1089; for earlier versions this is fixed as -1.
     @count: Any count value supplied (see vim:`command:count`).
     @bang:  True if the command was invoked with a '!'.
     @mods:  The command modifiers (see :vim:`:command-modifiers`).
@@ -1339,13 +1340,15 @@ def define_command(
     :args:     Additional arguments to pass to the mapped function.
     :kwargs:   Additional keyword arguments to pass to the mapped function.
     """
-    cmd_args =(
+    cmd_args = [
         expr_arg('<line1>'), expr_arg('<line2>'), expr_arg('<range>'),
         expr_arg('<count>'), expr_arg('<q-bang>'), expr_arg('<q-mods>'),
-        expr_arg('<q-reg>'), expr_arg('<f-args>'))
+        expr_arg('<q-reg>'), expr_arg('<f-args>')]
+    if not wrappers.vim.has('patch-8.0.1089'):
+        cmd_args[2] = -1                                     # pragma: no cover
     cb = CommandCallback(
         func, name=name, py_args=args, py_kwargs=kwargs or {},
-        vim_exprs=cmd_args)
+        vim_exprs=tuple(cmd_args))
     cmd = ['command' + '!' if replace else '']
     if nargs:
         cmd.append(f'-nargs={nargs}')

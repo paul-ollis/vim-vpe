@@ -48,6 +48,7 @@ def single_quote(expr):
 class VimSession:
     version_str = ''
     version = []
+    patch_cache = {}
 
     def __init__(self):
         self.proc = None
@@ -84,6 +85,13 @@ class VimSession:
         if cproc.returncode != 0:
             return None
         return cproc.stdout.strip().decode()
+
+    @classmethod
+    def has_patch(cls, patch_name):
+        if patch_name not in cls.patch_cache:
+            v = cls.eval_vim(f"has('{patch_name}')") == '1'
+            cls.patch_cache[patch_name] = v
+        return cls.patch_cache[patch_name]
 
     @classmethod
     def get_version(cls):
