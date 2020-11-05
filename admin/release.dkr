@@ -17,7 +17,6 @@ COPY --chown=paul:paul docker-files/test-vim.rc .vimrc
 COPY --chown=paul:paul docker-files/test-bash.rc .bashrc
 WORKDIR /home/paul/.vim/pack/vim-vpe
 COPY --chown=paul:paul .git .git/
-WORKDIR /home/paul/.vim/pack/vim-vpe
 RUN git reset --hard ${version}
 WORKDIR /home/paul/.vim/pack/vim-vpe/docs
 RUN sphinx-build -NaE -b html . html

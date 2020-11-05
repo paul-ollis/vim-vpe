@@ -31,7 +31,7 @@ MapCallback
 
     **Methods**
 
-        .. py:method:: vpe.mapping.MapCallback.get_call_args()
+        .. py:method:: vpe.mapping.MapCallback.get_call_args(_vpe_args: Dict[str, typing.Any])
 
             Get the Python positional and keyword arguments.
 

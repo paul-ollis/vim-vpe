@@ -839,6 +839,19 @@ Syntax
                 *options*
                     Options for the group.
 
+        .. py:method:: vpe.syntax.Syntax.include(name)
+
+            Do a simple include of syntax file.
+
+            The command executed is: runtime syntax/name.vim
+
+            **Parameters**
+
+            .. container:: parameters itemdetails
+
+                *name*
+                    The syntax name.
+
         .. py:method:: vpe.syntax.Syntax.preview_last() -> str
 
             Generate preview string of the last scheduled command.

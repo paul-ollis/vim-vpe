@@ -114,7 +114,7 @@ Callback
             This is used when the `Callback` instance exists, but the call raised
             an exception.
 
-        .. py:method:: vpe.core.Callback.get_call_args()
+        .. py:method:: vpe.core.Callback.get_call_args(_vpe_args: Dict[str, typing.Any])
 
             Get the Python positional and keyword arguments.
 
@@ -132,7 +132,7 @@ Callback
             instance and the 'args' is a sequence of Vim values, which are passed
             to the callback as positional areguments.
 
-        .. py:classmethod:: vpe.core.Callback.on_del(_,uid)
+        .. py:classmethod:: vpe.core.Callback.on_del(uid)
 
             "Handle deletion of weak reference to method's instance.
 

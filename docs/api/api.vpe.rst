@@ -254,7 +254,7 @@ Buffer
         .. py:method:: vpe.Buffer.windows() -> int
             :property:
 
-            A list popup windows displaying this buffer.
+            A list of windows displaying this buffer.
 
             Each entry is a :vim:`window-ID`.
 
@@ -978,6 +978,20 @@ Timer
         *repeat*
             How many times to fire.
 
+
+    **Attributes**
+
+        .. py:attribute:: vpe.Timer.dead
+
+            This is set true when the timer is no longer active because
+            all repeats have occurred or because the callback function is
+            no longer available.
+
+        .. py:attribute:: vpe.Timer.fire_count
+
+            This increases by one each time the timer's callback is
+            invoked.
+
     **Properties**
 
         .. py:method:: vpe.Timer.id() -> int
@@ -1000,6 +1014,8 @@ Timer
 
             The number of times the timer will still fire.
 
+            Note that this is 1, during the final callback - not zero.
+
         .. py:method:: vpe.Timer.time() -> int
             :property:
 
@@ -1011,13 +1027,13 @@ Timer
 
             Pause the timer.
 
-            This invokes vim's timer_pause funciton.
+            This invokes vim's timer_pause function.
 
         .. py:method:: vpe.Timer.resume()
 
             Resume the timer, if paused.
 
-            This invokes vim's timer_pause funciton.
+            This invokes vim's timer_pause function.
 
         .. py:method:: vpe.Timer.stop()
 
@@ -1212,6 +1228,12 @@ Window
     manages instances of this class as required.
 
     This is a proxy that extends the vim.Window behaviour in various ways.
+
+    **Attributes**
+
+        .. py:attribute:: vpe.Window.id
+
+            This is the window's unique ID (as obtained by :vim:`win_getid`).
 
     **Properties**
 
@@ -1415,3 +1437,13 @@ timer_stopall
 .. py:function:: vpe.timer_stopall()
 
     Convenience function that invokes `Timer.stop_all`.
+
+version
+-------
+
+.. py:function:: vpe.version() -> Tuple[int, int, int]
+
+    The current VPE version as a 3 part tuple.
+
+    The tuple follows the conventions of semantic versioning 2.0
+    (https://semver.org/); *i.e.* (major, minor, patch).

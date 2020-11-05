@@ -89,6 +89,10 @@ class Control(Panel):
             'f_unmodified': BoolField(2, w + 23, 'unmodified'),
             'f_unnamed': BoolField(2, w + 38, 'unnamed'),
         }
+        if not vim.has('patch-8.1.2225'):
+            self.fields['order'] = ChoiceField(
+                0, 0, 'Sort order', 'name', 'number', 'long name',
+                label_width=w)
         self.index = 0
 
     def _render(self, lidx, syn):
@@ -165,17 +169,19 @@ class BufStatus(Panel):
         s = lines[1]
         s.append(f'Location:        {entry.short_description}')
         s = lines[2]
-        age = vim.localtime() - entry.lastused
         mod = 'modified' if entry.changed else 'unmodified'
         s.append(f'Status:          {mod}')
         s.append('listed' if entry.listed else 'unlisted')
         s.append('loaded' if entry.loaded else 'unloaded')
         s.append('hidden' if entry.hidden else 'active')
-        s.append(f'line = {entry.lnum}/{entry.linecount}')
+        if vim.has('patch-8.2.0019'):
+            s.append(f'line = {entry.lnum}/{entry.linecount}')
         s = lines[3]
         s.append(f'                 visible in {len(entry.windows)} windows')
         s.append(f'changedtick = {entry.changedtick}')
-        s.append(f'last used {age}s ago')
+        if vim.has('patch-8.1.2225'):
+            age = vim.localtime() - entry.lastused
+            s.append(f'last used {age}s ago')
 
         with self.buf.modifiable():
             for i, line in enumerate(lines):
@@ -193,7 +199,7 @@ class ListBufferEntry:
             return self.buf.number
         elif order == 'name':
             return self.buf.short_display_name
-        elif order == 'mru':
+        elif order == 'mru' and vim.has('patch-8.1.2225'):
             if self.buf.name == '/[[buf-explore]]':
                 return 1
             return -vim.getbufinfo(self.buf.number)[0]['lastused']

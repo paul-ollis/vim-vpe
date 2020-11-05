@@ -5,6 +5,9 @@ import os
 import sys
 
 
+DefineFlag('version', types=(str,), help='The release version', default='dev')
+
+
 def ensure_dir_is_in_sys_path(path: Union[pathlib.Path, str], first=True):
     """Ensure that a given directory is in sys.path.
 
@@ -53,8 +56,8 @@ sphinxConfig.conf["default_role"] = "any"
 sphinxConfig.conf['autodoc_typehints'] = "none"
 sphinxConfig.conf['master_doc'] = "index"
 sphinxConfig.conf['needs_sphinx'] = "3.2"
-sphinxConfig.conf['version'] = "0.2"
-sphinxConfig.conf['release'] = "0.2"
+sphinxConfig.conf['version'] = Flags.get('version')
+sphinxConfig.conf['release'] = Flags.get('version')
 
 # Generate the config file.
 confPath = sphinxConfig.create(MYMFILE)

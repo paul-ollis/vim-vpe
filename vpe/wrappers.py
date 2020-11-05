@@ -710,7 +710,7 @@ class Window(Proxy):
 
     This is a proxy that extends the vim.Window behaviour in various ways.
 
-    @id: This is the window's unique ID (as obtained by :vim'`win_getid`).
+    @id: This is the window's unique ID (as obtained by :vim:`win_getid`).
     """
     _writeable = set(('cursor', 'width', 'height'))
 

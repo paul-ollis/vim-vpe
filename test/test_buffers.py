@@ -693,7 +693,7 @@ class Buffers(support.Base):
 
             buf = vim.current.buffer
             buf[:] = ['1', '2']
-            if vim.vvars.version >= 801:
+            if vim.has('patch-8.2.0019'):
                 res.nlines = buf.linecount
             res.loaded = buf.loaded
             res.lnum = buf.lnum
@@ -704,7 +704,7 @@ class Buffers(support.Base):
             dump(res)
         """
         res = self.run_self()
-        if vim_if.VimSession.get_version() >= [8, 1]:
+        if vim_if.VimSession.has_patch("patch-8.2.0019"):
             failUnlessEqual(2, res.nlines)
         failUnlessEqual(1, res.loaded)
         failUnlessEqual(1, res.lnum)
