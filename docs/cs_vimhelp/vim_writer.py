@@ -334,6 +334,18 @@ def node_walker(node):
     return FlexIter(IterSequencer(node).nodes())
 
 
+def clean_ref(ref):
+    """Clean up a reference.
+
+    This removes the doubling up of leading parts of a reference name.
+    TODO: I do not understand why this is happening.
+    """
+    parts = ref.split('.')
+    if len(parts) >= 2 and parts[0] == parts[1]:
+        parts.pop(0)
+    return '.'.join(parts)
+
+
 class VimWriter(writers.Writer):
     supported = ('vim',)
     settings_spec = ('No options here.', '', ())
@@ -420,6 +432,7 @@ class VimWriter(writers.Writer):
     def format_refids(self, node):
         refids = []
         for refid in node.attributes.get('ids', []):
+            refid = clean_ref(refid)
             if is_naff_refname(refid):
                 continue
             ref = self.full_ref_to_ref_text.get(refid)

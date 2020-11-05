@@ -766,7 +766,14 @@ class Window(Proxy):
         """
         # TODO: Make getwininfo() values Window properties.
         info = vim.getwininfo(self.id)[0]
-        return info['topline'] - 1, info['botline']
+        if 'topline' in info and 'botline' in info:
+            return info['topline'] - 1, info['botline']
+        wl = vim.winline()
+        bl = vim.line('.')
+        wh = info['height']
+        topline = bl - wl
+        botline = topline + wh
+        return topline, botline
 
     @property
     def _proxied(self):

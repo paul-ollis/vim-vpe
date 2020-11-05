@@ -1,2 +1,4 @@
 tags
 /.pyre
+/release
+/.github

@@ -4,6 +4,7 @@
 #  A build of Python and Vim.
 # ----------------------------------------------------------------------------
 FROM build-base AS vim80-py36
+RUN cp /bin/true /usr/bin/strip
 
 #
 # Build Python interpreter that will be built into Vim.
@@ -12,23 +13,28 @@ WORKDIR /root/cpython
 RUN git checkout v3.6.0
 COPY docker-files/py-do-config do_config
 RUN chmod u+x do_config
-RUN ./do_config
+RUN CFLAGS='O0 -g' ./do_config
 RUN make -j5
 RUN make install
 RUN ldconfig
 RUN python3.6 -m pip install coverage
 
+RUN apt-get install -y gdb sudo
+
 #
 # Build Vim with GUI support.
 #
 WORKDIR /root/vim
+RUN git config --global user.email "root@arcticmandril"
+RUN git config --global user.name "root"
 RUN git checkout v8.0.0700
 COPY docker-files/vim-do-config do_config
 RUN chmod u+x do_config
-RUN ./do_config
+RUN CFLAGS='O0 -g' ./do_config
 RUN make -j5
 RUN make install
 RUN ldconfig
+RUN chmod a+rx /root /root/vim /root/vim/src /root/vim/src/*
 
 RUN groupadd -g 1000 paul
 RUN useradd -rm -s /bin/bash -g paul -G sudo -u 1000 paul

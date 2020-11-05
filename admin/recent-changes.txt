@@ -1,5 +1,21 @@
+Version 0.4.
+
+- Works on Windows (10).
+- General
+  - Added dot_vim_dir function.
+  - List style options are now always converted 
+    from bytes to str.
+- Buffer class
+  - Added find_active_windows method.
+  - The ScratchBuffer can now be usefully sub-classed.
+  - Added set_ext_name method.
+- Timers
+  - Fixed bug for single shot timers.
+
+
 Version 0.3.
 
+- Fixed issue with examples running 'out-of-the-box'.
 - Added a version() function to the vpe module.
 - Added define_command function.
   - User commands that call Python.

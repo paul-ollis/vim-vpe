@@ -233,7 +233,10 @@ class Windows(support.Base):
             vpe.commands.redraw()
             res.buf_bottom = win.visible_line_range
 
-            win.options.scrolloff=0
+            if 'scrolloff' in win.options:
+                win.options.scrolloff = 0
+            else:
+                vim.options.scrolloff = 0
             vpe.commands.normal('20k')
             vpe.commands.normal('5k')
             vpe.commands.normal('5k')

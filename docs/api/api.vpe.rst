@@ -281,6 +281,28 @@ Buffer
                 *nr*
                     If present then append after this line number.
 
+        .. py:method:: vpe.Buffer.find_active_windows(all_tabpages=True) -> List[ForwardRef('Window')]
+
+            Find windows where this buffer is active.
+
+            The list windows returned is prioritised as a result of searching in
+            the following order. The current window, windows in the current tab
+            page, all windows in all tab pages.
+
+            **Parameters**
+
+            .. container:: parameters itemdetails
+
+                *all_tabpages*
+                    If True (the default) all tab pages are searched.
+                    Otherwise only the current tab page is searched.
+
+            **Return value**
+
+            .. container:: returnvalue itemdetails
+
+                A list of the windows found.
+
         .. py:method:: vpe.Buffer.goto_active_window() -> bool
 
             Goto a window where this buffer is active.
@@ -838,6 +860,24 @@ ScratchBuffer
 
             Create a context that allows the buffer to be modified.
 
+        .. py:method:: vpe.ScratchBuffer.on_first_showing()
+
+            Invoked when the buffer is first, successfully displayed.
+
+            This is expected to be over-ridden by subclasses.
+
+        .. py:method:: vpe.ScratchBuffer.set_ext_name(name)
+
+            Set the extension name for this buffer.
+
+
+            **Parameters**
+
+            .. container:: parameters itemdetails
+
+                *name*
+                    The extension part of the name
+
         .. py:method:: vpe.ScratchBuffer.show(splitlines: Optional[int] = None) -> bool
 
             Make this buffer visible.
@@ -861,7 +901,7 @@ ScratchBuffer
 
             .. container:: returnvalue itemdetails
 
-                True if the window is successfully split.
+                True if the window is successfully shown.
 
 Struct
 ------
@@ -1242,6 +1282,13 @@ Window
 
             The buffar vars wrapped as a `Variables` instance.
 
+        .. py:method:: vpe.Window.visible_line_range() -> Tuple[int, int]
+            :property:
+
+            The range of buffer lines visible within this window.
+
+            This is a Python style range.
+
     **Methods**
 
         .. py:method:: vpe.Window.goto() -> bool
@@ -1303,6 +1350,20 @@ call_soon
         *func*
             The function to be invoked. It takes no arguments.
 
+dot_vim_dir
+-----------
+
+.. py:function:: vpe.dot_vim_dir()
+
+    Return the path to the ~/.vim directory or its equivalent.
+
+
+    **Return value**
+
+    .. container:: returnvalue itemdetails
+
+        This returns the first directory in the runtimepath option.
+
 error_msg
 ---------
 
@@ -1331,7 +1392,14 @@ find_buffer_by_name
 get_display_buffer
 ------------------
 
-.. py:function:: vpe.get_display_buffer(name: str) -> ScratchBuffer
+.. py:function:: vpe.get_display_buffer(...)
+
+    .. parsed-literal::
+
+        get_display_buffer(
+            name: str,
+            buf_class: Type[`ScratchBuffer`] = <class 'vpe.core.ScratchBuffer'>
+        ) -> `ScratchBuffer`
 
     Get a named display-only buffer.
 

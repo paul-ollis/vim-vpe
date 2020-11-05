@@ -118,9 +118,13 @@ class VimSession:
     def ensure_vim_session(self):
         ret = self.eval_vim('0')
         if ret != '0':
-            self.proc = subprocess.Popen(
-                ['gvim', '--noplugin', '--servername', 'TEST'],
-                stderr=subprocess.DEVNULL)
+            cmd = [
+                'xterm','-e',
+                'gdb', '-ex', 'run', '--args',
+                '/usr/local/bin/gvim', '-f', '--noplugin', '--servername',
+                'TEST']
+            cmd = ['gvim', '--noplugin', '--servername', 'TEST']
+            self.proc = subprocess.Popen(cmd, stderr=subprocess.DEVNULL)
 
             # Make sure Vim is running and responsive.
             while self.eval_vim('1') != '1':

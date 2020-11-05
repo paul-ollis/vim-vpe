@@ -18,9 +18,13 @@ def run(cmd, timeit=False, covit=False):
             env['COVERAGE_FILE'] = '.coverage-win.run'
         else:
             env['COVERAGE_FILE'] = '.coverage.run'
-    subprocess.run(cmd.split(), env=env)
+    proc = subprocess.run(cmd.split(), env=env)
     if timeit:
         print(f'Run took {time.time() - a:.2f} seconds')
+
+    if proc.returncode != 0:
+        sys.exit(f'Process exited with error code {proc.returncode}\n'
+                 f'Executed args = {proc.args}')
 
 
 def main(args, rem_args):

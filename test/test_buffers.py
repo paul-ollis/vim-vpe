@@ -683,14 +683,26 @@ class Buffers(support.Base):
         failUnlessEqual([True, False], res.r)
 
     def setup_tabs_and_windows(self):
-        """Set up a well defined pattern of windows and tab pages.
+        r"""Set up a well defined pattern of windows and tab pages.
 
         :<py>:
             vpe.commands.tabonly()
             vpe.commands.wincmd('o')
             t1 = vim.current.tabpage
             hidden_buf = vim.current.buffer
-            vpe.commands.tabnew()
+
+            # TODO: Investigate some more.
+            #       When running with vim version 8.0.0700 and Python 3.6.0,
+            #       GTK GUI; Calling vpe.commands.tabnew() causes Vim to crash
+            #       deep within the bowels of GUI code. The same occurs using
+            #       vpe.vim().command('tabnew'). I suspect a Python interface
+            #       bug, but have made little headway in debugging this.
+            #
+            #       The use of 'execute' seems to side-step the problem for
+            #       now.
+            # vpe.commands.tabnew()
+            vim.vim().command('execute "normal :tabnew\<cr>"')
+
             t2 = vim.current.tabpage
             vpe.commands.tabnew()
             t3 = vim.current.tabpage
