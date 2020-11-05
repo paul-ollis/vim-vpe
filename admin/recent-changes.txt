@@ -10,7 +10,7 @@ Version 0.4.
 - Works on Windows (10).
 - General
   - Added dot_vim_dir function.
-  - List style options are now always converted 
+  - List style options are now always converted.
     from bytes to str.
 - Buffer class
   - Added find_active_windows method.

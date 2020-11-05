@@ -293,6 +293,10 @@ class GitRepo:
 
 class ReleaseView(GitRepo):
     """A release oriented view of a GitRepo."""
+    def __init__(self):
+        super().__init__()
+        self._rel_tags = None
+        self._dev_branches = None
 
     @property
     def rel_tags(self):

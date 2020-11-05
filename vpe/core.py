@@ -280,7 +280,8 @@ class Log:
         if buf:
             for w in wrappers.vim.windows:
                 if w.buffer.number == buf.number:
-                    win_execute(wrappers.vim.win_getid(w.number), '$|redraw')
+                    win_execute(wrappers.vim.win_getid(w.number), '$')
+                    win_execute(wrappers.vim.win_getid(w.number), 'redraw')
 
     def flush(self):
         """File like I/O support."""
