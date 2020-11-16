@@ -5,6 +5,7 @@ from typing import Set, Tuple, Any
 import asyncio
 import json
 import io
+import os
 import threading
 import time
 import traceback
@@ -891,6 +892,20 @@ class Miscellaneous(support.CommandsBase):
         failUnless('Timer._one_shot_timers =' in  text)
         failUnless('Popup._popups =' in  text)
         failUnless('Callback.callbacks =' in  text)
+
+    @test(testID='misc-add-dot-dir')
+    def dot_vim_dir(self):
+        """The dot_vim_dir function returns ~/.vim or its equivalent.
+
+        :<py>:
+
+            res = Struct()
+            res.dirname = vpe.dot_vim_dir()
+            dump(res)
+        """
+        res = self.run_self()
+
+        failUnlessEqual(os.path.expanduser('~/.vim'), res.dirname)
 
 
 class DefineCommand(support.Base):

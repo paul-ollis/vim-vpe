@@ -61,7 +61,7 @@ __api__ = [
     'Registers', 'Log', 'error_msg', 'call_soon', 'vim', 'log',
     'saved_winview', 'highlight', 'pedit', 'popup_clear',
     'timer_stopall', 'find_buffer_by_name', 'script_py_path',
-    'get_display_buffer', 'version',
+    'get_display_buffer', 'version', 'dot_vim_dir',
 
     'core', 'commands', 'mapping', 'syntax', 'wrappers',
 
@@ -79,6 +79,15 @@ def version() -> Tuple[int, int, int]:
     (https://semver.org/); *i.e.* (major, minor, patch).
     """
     return 0, 3, 0
+
+
+def dot_vim_dir():
+    """Return the path to the ~/.vim directory or its equivalent.
+
+    :return:
+        This returns the first directory in the runtimepath option.
+    """
+    return vim.options.runtimepath.split(',')[0]
 
 
 def script_py_path() -> str:
