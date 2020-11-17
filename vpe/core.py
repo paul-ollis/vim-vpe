@@ -11,7 +11,7 @@ module. It is intended that a Vim instance can be uses as a replacement for the
 # pylint: disable=too-many-lines
 
 from functools import partial
-from typing import Optional, Any, Tuple, Dict, Union, Callable
+from typing import Optional, Any, Tuple, Dict, Union, Callable, Type
 import collections
 import io
 import itertools
@@ -96,6 +96,7 @@ class ScratchBuffer(wrappers.Buffer):
     def __init__(self, name, buffer):
         super().__init__(buffer)
         self.__dict__['_base_name'] = name
+        self.__dict__['_show_count'] = 0
         self.set_ext_name('')
         options = self.options
         options.buftype = 'nofile'
@@ -145,14 +146,25 @@ class ScratchBuffer(wrappers.Buffer):
             lower_win.height = lower_height
 
         wrappers.commands.buffer(self.number, bang=True)
+        self._show_count += 1
+        if self._show_count == 1:
+            self.on_first_showing()
         return True
+
+    def on_first_showing(self):
+        """Invoked when the buffer is first, successfully displayed.
+
+        This is expected to be over-ridden by subclasses.
+        """
 
     def modifiable(self) -> wrappers.TemporaryOptions:
         """Create a context that allows the buffer to be modified."""
         return self.temp_options(modifiable=True, readonly=False)
 
 
-def get_display_buffer(name: str) -> ScratchBuffer:
+def get_display_buffer(
+            name: str, buf_class: Type[ScratchBuffer] = ScratchBuffer
+        ) -> ScratchBuffer:
     """Get a named display-only buffer.
 
     The actual buffer name will be of the form '/[[name]]'. The
@@ -177,7 +189,7 @@ def get_display_buffer(name: str) -> ScratchBuffer:
         b = wrappers.vim.current.buffer
         wrappers.commands.wincmd('c')
 
-    b = ScratchBuffer(buf_name, b)
+    b = buf_class(buf_name, b)
     _known_special_buffers[buf_name] = b
     return b
 
