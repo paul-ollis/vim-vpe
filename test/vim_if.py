@@ -3,10 +3,22 @@ from __future__ import annotations
 
 import os
 import pathlib
+import platform
 import subprocess
+import time
 
 SESSION = 'TEST'
-PY_PATH = pathlib.Path('/tmp/test.py')
+
+
+def get_tmp_paths(filename: str) -> Tuple[pathlib.Path, pathlib.Path]:
+    """Get temporary path names for test and Vim worlds."""
+    vim_path = test_path = pathlib.Path(f'/tmp/{filename}')
+    if platform.platform().startswith('CYGWIN'):
+        vim_path = pathlib.Path(f'$TEMP/{filename}')
+    return test_path, vim_path
+
+
+PY_NAME = 'test.py'
 
 
 def eval_call(expr):
@@ -54,6 +66,7 @@ class VimSession:
         self.proc = None
         self.execute_vim('qa!')
         self.get_version()
+        self.proc = None
         self.ensure_vim_session()
 
     def execute_vim(self, cmd):
@@ -105,9 +118,8 @@ class VimSession:
     def ensure_vim_session(self):
         ret = self.eval_vim('0')
         if ret != '0':
-            subprocess.run(
-                ['gvim', '--noplugin', '--servername', 'TEST',
-                 '-geometry', '80x60+0+0'],
+            self.proc = subprocess.Popen(
+                ['gvim', '--noplugin', '--servername', 'TEST'],
                 stderr=subprocess.DEVNULL)
 
             edvim = os.environ.get('EDVIM', '')
@@ -117,6 +129,16 @@ class VimSession:
                      'foreground()'],
                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
+            # Make sure Vim is running and responsive.
+            while self.eval_vim('1') != '1':
+                time.sleep(0.1)
+
+            # I find it helpful if the Vim window's position and size is always
+            # the same.
+            self.execute_vim('set columns=100')
+            self.execute_vim('set lines=60')
+            self.execute_vim('winpos 0 0')
+
     def execute_string(self, text):
         """Execute a Python statement supplied as a string.
 
@@ -124,12 +146,12 @@ class VimSession:
         """
         return self.execute_vim(f'py3 {text}')
 
-    def execute(self, text, py_path=None):
-        py_path = py_path or PY_PATH
+    def execute(self, text, py_name=None):
+        py_path, vim_path = get_tmp_paths(py_name or PY_NAME)
         with open(py_path, 'wt') as f:
             f.write(text)
             f.write('\n')
-        return self.execute_vim(f'py3file {str(py_path)}')
+        return self.execute_vim(f'py3file {str(vim_path)}')
 
     def py_eval(self, expr):
         """Remotely run python using py3eval.

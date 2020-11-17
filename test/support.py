@@ -5,8 +5,9 @@ import itertools
 import os
 import pathlib
 import pickle
+import platform
 
-from typing import ClassVar, Optional, Callable, Iterator
+from typing import ClassVar, Optional, Callable, Iterator, Tuple
 
 # pylint: disable=unused-wildcard-import,wildcard-import
 from cleversheep3.Test.Tester import *
@@ -18,7 +19,19 @@ import vim_if
 
 import vpe
 
-OBJ_DUMP_PATH = '/tmp/vpe-test-dump.bin'
+OBJ_DUMP_NAME = 'vpe-test-dump.bin'
+COV_SCRIPT_NAME = 'cov_script.py'
+
+
+def fix_path(path: str) -> str:
+    """Convert a Windows path to an equivalent Linux style one.
+
+    This removes any driver letter and converts the back to forward slashes.
+    This is used to check actual to expected file names.
+    """
+    if path[1:2] == ':':
+        path = path[2:]
+    return path.replace('\\', '/')
 
 
 def clean_code_block(code):
@@ -58,6 +71,7 @@ class CodeSource:
             import functools
             import os
             import pickle
+            import platform
             import sys
 
             sys.path.append(os.getcwd())
@@ -78,6 +92,17 @@ class CodeSource:
                     vim.command(f'enew')
                     vim.current.buffer.name = name
 
+            # Generate display buffer name.
+            def get_disp_name(name):
+                if platform.system() == 'Windows':
+                    return rf'C:\[[{name}]]'
+                return f'/[[{name}]]'
+
+            # Create a temp path name.
+            def tmp_path(stem):
+                dirname = os.environ.get('TEMP', '/tmp')
+                return f'{dirname}/{stem}'
+
             # Remove all but the first buffer.
             def zap_bufs():
                 numbers = [buf.number for buf in vim.buffers]
@@ -97,7 +122,7 @@ class CodeSource:
 
             # Dump the pickle of an object to file.
             def dump(obj):
-                with open('/tmp/vpe-test-dump.bin', 'wb') as f:
+                with open(DUMP_PATH, 'wb') as f:
                     try:
                         pickle.dump(obj, f, protocol=pickle.HIGHEST_PROTOCOL)
                     except exception as e:
@@ -107,6 +132,13 @@ class CodeSource:
         """
         if CodeSource.vs is None:
             CodeSource.vs = vim_if.VimSession()
+            self.vs.execute(f'import os')
+            if platform.platform().startswith('CYGWIN'):
+                self.vs.execute(
+                    f'DUMP_PATH = os.environ["TEMP"] + "/{OBJ_DUMP_NAME}"')
+            else:
+                self.vs.execute(
+                    f'DUMP_PATH = "/tmp/{OBJ_DUMP_NAME}"')
             self.vs.execute(self.mycode())
 
     def vim_cov_start(self):
@@ -116,11 +148,10 @@ class CodeSource:
 
             import coverage
 
-            cov = coverage.Coverage(
-                data_file='.coverage.vim')
+            cov = coverage.Coverage(data_file='.coverage.vim')
             cov.start()
         """
-        self.run_self(py_path='/tmp/cov_script.py')
+        self.run_self(py_name=COV_SCRIPT_NAME)
 
     def vim_cov_continue(self):
         r"""Continue coverage, using previously accumulated data.
@@ -128,10 +159,11 @@ class CodeSource:
         :<py>:
 
             import coverage
+
             cov = coverage.Coverage(data_file='.coverage.vim', auto_data=True)
             cov.start()
         """
-        self.run_self(py_path='/tmp/cov_script.py')
+        self.run_self(py_name=COV_SCRIPT_NAME)
 
     def vim_cov_stop(self):
         r"""Stop coverage and save the data.
@@ -141,7 +173,7 @@ class CodeSource:
             cov.stop()
             cov.save()
         """
-        self.run_self(py_path='/tmp/cov_script.py')
+        self.run_self(py_name=COV_SCRIPT_NAME)
 
     @staticmethod
     def extract_code(doc: str) -> Optional[str]:
@@ -194,7 +226,8 @@ class CodeSource:
     @staticmethod
     def result():
         """Get the result from a remote Vim execution."""
-        if not os.path.exists(OBJ_DUMP_PATH):
+        OBJ_DUMP_PATH, _ = vim_if.get_tmp_paths(OBJ_DUMP_NAME)
+        if not OBJ_DUMP_PATH.exists():
             return None
         with open(OBJ_DUMP_PATH, 'rb') as f:
             data = f.read()
@@ -206,12 +239,33 @@ class CodeSource:
             return None
         return v
 
-    def run_self(self, py_path=None):
+    def run_self(self, py_name=None, stack_level=2):
         """Run the Python code in the caller's docstring."""
-        if os.path.exists(OBJ_DUMP_PATH):
+        OBJ_DUMP_PATH, _ = vim_if.get_tmp_paths(OBJ_DUMP_NAME)
+        if OBJ_DUMP_PATH.exists():
             os.unlink(OBJ_DUMP_PATH)
-        self.vs.execute(self.mycode(stack_level=2), py_path=py_path)
+        self.vs.execute(self.mycode(stack_level=stack_level), py_name=py_name)
         return self.result()
+
+    def run_suite_setup(self):
+        """Run a suite set up script."""
+        return self.run_self(py_name='suite_setup.py', stack_level=3)
+
+    def run_setup(self):
+        """Run a set up script."""
+        return self.run_self(py_name='setup.py', stack_level=3)
+
+    def run_suite_teardown(self):
+        """Run a suite tear down script."""
+        return self.run_self(py_name='suite_teardown.py', stack_level=3)
+
+    def run_teardown(self):
+        """Run a tear down script."""
+        return self.run_self(py_name='teardown.py', stack_level=3)
+
+    def run_continue(self):
+        """Run a continue script."""
+        return self.run_self(py_name='continue.py', stack_level=3)
 
     def eval(self, expr):
         """Evaluate an expression in the Vim world and return the result.

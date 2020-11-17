@@ -1,1 +1,3 @@
 # Python requirements to test and develop VPE
+coverage
+six

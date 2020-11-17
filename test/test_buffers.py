@@ -9,6 +9,7 @@ from cleversheep3.Test.Tester import test, runModule
 
 import support
 import vim_if
+from support import fix_path
 
 import vpe
 
@@ -143,7 +144,7 @@ class Buffers(support.Base):
         """
         res = self.run_self()
         failIfEqual(not res.orig_name, res.new_name)
-        failUnlessEqual('/tmp/monty', res.new_name)
+        failUnlessEqual('/tmp/monty', fix_path(res.new_name))
 
     @test(testID='buf-valid-flag')
     def buffer_valid_flag(self):
@@ -507,7 +508,7 @@ class Buffers(support.Base):
             dump(res)
         """
         res = self.run_self()
-        failUnlessEqual('/tmp/nodir', res.location)
+        failUnlessEqual('/tmp/nodir', fix_path(res.location))
         failUnlessEqual('', res.empty)
 
     @test(testID='buf-long-name')
@@ -532,7 +533,7 @@ class Buffers(support.Base):
         """
         res = self.run_self()
         failUnlessEqual('[quickfix]: Test title', res.qf)
-        failUnlessEqual('/tmp/nodir/nofile.txt', res.full_path)
+        failUnlessEqual('/tmp/nodir/nofile.txt', fix_path(res.full_path))
         failUnlessEqual('[No name]', res.empty)
 
     @test(testID='buf-short-name')
@@ -585,7 +586,7 @@ class Buffers(support.Base):
         """
         res = self.run_self()
         failUnlessEqual('Test title', res.qf)
-        failUnlessEqual('/tmp/nodir', res.location)
+        failUnlessEqual('/tmp/nodir', fix_path(res.location))
         if vim_if.VimSession.get_version() >= [8, 1]:
             failUnlessEqual('!echo 9', res.terminal)
 

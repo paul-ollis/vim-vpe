@@ -275,7 +275,8 @@ class Channel:
 
         Related vim function = :vim:`ch_close`.
         """
-        ch_close(self.vch)
+        if self.vch.varname:
+            ch_close(self.vch)
 
     def close_in(self) -> None:
         """Close the input part of the channel.

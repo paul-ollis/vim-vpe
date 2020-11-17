@@ -15,6 +15,7 @@ from typing import Optional, Any, Tuple, Dict, Union, Callable
 import collections
 import io
 import itertools
+import platform
 import sys
 import time
 import traceback
@@ -94,7 +95,8 @@ class ScratchBuffer(wrappers.Buffer):
     """
     def __init__(self, name, buffer):
         super().__init__(buffer)
-        self.name = name
+        self.__dict__['_base_name'] = name
+        self.set_ext_name('')
         options = self.options
         options.buftype = 'nofile'
         options.swapfile = False
@@ -103,6 +105,19 @@ class ScratchBuffer(wrappers.Buffer):
         options.modifiable = False
         options.bufhidden = 'hide'
         options.buflisted = True
+
+    def set_ext_name(self, name):
+        """Set the extension name for this buffer.
+
+        :name: The extension part of the name
+        """
+        if name:
+            if platform.system() == 'Windows':
+                self.name = rf'{self._base_name}\{name}'
+            else:
+                self.name = f'{self._base_name}/{name}'
+        else:
+            self.name = self._base_name
 
     def show(self, splitlines: Optional[int] = None) -> bool:
         """Make this buffer visible.
@@ -116,7 +131,7 @@ class ScratchBuffer(wrappers.Buffer):
         3. This buffer is displayed in the upper window.
 
         :splitlines: Number of lines to leave in the bottom window.
-        :return:     True if the window is successfully split.
+        :return:     True if the window is successfully shown.
         """
         if splitlines is not None and splitlines > 0:
             win = wrappers.vim.current.window
@@ -146,7 +161,10 @@ def get_display_buffer(name: str) -> ScratchBuffer:
     :name:     An identifying name for this buffer.
     """
     # pylint: disable=unsubscriptable-object
-    buf_name = f'/[[{name}]]'
+    if platform.system() == 'Windows':
+        buf_name = rf'C:\[[{name}]]'
+    else:
+        buf_name = f'/[[{name}]]'
     b = _known_special_buffers.get(buf_name, None)
     if b is not None:
         return b
@@ -352,7 +370,8 @@ class Timer:
         self._id = wrappers.vim.timer_start(
             ms, cb.as_vim_function(), t_options)
         if repeat is None:
-            self._one_shot_timers[self._id] = func
+            self.func = func
+            self._one_shot_timers[self._id] = self
         self._callback = CallableRef(func, self.stop)
         self.fire_count = 0
         self.dead = False

@@ -875,7 +875,10 @@ class ListOption(str):
     _sep: str = ''
 
     def __new__(cls, value, flag_style):
-        inst = super().__new__(cls, value)
+        if isinstance(value, str):
+            inst = super().__new__(cls, value)
+        else:
+            inst = super().__new__(cls, value.decode())
         inst._flag_style = flag_style
         return inst
 

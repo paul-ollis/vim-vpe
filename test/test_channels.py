@@ -114,7 +114,7 @@ class Server(threading.Thread):
         resp = f'{buf}-re'
         writer.write(resp.encode())
         await writer.drain()
-        await asyncio.sleep(0.03)
+        await asyncio.sleep(0.5)
 
         resp = f'resp'
         writer.write(resp.encode())
@@ -517,7 +517,7 @@ class JsonChannel(Channel):
 
         :<py>:
 
-            vim.ch_logfile('/tmp/test-ch.log', 'w')
+            vim.ch_logfile(tmp_path('test-ch.log'), 'w')
             try:
                 ch = MyChannel('localhost:8887')
                 ch.log('hello')
@@ -623,7 +623,7 @@ class RawChannel(Channel):
         res = self.run_self()
 
         a = time.time()
-        while time.time() - a < 0.5 and len(res.messages) < 2:
+        while time.time() - a < 5.0 and len(res.messages) < 2:
             self.control.delay(0.01)
             res = self.do_recv()
         failUnlessEqual(2, len(res.messages))
