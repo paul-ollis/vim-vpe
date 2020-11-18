@@ -213,6 +213,40 @@ class Windows(support.Base):
         failUnlessEqual((3, 0), res.context_cursor)
         failUnlessEqual((1, 0), res.post_cursor)
 
+    @test(testID='win-vis-line-range')
+    def visible_line_range(self):
+        """The Window provides a visible_line_range property.
+
+        :<py>:
+
+            res = Struct()
+            buf = vim.current.buffer
+            buf[:] = [str(n) for n in range(80)]
+            vpe.commands.wincmd('s')
+            win = vim.current.window
+            vpe.commands.resize(20)
+
+            vim.command('1')
+            res.buf_top = win.visible_line_range
+
+            vim.command('$')
+            vpe.commands.redraw()
+            res.buf_bottom = win.visible_line_range
+
+            win.options.scrolloff=0
+            vpe.commands.normal('20k')
+            vpe.commands.normal('5k')
+            vpe.commands.normal('5k')
+            vpe.commands.redraw()
+            res.buf_mid = win.visible_line_range
+
+            dump(res)
+        """
+        res = self.run_self()
+        failUnlessEqual((0, 20), res.buf_top)
+        failUnlessEqual((60, 80), res.buf_bottom)
+        failUnlessEqual((49, 69), res.buf_mid)
+
 
 if __name__ == '__main__':
     runModule()

@@ -739,6 +739,16 @@ class Window(Proxy):
         return bool(vim.win_gotoid(self.id))
 
     @property
+    def visible_line_range(self) -> Tuple[int, int]:
+        """The range of buffer lines visible within this window.
+
+        This is a Python style range.
+        """
+        # TODO: Make getwininfo() values Window properties.
+        info = vim.getwininfo(self.id)[0]
+        return info['topline'] - 1, info['botline']
+
+    @property
     def _proxied(self):
         n_tab, n_win = vim.win_id2tabwin(self.id)
         if 0 in (n_win, n_tab):
