@@ -647,6 +647,32 @@ class Buffer(MutableSequenceProxy):
         """
         return TemporaryOptions(self.options, **presets)
 
+    def find_active_windows(self, all_tabpages=True) -> List["Window"]:
+        """Find windows where this buffer is active.
+
+        The list windows returned is prioritised as a result of searching in
+        the following order. The current window, windows in the current tab
+        page, all windows in all tab pages.
+
+        :all_tabpages: If True (the default) all tab pages are searched.
+                       Otherwise only the current tab page is searched.
+        :return:       A list of the windows found.
+        """
+        def add_win(win):
+            k = win.tabpage.number, win.number
+            if win.buffer is self and k not in windows:
+                windows[k] = win
+
+        windows = {}
+        add_win(vim.current.window)
+        for win in vim.current.tabpage.windows:
+            add_win(win)
+        if all_tabpages:
+            for page in itertools.chain([vim.current.tabpage], vim.tabpages):
+                for win in page.windows:
+                    add_win(win)
+        return list(windows.values())
+
     def goto_active_window(self) -> bool:
         """Goto a window where this buffer is active.
 
@@ -658,18 +684,10 @@ class Buffer(MutableSequenceProxy):
 
         :return: True if an active window was found
         """
-        if vim.current.window.buffer is self:
-            return True
-        for win in vim.current.tabpage.windows:
-            if win.buffer is self:
-                win.goto()
-                return True
-        for page in itertools.chain([vim.current.tabpage], vim.tabpages):
-            for win in page.windows:
-                if win.buffer is self:
-                    win.goto()
-                    return True
-        return False
+        windows = self.find_active_windows()
+        if windows:
+            windows[0].goto()
+        return bool(windows)
 
     def __getattr__(self, name):
         """Make the values from getbufinfo() available as attributes.

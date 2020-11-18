@@ -682,6 +682,85 @@ class Buffers(support.Base):
         failUnlessEqual(2, res.end_tab)
         failUnlessEqual([True, False], res.r)
 
+    def setup_tabs_and_windows(self):
+        """Set up a well defined pattern of windows and tab pages.
+
+        :<py>:
+            vpe.commands.tabonly()
+            vpe.commands.wincmd('o')
+            t1 = vim.current.tabpage
+            hidden_buf = vim.current.buffer
+            vpe.commands.tabnew()
+            t2 = vim.current.tabpage
+            vpe.commands.tabnew()
+            t3 = vim.current.tabpage
+            vpe.commands.tabnew()
+            t4 = vim.current.tabpage
+
+            vpe.commands.tabnext(a=2)
+            vpe.commands.enew()
+            vpe.commands.wincmd('s')
+            target = vim.current.buffer
+
+            vpe.commands.tabnext(a=4)
+            vpe.commands.buffer(target.number)
+        """
+        self.run_self()
+
+    @test(testID='buf-find-active-any')
+    def find_active_any_tab(self):
+        """The find_active_windows method will search all tabs.
+
+        The order of windows returned is well defined.
+
+        :<py>:
+
+            res = Struct()
+            res.find_all_cur_first = [
+                (w.tabpage.number, w.number)
+                for w in target.find_active_windows()]
+
+            vpe.commands.tabnext(a=3)
+            res.find_all = [
+                (w.tabpage.number, w.number)
+                for w in target.find_active_windows()]
+
+            vpe.commands.tabnext(a=2)
+            vpe.commands.wincmd('j', a=2)
+            res.find_all_cur_tab_second = [
+                (w.tabpage.number, w.number)
+                for w in target.find_active_windows()]
+            dump(res)
+        """
+        self.setup_tabs_and_windows()
+        res = self.run_self()
+        failUnlessEqual([(4, 1), (2, 1), (2, 2)], res.find_all_cur_first)
+        failUnlessEqual([(2, 1), (2, 2), (4, 1)], res.find_all)
+        failUnlessEqual([(2, 2), (2, 1), (4, 1)], res.find_all_cur_tab_second)
+
+    @test(testID='buf-find-cur-tab')
+    def find_active_cur_tab(self):
+        """The find_active_windows method can search just the current tab page.
+
+        :<py>:
+
+            res = Struct()
+            vpe.commands.tabnext(a=3)
+            res.find_zero = [
+                (w.tabpage.number, w.number)
+                for w in target.find_active_windows(all_tabpages=False)]
+
+            vpe.commands.tabnext(a=2)
+            res.find_two = [
+                (w.tabpage.number, w.number)
+                for w in target.find_active_windows(all_tabpages=False)]
+            dump(res)
+        """
+        self.setup_tabs_and_windows()
+        res = self.run_self()
+        failUnlessEqual([], res.find_zero)
+        failUnlessEqual([(2, 1), (2, 2)], res.find_two)
+
     @test(testID='buf-info')
     def getbufinfo_as_properties(self):
         """The getbufinfo() values appear as properties.
