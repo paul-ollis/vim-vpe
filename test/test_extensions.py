@@ -223,6 +223,28 @@ class DisplayBuffer(support.Base):
         failUnless(res.wrapped_num is not None)
         failUnlessEqual(res.orig_num, res.wrapped_num)
 
+    @test(testID='dispbuf-ext-name')
+    def create_display_buffer(self):
+        """A Scratch buffer's name may an extension part.
+
+        The extension can be changed.
+
+        :<py>:
+
+            res = Struct()
+            buf = vpe.get_display_buffer('test')
+            res.simple_name = buf.name
+            buf.set_ext_name('aaa')
+            res.ext_aaa_name = buf.name
+            buf.set_ext_name('bbb')
+            res.ext_bbb_name = buf.name
+            dump(res)
+        """
+        res = self.run_self()
+        failUnlessEqual('/[[test]]', fix_path(res.simple_name))
+        failUnlessEqual('/[[test]]/aaa', fix_path(res.ext_aaa_name))
+        failUnlessEqual('/[[test]]/bbb', fix_path(res.ext_bbb_name))
+
 
 class Timers(support.Base):
     """Timers.
