@@ -1,3 +1,8 @@
 [run]
-
 source = ../vpe
+
+[paths]
+cygwin_match =
+    ../vpe
+    /cygdrive/z/.vim/pack/vim-vpe/vpe
+    \\VBOXSVR\PAUL\.vim\pack\vim-vpe\vpe

@@ -1,8 +1,47 @@
-#!/bin/bash
+#!/usr/bin/env python
 
-time COVERAGE_FILE=.coverage.run coverage run ./all_tests.py
-coverage combine .
-coverage report
-coverage html -d covhtml/
-coverage json --pretty
-coverage annotate -d ann
+import argparse
+import os
+import platform
+import shutil
+import subprocess
+import sys
+import time
+
+
+def run(cmd, timeit=False, covit=False):
+    env = os.environ.copy()
+    if timeit:
+        a = time.time()
+    if covit:
+        if platform.platform().startswith('CYGWIN'):
+            env['COVERAGE_FILE'] = '.coverage-win.run'
+        else:
+            env['COVERAGE_FILE'] = '.coverage.run'
+    subprocess.run(cmd.split(), env=env)
+    if timeit:
+        print(f'Run took {time.time() - a:.2f} seconds')
+
+
+def main(args, rem_args):
+    run(
+        f'coverage run ./all_tests.py {" ".join(rem_args)}', timeit=True,
+        covit=True)
+    if not platform.platform().startswith('CYGWIN'):
+        if args.inc_win:
+            shutil.copy('.coverage-win.vim', '.coverage.wvim')
+            shutil.copy('.coverage-win.run', '.coverage.wrun')
+        run('coverage combine .')
+        run('coverage report')
+        run('coverage html -d covhtml/')
+        run('coverage json --pretty')
+        run('coverage annotate -d ann')
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser('Run tests and produce coverage.')
+    parser.add_argument(
+        "--inc_win", action="store_true",
+        help='Include windows in coverage.')
+    args, rem_args = parser.parse_known_args()
+    main(args, rem_args)

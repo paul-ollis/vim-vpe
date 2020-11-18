@@ -148,7 +148,10 @@ class CodeSource:
 
             import coverage
 
-            cov = coverage.Coverage(data_file='.coverage.vim')
+            if platform.system() == 'Windows':
+                cov = coverage.Coverage(data_file='.coverage-win.vim')
+            else:
+                cov = coverage.Coverage(data_file='.coverage.vim')
             cov.start()
         """
         self.run_self(py_name=COV_SCRIPT_NAME)
@@ -160,7 +163,12 @@ class CodeSource:
 
             import coverage
 
-            cov = coverage.Coverage(data_file='.coverage.vim', auto_data=True)
+            if platform.system() == 'Windows':
+                cov = coverage.Coverage(
+                    data_file='.coverage-win.vim', auto_data=True)
+            else:
+                cov = coverage.Coverage(
+                    data_file='.coverage.vim', auto_data=True)
             cov.start()
         """
         self.run_self(py_name=COV_SCRIPT_NAME)

@@ -122,13 +122,6 @@ class VimSession:
                 ['gvim', '--noplugin', '--servername', 'TEST'],
                 stderr=subprocess.DEVNULL)
 
-            edvim = os.environ.get('EDVIM', '')
-            if edvim:
-                subprocess.run(
-                    ['vim', '--servername', edvim, '--remote-expr',
-                     'foreground()'],
-                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-
             # Make sure Vim is running and responsive.
             while self.eval_vim('1') != '1':
                 time.sleep(0.1)
@@ -138,6 +131,15 @@ class VimSession:
             self.execute_vim('set columns=100')
             self.execute_vim('set lines=60')
             self.execute_vim('winpos 0 0')
+
+            # Switch back to the nominated editor window, if defined.
+            edvim = os.environ.get('EDVIM', '')
+            if edvim:
+                subprocess.run(
+                    ['vim', '--servername', edvim, '--remote-expr',
+                     'foreground()'],
+                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
 
     def execute_string(self, text):
         """Execute a Python statement supplied as a string.
