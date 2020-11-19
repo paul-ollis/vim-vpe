@@ -1,3 +1,10 @@
+Version 0.4.1.
+
+- Log class.
+  - Changed the way the buffer contents are trimmed. Prevents (or at least
+    reduces) annoying window redraws/corruption.
+
+
 Version 0.4.
 
 - Works on Windows (10).
@@ -9,6 +16,8 @@ Version 0.4.
   - Added find_active_windows method.
   - The ScratchBuffer can now be usefully sub-classed.
   - Added set_ext_name method.
+- Windows class.
+  - Added visible_line_range property.
 - Timers
   - Fixed bug for single shot timers.
 

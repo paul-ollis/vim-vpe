@@ -277,9 +277,9 @@ class Log:
             win_execute = wrappers.vim.win_execute
         except AttributeError:                               # pragma: no cover
             return
-        if self.buf:
+        if buf:
             for w in wrappers.vim.windows:
-                if w.buffer.number == self.buf.number:
+                if w.buffer.number == buf.number:
                     win_execute(wrappers.vim.win_getid(w.number), '$|redraw')
 
     def flush(self):
@@ -307,7 +307,7 @@ class Log:
             d = len(buf) - len(self.fifo)
             if d > 0:
                 with buf.modifiable():
-                    buf[:] = buf[d:]
+                    del buf[:d]
 
     def show(self) -> None:
         """Make sure the buffer is visible.

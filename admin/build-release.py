@@ -8,8 +8,20 @@ import subprocess
 import sys
 from pathlib import Path
 
-R_DEV_BRANCH = re.compile(r'(?x) ( v \d+ \. \d+) $')
-R_REL_TAG = re.compile(r'(?x) ( \d+ \. \d+)$')
+R_DEV_BRANCH = re.compile(r'''(?x)
+    (
+        v  \d+
+        \. \d+
+        (?: \. \d+ )?
+    ) $
+''')
+R_REL_TAG = re.compile(r'''(?x)
+    (
+        \d+
+        \. \d+
+        (?: \. \d+ )?
+    )$
+''')
 
 
 class TempSSHKeys:

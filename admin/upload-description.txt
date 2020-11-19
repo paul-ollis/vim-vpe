@@ -1,3 +1,7 @@
+News
+  VPE is now tested on Windows 10. Testing is done using Vim 8.2.1970 and
+  Python 3.8.6.
+
 Introduction
 
   VPE adds to Vim’s built-in support for Python scripting. This is a brief list
@@ -9,9 +13,12 @@ Introduction
     standard vim versions.
   - Support for cleanly invoking Python functions for keyboard mappings.
   - Pythonic support for using popup-windows. (Requires Vim 8.2.)
-  - Pythonic support for using timers.
+  - Pythonic support for using timers; when a timer firee a Python function is
+    invoked.
   - Pythonic support for autocommands that invoke Python functions.
   - Pythonic support for channels.
+  - Syntax class and supporting context managers to define highlighting.
+  - Ability to define user commands that invoke Python functions.
   - Logging to a buffer. Useful when developing and debugging plug-ins.
     When active in a window, the window automatically scrolls to show new
     output.
@@ -43,7 +50,7 @@ Quick start
     code that catches vim.error still works.
 
   The above just scratches the surface, see :help vpe.txt for detailed
-  documentation or https://vim-vpe.readthedocs.io/en/latest/.
+  documentation or https://vim-vpe.readthedocs.io/.
 
 Examples
 
