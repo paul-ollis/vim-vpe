@@ -7,6 +7,7 @@ import shutil
 import subprocess
 import sys
 import time
+from pathlib import Path
 
 
 def run(cmd, timeit=False, covit=False):
@@ -28,14 +29,23 @@ def run(cmd, timeit=False, covit=False):
 
 
 def main(args, rem_args):
-    run(
-        f'coverage run ./all_tests.py {" ".join(rem_args)}', timeit=True,
-        covit=True)
+    here = Path(__file__).parent
+    if args.inc_win:
+        os.environ['COVERAGE_RCFILE'] = f'{here}/.coveragerc-inc-win'
+    else:
+        os.environ['COVERAGE_RCFILE'] = f'{here}/.coveragerc'
+    print(os.environ['COVERAGE_RCFILE'])
+
+    if not args.report:
+        run(
+            f'coverage run ./all_tests.py {" ".join(rem_args)}', timeit=True,
+            covit=True)
     if not platform.platform().startswith('CYGWIN'):
         if args.inc_win:
             shutil.copy('.coverage-win.vim', '.coverage.wvim')
             shutil.copy('.coverage-win.run', '.coverage.wrun')
-        run('coverage combine .')
+        if not args.report:
+            run('coverage combine .')
         run('coverage report')
         run('coverage html -d covhtml/')
         run('coverage json --pretty')
@@ -47,5 +57,9 @@ if __name__ == "__main__":
     parser.add_argument(
         "--inc_win", action="store_true",
         help='Include windows in coverage.')
+    parser.add_argument(
+        "--report", action="store_true",
+        help='Just run coverage reporing steps.')
+
     args, rem_args = parser.parse_known_args()
     main(args, rem_args)

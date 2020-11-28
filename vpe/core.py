@@ -36,7 +36,7 @@ __shadow_api__ = [
 __all__ = [
     'AutoCmdGroup', 'Timer', 'Popup', 'PopupAtCursor', 'PopupBeval',
     'PopupNotification', 'PopupDialog', 'PopupMenu', 'ScratchBuffer',
-    'Log', 'error_msg', 'call_soon', 'log',
+    'Log', 'error_msg', 'echo_msg', 'call_soon', 'log',
     'saved_winview', 'highlight', 'pedit', 'popup_clear',
     'timer_stopall', 'find_buffer_by_name', 'feedkeys', 'get_display_buffer',
     'define_command', 'CommandInfo',
@@ -113,7 +113,7 @@ class ScratchBuffer(wrappers.Buffer):
         :name: The extension part of the name
         """
         if name:
-            if platform.system() == 'Windows':
+            if platform.system() == 'Windows':       # pragma: no cover windows
                 self.name = rf'{self._base_name}\{name}'
             else:
                 self.name = f'{self._base_name}/{name}'
@@ -173,7 +173,7 @@ def get_display_buffer(
     :name:     An identifying name for this buffer.
     """
     # pylint: disable=unsubscriptable-object
-    if platform.system() == 'Windows':
+    if platform.system() == 'Windows': # pragma: no cover windows
         buf_name = rf'C:\[[{name}]]'
     else:
         buf_name = f'/[[{name}]]'
@@ -1243,17 +1243,48 @@ def _convert_colour_names(kwargs):
             kwargs[key] = colors.name_to_hex.get(name.lower(), name)
 
 
-def error_msg(*args):
-    """A print-like function that writes an error message.
-
-    Unlike using sys.stderr directly, this does not raise a vim.error.
-    """
+def _echo_msg(*args, hl='None'):
     msg = ' '.join(str(a) for a in args)
-    common.vim_command('echohl ErrorMsg')
+    common.vim_command(f'echohl {hl}')
     try:
         common.vim_command(f'echomsg {msg!r}')
     finally:
         common.vim_command('echohl None')
+
+
+def _invoke_now_or_soon(soon, func, *args, **kwargs):
+    """Invoke a function immediately or soon.
+
+    :soon:   If false then invoke immediately. Otherwise arrange to invoke soon
+             from Vim's execution loop.
+    :func:   The function.
+    :args:   The functions arguments.
+    :kwargs: The function's keywor arguments.
+    """
+    if soon:
+        call_soon(partial(func, *args, **kwargs))
+    else:
+        func(*args, **kwargs)
+
+
+def error_msg(*args, soon=False):
+    """A print-like function that writes an error message.
+
+    Unlike using sys.stderr directly, this does not raise a vim.error.
+
+    :args: All non-keyword arguments are converted to strings before output.
+    :soon: If set, delay invocation until the back in the Vim main loop.
+    """
+    _invoke_now_or_soon(soon, _echo_msg, *args, hl='ErrorMsg')
+
+
+def echo_msg(*args, soon=False):
+    """Like `error_msg`, but for information.
+
+    :args: All non-keyword arguments are converted to strings before output.
+    :soon: If set, delay invocation until the back in the Vim main loop.
+    """
+    _invoke_now_or_soon(soon, _echo_msg, *args)
 
 
 def pedit(path: str, silent=True, noerrors=False):

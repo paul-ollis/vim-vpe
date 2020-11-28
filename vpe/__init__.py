@@ -44,16 +44,14 @@ import vim as _vim
 # on it to some extent.
 from .common import *
 from .core import *
-from .wrappers import vim, Vim
+from .wrappers import Vim, vim
 
 # pylint: disable=wrong-import-position
-from . import channels                                                   # noqa
-from . import mapping                                                    # noqa
-from . import syntax                                                     # noqa
-from .mapping import MapCallback  # noqa
-from .wrappers import Buffer, Buffers, Current, GlobalOptions, TabPage   # noqa
-from .wrappers import TabPages, Variables, Window, Windows, commands     # noqa
-from .wrappers import Range, Struct, Registers                           # noqa
+from . import channels, mapping, syntax
+from .mapping import MapCallback
+from .wrappers import (
+    Buffer, Buffers, Current, GlobalOptions, Range, Registers, Struct, TabPage,
+    TabPages, Variables, Window, Windows, commands)
 
 __api__ = [
     'AutoCmdGroup', 'Timer', 'Popup', 'PopupAtCursor', 'PopupBeval',
@@ -78,7 +76,7 @@ def version() -> Tuple[int, int, int]:
     The tuple follows the conventions of semantic versioning 2.0
     (https://semver.org/); *i.e.* (major, minor, patch).
     """
-    return 0, 4, 0
+    return 0, 5, 0
 
 
 def dot_vim_dir():

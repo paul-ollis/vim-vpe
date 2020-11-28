@@ -1,3 +1,9 @@
+Version 0.5
+
+- New and modified functions.
+  - Added 'soon' argument to error_msg.
+  - Added echo_msg (to match error_msg).
+
 Version 0.4.1.
 
 - Log class.

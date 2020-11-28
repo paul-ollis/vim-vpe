@@ -6,3 +6,15 @@ cygwin_match =
     ../vpe
     /cygdrive/z/.vim/pack/vim-vpe/vpe
     \\VBOXSVR\PAUL\.vim\pack\vim-vpe\vpe
+
+[report]
+exclude_lines =
+    pragma: no cover$
+    pragma: no cover windows$
+
+    # Don't complain if tests don't hit defensive assertion code:
+    raise AssertionError
+    raise NotImplementedError
+
+    # Don't complain if non-runnable code isn't run:
+    if __name__ == .__main__.:

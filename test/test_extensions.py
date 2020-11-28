@@ -35,7 +35,7 @@ class TestInfo(support.Base):
             dump(res)
         """
         res = self.run_self()
-        failUnlessEqual((0, 4, 0), res.version)
+        failUnlessEqual((0, 5, 0), res.version)
 
 
 class DisplayBuffer(support.Base):
@@ -886,19 +886,49 @@ class Miscellaneous(support.CommandsBase):
             {'a': 1, 'c': 'hi'},
             vpe.core.build_dict_arg(('a', 1), ('b', None), ('c', 'hi')))
 
-    @test(testID='misc-errmsg')
-    def errmsg(self):
+    @test(testID='misc-error-msg')
+    def error_msg(self):
         """The error_msg function writes a message in error colors.
 
         Unlike using 'vim.echoerr' this does not raise a vim.error.
         :<py>:
 
-            vpe.commands('messages clear')
+            vpe.command('messages clear')
         """
         self.run_self()
         v = self.vs.py_eval('vpe.error_msg("Oops!")')
         messages = self.vs.execute_vim('messages').splitlines()
         failUnlessEqual('Oops!', messages[-1])
+
+    @test(testID='misc-error-msg-soon')
+    def error_msg(self):
+        """The error_msg soon argument delays execution until 'safe'.
+
+        The actual call is invoked when Vim becomes idle.
+
+        TODO: This is currently only driving coverage. It does not prove when
+              the message code is run.
+        :<py>:
+
+            vim.command('messages clear')
+        """
+        self.run_self()
+        v = self.vs.py_eval('vpe.error_msg("Oops!", soon=True)')
+        messages = self.vs.execute_vim('messages').splitlines()
+        failUnlessEqual('Oops!', messages[-1])
+
+    @test(testID='misc-echo-msg')
+    def echo_msg(self):
+        """The echo_msg function writes a message that gets stored.
+
+        :<py>:
+
+            vpe.command('messages clear')
+        """
+        self.run_self()
+        v = self.vs.py_eval('vpe.echo_msg("Hello")')
+        messages = self.vs.execute_vim('messages').splitlines()
+        failUnlessEqual('Hello', messages[-1])
 
     @test(testID='misc-pedit')
     def pedit(self):

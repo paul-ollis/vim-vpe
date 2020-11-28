@@ -118,6 +118,7 @@ class VimSession:
     def ensure_vim_session(self):
         ret = self.eval_vim('0')
         if ret != '0':
+            os.environ['VPE_TEST_MODE'] = '1'
             cmd = [
                 'xterm','-e',
                 'gdb', '-ex', 'run', '--args',
@@ -143,7 +144,6 @@ class VimSession:
                     ['vim', '--servername', edvim, '--remote-expr',
                      'foreground()'],
                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-
 
     def execute_string(self, text):
         """Execute a Python statement supplied as a string.
