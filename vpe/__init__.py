@@ -35,7 +35,9 @@ _vpe_args_
 """
 # pylint: disable=too-many-lines
 
-import pathlib
+import importlib
+import sys
+from pathlib import Path
 from typing import Tuple
 
 import vim as _vim
@@ -69,6 +71,8 @@ __api__ = [
     'Range', 'Struct', 'ScratchBuffer',
 ]
 
+PLUGIN_SUBDIR = 'vpe_plugins'
+
 
 def version() -> Tuple[int, int, int]:
     """The current VPE version as a 3 part tuple.
@@ -79,7 +83,7 @@ def version() -> Tuple[int, int, int]:
     return 0, 5, 0
 
 
-def dot_vim_dir():
+def dot_vim_dir() -> str:
     """Return the path to the ~/.vim directory or its equivalent.
 
     :return:
@@ -90,6 +94,82 @@ def dot_vim_dir():
 
 def script_py_path() -> str:
     """Derive a python script name from the current Vim script name."""
-    vim_script = pathlib.Path(vim.eval("expand('<sfile>')"))
+    vim_script = Path(vim.eval("expand('<sfile>')"))
     py_script = vim_script.parent / (vim_script.stem + '.py')
     return str(py_script)
+
+
+def _is_plugin(path):
+    """Test whether a pythonfile is a plugin.
+
+    :path: The Path for the python file.
+    """
+    with open(path) as f:
+        line = f.readline()
+    return line.startswith('"""VPE-plugin: ')
+
+
+def _import_possible_plugin(path):
+    """Import a possible plugin.
+
+    :path: The Path for the plugin. This may be a pyton file or a package
+           directory.
+    """
+    if path.is_dir():
+        init = path / '__init__.py'
+        if not init.exists():
+            return
+        if not _is_plugin(init):
+            return
+    else:
+        if not _is_plugin(path):
+            return
+    try:
+        exec(f'import {PLUGIN_SUBDIR}.{path.stem}')
+    except Exception as e:
+        print(f'Could load plugin {path.stem}, {e}')
+
+
+def _load_plugins():
+    """Load any VPE based plugins."""
+    plugin_dir = Path(dot_vim_dir()) / f'pack/{PLUGIN_SUBDIR}'
+    possible_plugins = [
+        p for p in plugin_dir.glob('*') if p.suffix in ('.py', '')]
+    possible_plugins = [
+        p for p in possible_plugins if not p.name.startswith('_')]
+    for p in sorted(possible_plugins):
+        _import_possible_plugin(p)
+
+
+def _init_vpe_plugins():
+    """Initialise the VPE plug-in infrastructure.
+
+    This only does anything if the directory .vim/pack/vpe_plugins (or
+    Windows equivalent) exists. In which case:
+
+    1. A package is created that maps onto the vpe_plugins directory.
+    2. If one does not already exist, an __init__.py is created in the
+       vpe_plugins directory
+    """
+    plugin_dir = Path(dot_vim_dir()) / f'pack/{PLUGIN_SUBDIR}'
+    if not plugin_dir.is_dir():
+        return
+
+    spec = importlib.machinery.ModuleSpec('vpe_plugins', None, is_package=True)
+    package = importlib.util.module_from_spec(spec)
+    package.__path__.append(str(plugin_dir))
+    sys.modules[PLUGIN_SUBDIR] = package
+
+    init_path = plugin_dir / '__init__.py'
+    if not init_path.exists():
+        init_path.write_text('')
+
+    if vim.vvars.vim_did_enter:
+        _load_plugins()
+    else:                                                    # pragma: no cover
+         with AutoCmdGroup('VPECore') as au:
+             au.add('VimEnter', _load_plugins)
+
+
+_init_vpe_plugins()
+del _init_vpe_plugins

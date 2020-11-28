@@ -217,7 +217,6 @@ class Popup(support.Base):
             popup.line = popup.line + 1
             res.new_line = vim.popup_getpos(popup.id)['line']
 
-            print("@@@", vim.popup_getoptions(popup.id).keys())
             res.orig_zindex = vim.popup_getoptions(popup.id)['zindex']
             popup.zindex = popup.zindex + 2
             res.new_zindex = vim.popup_getoptions(popup.id)['zindex']

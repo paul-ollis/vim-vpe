@@ -20,7 +20,9 @@ import vim_if
 import vpe
 
 OBJ_DUMP_NAME = 'vpe-test-dump.bin'
-COV_SCRIPT_NAME = 'cov_script.py'
+COV_START_SCRIPT_NAME = 'cov_start_script.py'
+COV_STOP_SCRIPT_NAME = 'cov_stop_script.py'
+COV_CONT_SCRIPT_NAME = 'cov_cont_script.py'
 
 
 def fix_path(path: str) -> str:
@@ -58,6 +60,8 @@ def clean_code_block(code):
 class CodeSource:
     """Mix-in for tests that use code embeded in docstrings."""
     vs = None
+    cov_started: ClassVar[bool] = False
+    cov_running: ClassVar[bool] = False
 
     def suiteSetUp(self):
         """called to set up the suite."""
@@ -73,8 +77,11 @@ class CodeSource:
             import pickle
             import platform
             import sys
+            from pathlib import Path
 
-            sys.path.append(os.getcwd())
+            here = Path.cwd().resolve()
+            sys.path.append(str(here.parent))
+            sys.path.append(str(here))
 
             import vim as _vim
 
@@ -83,6 +90,11 @@ class CodeSource:
             from vpe import vim
             import vpe
 
+            # Redirect logging and use largish buffer for ease of debugging.
+            vpe.log.redirect()
+            vpe.log.set_maxlen(3000)
+
+            # Give the initial buffer a suitable name.
             vim.current.buffer.name = '/tmp/test.txt'
 
             try:
@@ -129,8 +141,11 @@ class CodeSource:
                         f.write(
                             f'pickle dump failed for {repr(obj)}\n'.encode())
                         f.write(f'reason: {e}\n'.encode())
+
+            vim.command('nmap <S-F1> :py3 vpe.log.show()<CR>')
         """
         if CodeSource.vs is None:
+            print("Start Vim Session")
             CodeSource.vs = vim_if.VimSession()
             self.vs.execute(f'import os')
             if platform.platform().startswith('CYGWIN'):
@@ -139,49 +154,87 @@ class CodeSource:
             else:
                 self.vs.execute(
                     f'DUMP_PATH = "/tmp/{OBJ_DUMP_NAME}"')
-            self.vs.execute(self.mycode())
+            self.vim_cov_start()
+            self.vs.execute(self.mycode(), py_name='init.py')
+
+    def stop_vim_session(self):
+        """Stop the running Vim session."""
+        if CodeSource.vs is not None:
+            self.vim_cov_stop()
+            CodeSource.vs.execute_vim('qa!')
+            CodeSource.vs = None
 
     def vim_cov_start(self):
+        r"""Start (or continue) coverage."""
+        if CodeSource.cov_started:
+            self._vim_cov_continue()
+        else:
+            self._vim_cov_start()
+            CodeSource.cov_started = True
+
+    def _vim_cov_start(self):
         r"""Start coverage without previous accumulated data.
 
         :<py>:
 
-            import coverage
+            import platform
+            import vim as _vim
 
-            if platform.system() == 'Windows':
-                cov = coverage.Coverage(data_file='.coverage-win.vim')
-            else:
-                cov = coverage.Coverage(data_file='.coverage.vim')
-            cov.start()
+            if int(_vim.vvars['version']) >= 802:
+                import coverage
+
+                if platform.system() == 'Windows':
+                    cov = coverage.Coverage(data_file='.coverage-win.vim')
+                else:
+                    cov = coverage.Coverage(data_file='.coverage.vim')
+                cov.start()
         """
-        self.run_self(py_name=COV_SCRIPT_NAME)
+        if not CodeSource.cov_running:
+            print("Cov Start")
+            self.run_self(py_name=COV_START_SCRIPT_NAME)
+            CodeSource.cov_running = True
 
-    def vim_cov_continue(self):
+    def _vim_cov_continue(self):
         r"""Continue coverage, using previously accumulated data.
 
         :<py>:
 
-            import coverage
+            import platform
+            import vim as _vim
 
-            if platform.system() == 'Windows':
-                cov = coverage.Coverage(
-                    data_file='.coverage-win.vim', auto_data=True)
-            else:
-                cov = coverage.Coverage(
-                    data_file='.coverage.vim', auto_data=True)
-            cov.start()
+            if int(_vim.vvars['version']) >= 802:
+                import coverage
+
+                if platform.system() == 'Windows':
+                    cov = coverage.Coverage(
+                        data_file='.coverage-win.vim', auto_data=True)
+                else:
+                    cov = coverage.Coverage(
+                        data_file='.coverage.vim', auto_data=True)
+                cov.start()
         """
-        self.run_self(py_name=COV_SCRIPT_NAME)
+        if not CodeSource.cov_running:
+            self.run_self(py_name=COV_CONT_SCRIPT_NAME)
+            CodeSource.cov_running = True
 
     def vim_cov_stop(self):
         r"""Stop coverage and save the data.
 
         :<py>:
 
-            cov.stop()
-            cov.save()
+            import vim as _vim
+
+            if int(_vim.vvars['version']) >= 802:
+                try:
+                    cov.stop()
+                    cov.save()
+                except Exception as e:
+                    pass #  Occurs when Vim gets restarted.
         """
-        self.run_self(py_name=COV_SCRIPT_NAME)
+        if CodeSource.cov_running:
+            print("Cov Stop")
+            self.run_self(py_name=COV_STOP_SCRIPT_NAME)
+            CodeSource.cov_running = False
 
     @staticmethod
     def extract_code(doc: str) -> Optional[str]:
@@ -288,7 +341,6 @@ class CodeSource:
 
 class Base(Suite, CodeSource):
     """Base for Vim tests."""
-    cov_running: ClassVar[bool] = False
     vim: vpe.Vim
     vim_options: vpe.wrappers.Options
 
@@ -298,15 +350,11 @@ class Base(Suite, CodeSource):
         CodeSource.suiteSetUp(self)
         self.vim = self.eval('vim')
         self.vim_options = vpe.vim.options
-        if Base.cov_running:
-            self.vim_cov_continue()
-        elif vim_if.VimSession.get_version() >= [8, 2]:
-            self.vim_cov_start()
-            Base.cov_running = True
+        self.vim_cov_start()
 
     def suiteTearDown(self):
-        if Base.cov_running:
-            self.vim_cov_stop()
+        print("TD Stop")
+        self.vim_cov_stop()
         super().suiteTearDown()
 
     def setUp(self):

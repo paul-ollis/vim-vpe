@@ -35,13 +35,13 @@ def VPE_run_this_as_py():
     """
     # Use imports within function to minimise global namespace polution.
     import importlib
-    import pathlib
+    from pathlib import Path
 
     import vim as _vim
 
     try:
-        this_script = pathlib.Path(_vim.eval("expand('<sfile>')"))
-        this_dir = pathlib.Path(_vim.eval("expand('<sfile>')")).parent
+        this_script = Path(_vim.eval("expand('<sfile>')"))
+        this_dir = Path(_vim.eval("expand('<sfile>')")).parent
         mod_name = f'{this_script.parent.name}.{this_script.stem}'
         mod = importlib.import_module(mod_name)
         mod.run()
@@ -57,4 +57,7 @@ def VPE_run_this_as_py():
 
 _init_vpe_()
 del _init_vpe_
+
+# Import the vpe module to initialise it and als make it globally available.
+import vpe
 EOF

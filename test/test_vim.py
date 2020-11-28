@@ -61,7 +61,6 @@ class VimSuite(support.Base):
         class used for this, which results in types like vim.Dictionary being
         returned. VPE automaticaly wraps these in easier to use types.
         """
-        print("A>>>", type(self.eval('vim.getcharsearch()')))
         failUnless(isinstance(
             self.eval('vim.getcharsearch()'),
             vpe.wrappers.MutableMappingProxy))
