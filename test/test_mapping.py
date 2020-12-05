@@ -114,6 +114,24 @@ class NormalMapping(Mapping):
         failUnlessEqual((-1, -1), info.end_cursor)
         failUnless(info.line_range is None)
 
+    @test(testID='non-info-mapping')
+    def simple_non_info_mapping(self):
+        """A simple normal mode mapping that does not pass info.
+
+        :<py>:
+
+            from vpe.mapping import nmap
+
+            def handle():
+                res.called = 1
+
+            res = Struct()
+            nmap('f', handle, pass_info=False)
+            vpe.feedkeys(r'f', literal=True)
+        """
+        res = self.run_mapping()
+        failUnlessEqual(1, res.called)
+
 
 class VisualMapping(Mapping):
     """Visual mode mappings."""
