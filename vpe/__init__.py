@@ -36,6 +36,7 @@ _vpe_args_
 # pylint: disable=too-many-lines
 
 import importlib
+import traceback
 import sys
 from pathlib import Path
 from typing import Tuple
@@ -72,6 +73,14 @@ __api__ = [
 ]
 
 PLUGIN_SUBDIR = 'vpe_plugins'
+
+
+class Finish(Exception):
+    """Used by plugin's to abort installation.
+
+    This is intended to play the same role as the :vim:`:finish` command as
+    used in plug-ins that may not be able to complete initialisation.
+    """
 
 
 def version() -> Tuple[int, int, int]:
@@ -126,8 +135,12 @@ def _import_possible_plugin(path):
             return
     try:
         exec(f'import {PLUGIN_SUBDIR}.{path.stem}')
-    except Exception as e:
-        print(f'Could load plugin {path.stem}, {e}')
+    except Finish as exc:
+        print('Could not initialise VPE plug-in {path}')
+        print('   {exc}')
+    except Exception as exc:
+        traceback.print_exc()
+        print(f'Error loading VPE plug-in {path}')
 
 
 def _load_plugins():

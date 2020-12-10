@@ -5,6 +5,7 @@ The Vim Python Extensions (VPE)
 .. toctree::
     :maxdepth: 1
 
+    plugins
     api/api.vpe
 
 
@@ -25,7 +26,7 @@ aims.
 Requirements
 ------------
 
-VPE requires a minimum of Vim 8.0.0700 and Python 3.6. 
+VPE requires a minimum of Vim 8.0.0700 and Python 3.6.
 
 VPE has *not* been tested on Windows.
 
@@ -83,7 +84,7 @@ a number of enhancements.
 - When errors occur a `VimError` is raised, which provides a better breakdown
   of the error. This is a subclass of vim.error (:vim:`python-error`) so
   existing code that catches vim.error still works.
-  
+
 
 Features
 --------

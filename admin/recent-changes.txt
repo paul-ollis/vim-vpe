@@ -13,6 +13,10 @@ Version 0.5
   - Added a split_and_show method.
 - TemporaryOptions class
   - Added a save method.
+- Window class
+  - Added a close method.
+- Added support for vertical, aboveleft, belowright, topleft, botright and
+  keepalt modifiers for vpe.commands.
 
 Version 0.4.1.
 

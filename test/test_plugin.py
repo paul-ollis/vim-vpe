@@ -93,6 +93,17 @@ class TestPlugin(support.Base):
         res = self.run_self()
         failUnlessEqual(1, res.plugin_err)
 
+    @test(testID='plugin-load-abort')
+    def load_abort(self):
+        """A plug-in can abort loading using th Finish exception.
+
+        :<py>:
+            res = Struct()
+            res.plugin_abort = vim.vars.vpe_plugin_load_abort
+            dump(res)
+        """
+        res = self.run_self()
+        failUnlessEqual(1, res.plugin_abort)
 
     @test(testID='plugin-skip-non-plugin')
     def ignore_non_plugin(self):
@@ -109,7 +120,6 @@ class TestPlugin(support.Base):
         failUnless(res.invalid is None)
         failUnless(res.invalid_package is None)
         failUnless(res.invalid_non_package is None)
-
 
     @test(testID='plugin-init-created')
     def init_created(self):
