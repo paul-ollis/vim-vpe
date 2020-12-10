@@ -1103,8 +1103,10 @@ class Command:
 
     Invocation takes the form of::
 
-        func(arg[, arg[, arg...]], [bang=<flag>], [a=<start>], [b=<end>])
-        func(arg[, arg[, arg...]], [bang=<flag>], [lrange=<range>])
+        func(arg[, arg[, arg...]], [bang=<flag>], [a=<start>], [b=<end>],
+             [modifiers])
+        func(arg[, arg[, arg...]], [bang=<flag>], [lrange=<range>],
+             [modifiers])
 
     The command is invoked with the arguments separated by spaces. Each
     argument is formatted as by repr(). If the *bang* keyword argument is true
@@ -1117,22 +1119,30 @@ class Command:
     argument may be a string (*e.g.* '2,7',a vim.Range object, a standard
     Python range object or a tuple.
 
-    :args:    All non-keyword arguments form plain arguments to the command.
-    :bang:    If set then append '!' to the command.
-    :lrange:  This may be a 2-tuple/list (specifying to (a, b)), a Python range
-              object (specifying range(a - 1, b)) or a simple string range
-              'a,b'. This argument is ignored if either *a* or *b* is provided.
-    :a:       The start line.
-    :b:       The end line (forming a range with *a*).
-    :preview: For debugging. Do not execute the command, but return what would
-              be passed to vim.command.
+    :args:       All non-keyword arguments form plain arguments to the command.
+    :bang:       If set then append '!' to the command.
+    :lrange:     This may be a 2-tuple/list (specifying to (a, b)), a Python
+                 range object (specifying range(a - 1, b)) or a simple string
+                 range 'a,b'. This argument is ignored if either *a* or *b* is
+                 provided.
+    :a:          The start line.
+    :b:          The end line (forming a range with *a*).
+    :vertical:   Run with the vertical command modifier.
+    :aboveleft:  Run with the aboveleft command modifier.
+    :belowright: Run with the belowright command modifier.
+    :topleft:    Run with the topleft command modifier.
+    :botright:   Run with the botright command modifier.
+    :keepalt:    Run with the keepalt command modifier.
+    :preview:    For debugging. Do not execute the command, but return what
+                 would be passed to vim.command.
     """
     # pylint: disable=too-few-public-methods
     def __init__(self, name):
         self.name = name
 
     def __call__(
-            self, *args, bang=False, lrange='', a='', b='', preview=False):
+            self, *args, bang=False, lrange='', a='', b='', preview=False,
+            **kwargs):
         exclamation = '!' if bang else ''
         cmd = f'{self.name}{exclamation}'
         arg_expr = ''
@@ -1155,7 +1165,14 @@ class Command:
                 range_expr = f'{a} '
             else:
                 range_expr = f'.,{b} '
-        cmd = f'{range_expr}{cmd}{arg_expr}'
+        modifiers = (
+            'vertical', 'aboveleft', 'belowright', 'topleft', 'botright',
+            'keepalt')
+        cmd_mods = " ".join(mod for mod in modifiers if kwargs.get(mod))
+        if cmd_mods:
+            cmd = f'{cmd_mods} {range_expr}{cmd}{arg_expr}'
+        else:
+            cmd = f'{range_expr}{cmd}{arg_expr}'
         if not preview:
             common.vim_command(cmd)
         return cmd

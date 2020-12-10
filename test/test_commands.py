@@ -170,6 +170,28 @@ class Commands(support.Base):
         res = self.run_self()
         failUnlessEqual('2\n3\n', res.r)
 
+    @test(testID='command-mods')
+    def run_command_with_modifiers(self):
+        """Command modifiers are suported.
+
+        The modifiers are vertical, aboveleft, belowright, topleft, botright
+        and keepalt.
+
+        :<py>:
+
+            from vpe import commands
+
+            res = Struct()
+
+            commands.wincmd('o')
+            commands.wincmd('s', botright=True)
+            res.win_num = vim.current.window.number
+
+            dump(res)
+        """
+        res = self.run_self()
+        failUnlessEqual(2, res.win_num)
+
     @test(testID='command-unknown')
     def unknown_comand_is_attributue_error(self):
         """An unknown command is raises an AttributeError.
