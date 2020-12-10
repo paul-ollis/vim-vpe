@@ -1,6 +1,3 @@
-===============================
-The Vim Python Extensions (VPE)
-===============================
 
 .. toctree::
     :maxdepth: 1
@@ -11,6 +8,14 @@ The Vim Python Extensions (VPE)
 
 Introduction
 ============
+
+::
+
+                _    ______  ______
+               | |  / / __ \/ ____/
+               | | / / /_/ / __/     The Vim Python Extensions
+               | |/ / ____/ /___
+               |___/_/   /_____/
 
 VPE adds to Vim's built-in support for Python scripting with the following
 aims.
@@ -27,8 +32,6 @@ Requirements
 ------------
 
 VPE requires a minimum of Vim 8.0.0700 and Python 3.6.
-
-VPE has *not* been tested on Windows.
 
 
 Installation

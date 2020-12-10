@@ -19,7 +19,7 @@ from . import common
 __all__ = ('tabpages', 'TabPage', 'Vim', 'Registers', 'vim',
            'Function', 'windows', 'Window',
            'buffers', 'Buffer', 'Range', 'Struct')
-__api__ = ()
+__api__ = ('Commands', 'Command')
 
 # A sentinel object used to indicate that a parameter was not provided.
 _NOT_PROVIDED = object()
@@ -1101,6 +1101,9 @@ class Registers:
 class Command:
     """Wrapper to invoke a Vim command as a function.
 
+    The `Commands` creates instances of this; direct instantiation by users is
+    not intended.
+
     Invocation takes the form of::
 
         func(arg[, arg[, arg...]], [bang=<flag>], [a=<start>], [b=<end>],
@@ -1113,7 +1116,8 @@ class Command:
     then a '!' is appended to the command. A range of lines may be set using
     the *a* and *b* arguments or *lrange*. The *a* and *b* arguments are used
     in preference to the lrange argument. If only *b* is supplied then *a* is
-    set to '.'.
+    set to '.' (the current line). Additional *modifiers* keyword arguments,
+    such as 'vertical' are also supported; see details below.
 
     The *a* and *b* values may be strings or numbers. The *lrange*
     argument may be a string (*e.g.* '2,7',a vim.Range object, a standard
@@ -1181,7 +1185,7 @@ class Command:
 class Commands:
     """A namespace for the set of Vim commands.
 
-    A single instance of this class is made available as `vpe.command`.
+    A single instance of this class is made available as `vpe.commands`.
 
     This class provides functions for a majority of Vim's commands, often
     providing a cleaner mechanism compared to :vim:`python-command`. For
@@ -1192,6 +1196,7 @@ class Commands:
         commands.print(a=10, b=20)        # Print lines 1 to 20
         commands.print(lrange=(10, 20))   # Print lines 1 to 20
         commands.write(bang=True)         # Same as :w!
+        commands.split(vertical=True)     # Split current window vertically
 
     Each command function is actually an instance of the `Command` class. See
     its description for details of the arguments.

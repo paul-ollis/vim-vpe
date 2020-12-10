@@ -17,6 +17,7 @@ Version 0.5
   - Added a close method.
 - Added support for vertical, aboveleft, belowright, topleft, botright and
   keepalt modifiers for vpe.commands.
+- Made the vpe.commands object appear in the documentation.
 
 Version 0.4.1.
 

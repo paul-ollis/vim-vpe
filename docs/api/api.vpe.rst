@@ -39,6 +39,13 @@ _vpe_args_
 
 **Attributes**
 
+    .. py:attribute:: vpe.commands
+
+        An object providing Vim commands a methods.
+
+        This is in instance of the `Commands` class.
+
+
     .. py:attribute:: vpe.log
 
         The Vpe log support object.
@@ -880,28 +887,62 @@ ScratchBuffer
 
         .. py:method:: vpe.ScratchBuffer.show(splitlines: Optional[int] = None) -> bool
 
-            Make this buffer visible.
+            Invoked when the buffer is first, successfully displayed.
 
-            Without a splitlines argument, this will use the current window to show
-            this buffer. If the *splitlines* argument is provided and greater than
-            zero then:
+            This is expected to be over-ridden by subclasses.
 
-            1. The current window is split.
-            2. The lower split is set to be *splitlines* high.
-            3. This buffer is displayed in the upper window.
+        .. py:method:: vpe.ScratchBuffer.set_ext_name(name)
+
+            Set the extension name for this buffer.
+
 
             **Parameters**
 
             .. container:: parameters itemdetails
 
-                *splitlines*: typing.Optional[int]
-                    Number of lines to leave in the bottom window.
+                *name*
+                    The extension part of the name
+
+        .. py:method:: vpe.ScratchBuffer.show(splitlines: int = 0,splitcols: int = 0) -> bool
+
+            Make this buffer visible.
+
+            Without a *splitlines* or *splitcols* argument, this will use the
+            current window to show this buffer. Otherwise the current window is
+            split, horizontally if *splitlines* != 0 or vertically if *splitcols*
+            != 0. The buffer is shown in the top/left part of the split. A positive
+            split specifies how many lines/columns to allocate to the bottom/right
+            part of the split. A negative split specifies how many lines to
+            allocate to the top/left window.
+
+            **Parameters**
+
+            .. container:: parameters itemdetails
+
+                *splitlines*: int
+                    Number of lines allocated to the top/bottom of the split.
+                *splitcols*: int
+                    Number of columns allocated to the left/right of the
+                    split.
 
             **Return value**
 
             .. container:: returnvalue itemdetails
 
                 True if the window is successfully shown.
+
+        .. py:method:: vpe.ScratchBuffer.split_and_show(**split_kwargs)
+
+            Split the current window to show this buffer.
+
+
+            **Parameters**
+
+            .. container:: parameters itemdetails
+
+                *split_kwargs*
+                    The keyword args to pass to commands.split (see `wrappers.Command`
+                    for details.
 
 Struct
 ------
@@ -1291,6 +1332,17 @@ Window
 
     **Methods**
 
+        .. py:method:: vpe.Window.close() -> bool
+
+            Close this window, if possible.
+
+
+            **Return value**
+
+            .. container:: returnvalue itemdetails
+
+                True if the window was closed.
+
         .. py:method:: vpe.Window.goto() -> bool
 
             Switch to this window, if possible.
@@ -1332,6 +1384,22 @@ saved_winview
 
     Context manager that saves and restores the current window's view.
 
+temp_active_window
+------------------
+
+.. py:class:: vpe.temp_active_window(win: Window)
+
+    Context manager that temporarily changes the active window.
+
+    This (currently) only works within the current tab page.
+
+    **Parameters**
+
+    .. container:: parameters itemdetails
+
+        *win*
+            The `Window` to switch to.
+
 call_soon
 ---------
 
@@ -1364,14 +1432,40 @@ dot_vim_dir
 
         This returns the first directory in the runtimepath option.
 
+echo_msg
+--------
+
+.. py:function:: vpe.echo_msg(*args,soon=False)
+
+    Like `error_msg`, but for information.
+
+
+    **Parameters**
+
+    .. container:: parameters itemdetails
+
+        *args*
+            All non-keyword arguments are converted to strings before output.
+        *soon*
+            If set, delay invocation until the back in the Vim main loop.
+
 error_msg
 ---------
 
-.. py:function:: vpe.error_msg(*args)
+.. py:function:: vpe.error_msg(*args,soon=False)
 
     A print-like function that writes an error message.
 
     Unlike using sys.stderr directly, this does not raise a vim.error.
+
+    **Parameters**
+
+    .. container:: parameters itemdetails
+
+        *args*
+            All non-keyword arguments are converted to strings before output.
+        *soon*
+            If set, delay invocation until the back in the Vim main loop.
 
 find_buffer_by_name
 -------------------
@@ -1515,3 +1609,20 @@ version
 
     The tuple follows the conventions of semantic versioning 2.0
     (https://semver.org/); *i.e.* (major, minor, patch).
+
+warning_msg
+-----------
+
+.. py:function:: vpe.warning_msg(*args,soon=False)
+
+    A print-like function that writes a warning message.
+
+
+    **Parameters**
+
+    .. container:: parameters itemdetails
+
+        *args*
+            All non-keyword arguments are converted to strings before output.
+        *soon*
+            If set, delay invocation until the back in the Vim main loop.

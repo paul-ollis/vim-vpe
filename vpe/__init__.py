@@ -21,6 +21,11 @@ newer.
 
     This is an instance of the `Log` class.
 
+@commands:
+    An object providing Vim commands a methods.
+
+    This is in instance of the `Commands` class.
+
 The VPE module uses certain global Vim variables for its own internal purposes.
 The names are chosen to be suitably obscure, but obviously associated with VPE.
 

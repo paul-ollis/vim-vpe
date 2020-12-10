@@ -29,6 +29,7 @@ def setup(app):
     app.add_builder(vim_builder.VimBuilder)
     app.add_config_value("vim_version", "8.0", "env")
     app.add_config_value("vim_date", get_date, "env")
+    app.add_config_value("vim_link_map", {}, "env")
     app.add_transform(VimRefTransform)
     app.add_generic_role(
         'vim', functools.partial(nodes.inline, classes=['vim']))

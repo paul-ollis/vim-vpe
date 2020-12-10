@@ -431,19 +431,23 @@ class VimWriter(writers.Writer):
 
     def format_refids(self, node):
         refids = []
+        ref_map = self.builder.config.vim_link_map
         for refid in node.attributes.get('ids', []):
             refid = clean_ref(refid)
             if is_naff_refname(refid):
                 continue
             ref = self.full_ref_to_ref_text.get(refid)
+            ref = ref_map.get(ref, ref)
             if ref and ref not in refids:
                 if ref not in self._used_refids:
                     self._used_refids.add(ref)
                     refids.append(ref)
+            refid = ref_map.get(refid, refid)
             if refid not in refids:
                 if refid not in self._used_refids:
                     self._used_refids.add(refid)
                     refids.append(refid)
+
         if refids:
             return ' '.join(f'*{refid}*' for refid in refids)
         return ''

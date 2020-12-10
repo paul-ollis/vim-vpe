@@ -58,6 +58,10 @@ sphinxConfig.conf['master_doc'] = "index"
 sphinxConfig.conf['needs_sphinx'] = "3.2"
 sphinxConfig.conf['version'] = Flags.get('version')
 sphinxConfig.conf['release'] = Flags.get('version')
+sphinxConfig.conf['vim_link_map'] = {
+    'vim': 'vpe.vim',
+    'Vim': 'vpe.Vim',
+}
 
 # Generate the config file.
 confPath = sphinxConfig.create(MYMFILE)

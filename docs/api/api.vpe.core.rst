@@ -12,7 +12,7 @@ module. It is intended that a Vim instance can be uses as a replacement for the
 .. code-block:: py
 
     from vpe import vim
-    # Now use 'vim' as an extended version of the *vim* module.
+    # Now use 'vim' as an extended version of the ``vim`` module.
     # ...
 
 Callback

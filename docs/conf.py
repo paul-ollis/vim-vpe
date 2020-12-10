@@ -20,3 +20,4 @@ html_theme_path = ['.']
 html_theme_options = {}
 default_role = 'any'
 autodoc_typehints = 'none'
+vim_link_map = {'vim': 'vpe.vim', 'Vim': 'vpe.Vim'}

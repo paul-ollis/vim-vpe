@@ -11,23 +11,20 @@ calls.
 MapCallback
 -----------
 
-.. py:class:: vpe.mapping.MapCallback(...)
-
-    .. parsed-literal::
-
-        MapCallback(
-            func,
-            \*,
-            py_args=(),
-            py_kwargs={},
-            vim_exprs=(),
-            pass_bytes=False,
-            \*\*kwargs)
+.. py:class:: vpe.mapping.MapCallback(*args,**kwargs)
 
     Wrapper for a function to be invoked by a key mapping.
 
     This extends the core `Callback` to provide a `MappingInfo` as the first
     positional argument.
+
+    **Parameters**
+
+    .. container:: parameters itemdetails
+
+        *pass_info*
+            If True, provide a MappingInfo object as the first argument to
+            the callback function.
 
     **Methods**
 
@@ -97,6 +94,7 @@ imap
             buffer: bool = True,
             silent: bool = True,
             unique: bool = False,
+            pass_info=True,
             nowait: bool = False,
             command: bool = False,
             args=(),
@@ -123,6 +121,7 @@ map
             unique: bool = False,
             nowait: bool = False,
             command: bool = False,
+            pass_info=True,
             args=(),
             kwargs: Optional[dict] = None,
             vim_exprs: Tuple[str, ...] = ())
@@ -137,7 +136,8 @@ map
 
     The noremap form is always used.
 
-    The first argument passed to the mapped function is a `MappingInfo` object.
+    By default the first argument passed to the mapped function is a
+    `MappingInfo` object. The *pass_info* argument can be used to prevent this.
     Additional arguments can be speficied using *args* and *kwargs*.
 
     For convenience, mode specific versions are provided (`nmap`, `xmap`,
@@ -169,6 +169,9 @@ map
             is invoked from the command prompt and the return value is not
             used. Otherwise (the default) the function should return the
             text to be inserted.
+        *pass_info*
+            If set then the first argument passed to func is a MappingInfo
+            object. Defaults to True.
         *args*
             Additional arguments to pass to the mapped function.
         *kwargs*: typing.Optional[dict]
@@ -191,6 +194,7 @@ nmap
             buffer: bool = True,
             silent: bool = True,
             unique: bool = False,
+            pass_info=True,
             nowait: bool = False,
             args=(),
             kwargs: Optional[dict] = None)
@@ -213,11 +217,12 @@ omap
             buffer: bool = True,
             silent: bool = True,
             unique: bool = False,
+            pass_info=True,
             nowait: bool = False,
             args=(),
             kwargs: Optional[dict] = None)
 
-    Set up am operator-pending mode mapping that invokes a Python function.
+    Set up an operator-pending mode mapping that invokes a Python function.
 
     See `map` for argument details.
 
@@ -235,6 +240,7 @@ xmap
             buffer: bool = True,
             silent: bool = True,
             unique: bool = False,
+            pass_info=True,
             nowait: bool = False,
             args=(),
             kwargs: Optional[dict] = None)
