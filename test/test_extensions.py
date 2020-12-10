@@ -708,8 +708,8 @@ class AutoCmdGroup(support.CommandsBase):
 
             augroup test
             autocmd!
-            autocmd BufReadPre <buffer> call VPE_Call("100")
-            autocmd BufReadPost *.py call VPE_Call("101")
+            autocmd BufReadPre <buffer> call VPE_Call("100", "callback")
+            autocmd BufReadPost *.py call VPE_Call("101", "callback")
             augroup END
         """
         def callback():
@@ -729,7 +729,7 @@ class AutoCmdGroup(support.CommandsBase):
 
             augroup test
             autocmd!
-            autocmd BufReadPre <buffer=1> call VPE_Call("100")
+            autocmd BufReadPre <buffer=1> call VPE_Call("100", "callback")
             augroup END
         """
         def callback():
@@ -748,7 +748,7 @@ class AutoCmdGroup(support.CommandsBase):
 
             augroup test
             autocmd!
-            autocmd BufReadPre <buffer> ++once ++nested call VPE_Call("100")
+            autocmd BufReadPre <buffer> ++once ++nested call VPE_Call("100", "callback")
             augroup END
         """
         def callback():

@@ -59,14 +59,14 @@ _known_special_buffers: dict = {}
 _special_keymap: dict = {}
 
 _VIM_FUNC_DEFS = """
-function! VPE_Call(uid, ...)
+function! VPE_Call(uid, func_name, ...)
     let g:_vpe_args_ = {}
     let g:_vpe_args_['uid'] = a:uid
     let g:_vpe_args_['args'] = a:000
     return py3eval('vpe.Callback.invoke()')
 endfunction
 
-function! VPE_CmdCall(uid, line1, line2, range, count, bang, mods, reg, ...)
+function! VPE_CmdCall(uid, func_name, line1, line2, range, count, bang, mods, reg, ...)
     let g:_vpe_args_ = {}
     let g:_vpe_args_['uid'] = a:uid
     let g:_vpe_args_['line1'] = a:line1
@@ -880,6 +880,10 @@ class Callback:
         self.py_kwargs = py_kwargs.copy()
         self.extra_kwargs = kwargs
         self.pass_bytes = pass_bytes
+        try:
+            self.func_name = func.__name__
+        except AttributeError:                               # pragma: no cover
+            self.func_name = str(func)
 
     def __call__(self, vim_args, vpe_args):
         vim_args = [
@@ -948,7 +952,7 @@ class Callback:
 
         The result is a valid Vim script expression.
         """
-        vim_exprs = [quoted_string(self.uid)]
+        vim_exprs = [quoted_string(self.uid), quoted_string(self.func_name)]
         for a in self.vim_exprs:
             if isinstance(a, str):
                 vim_exprs.append(quoted_string(a))
@@ -966,7 +970,7 @@ class Callback:
     # TODO: This form ignores the vim_exprs.
     def as_vim_function(self):
         """Create a vim.Function that will route to this callback."""
-        return _vim.Function(self.vim_func, args=[self.uid])
+        return _vim.Function(self.vim_func, args=[self.uid, self.func_name])
 
     def format_call_fail_message(self):
         """Generate a message to give details of a failed callback invocation.
