@@ -58,8 +58,8 @@ from .wrappers import (
 __api__ = [
     'AutoCmdGroup', 'Timer', 'Popup', 'PopupAtCursor', 'PopupBeval',
     'PopupNotification', 'PopupDialog', 'PopupMenu', 'VimError', 'Vim',
-    'Registers', 'Log', 'error_msg', 'call_soon', 'vim', 'log',
-    'saved_winview', 'highlight', 'pedit', 'popup_clear',
+    'Registers', 'Log', 'echo_msg', 'error_msg', 'warning_msg', 'call_soon',
+    'vim', 'log', 'saved_winview', 'highlight', 'pedit', 'popup_clear',
     'timer_stopall', 'find_buffer_by_name', 'script_py_path',
     'get_display_buffer', 'version', 'dot_vim_dir',
 

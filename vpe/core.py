@@ -36,7 +36,7 @@ __shadow_api__ = [
 __all__ = [
     'AutoCmdGroup', 'Timer', 'Popup', 'PopupAtCursor', 'PopupBeval',
     'PopupNotification', 'PopupDialog', 'PopupMenu', 'ScratchBuffer',
-    'Log', 'error_msg', 'echo_msg', 'call_soon', 'log',
+    'Log', 'error_msg', 'warning_msg', 'echo_msg', 'call_soon', 'log',
     'saved_winview', 'highlight', 'pedit', 'popup_clear',
     'timer_stopall', 'find_buffer_by_name', 'feedkeys', 'get_display_buffer',
     'define_command', 'CommandInfo',
@@ -1276,6 +1276,15 @@ def error_msg(*args, soon=False):
     :soon: If set, delay invocation until the back in the Vim main loop.
     """
     _invoke_now_or_soon(soon, _echo_msg, *args, hl='ErrorMsg')
+
+
+def warning_msg(*args, soon=False):
+    """A print-like function that writes a warning message.
+
+    :args: All non-keyword arguments are converted to strings before output.
+    :soon: If set, delay invocation until the back in the Vim main loop.
+    """
+    _invoke_now_or_soon(soon, _echo_msg, *args, hl='WarningMsg')
 
 
 def echo_msg(*args, soon=False):

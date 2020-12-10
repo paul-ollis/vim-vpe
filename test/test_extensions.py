@@ -917,6 +917,19 @@ class Miscellaneous(support.CommandsBase):
         messages = self.vs.execute_vim('messages').splitlines()
         failUnlessEqual('Oops!', messages[-1])
 
+    @test(testID='misc-warning-msg')
+    def warning_msg(self):
+        """The warning_msg function writes a message in warning colors.
+
+        :<py>:
+
+            vpe.command('messages clear')
+        """
+        self.run_self()
+        v = self.vs.py_eval('vpe.warning_msg("Careful!")')
+        messages = self.vs.execute_vim('messages').splitlines()
+        failUnlessEqual('Careful!', messages[-1])
+
     @test(testID='misc-echo-msg')
     def echo_msg(self):
         """The echo_msg function writes a message that gets stored.
