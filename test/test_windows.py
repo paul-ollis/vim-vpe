@@ -159,6 +159,35 @@ class Windows(support.Base):
         failIfEqual(res.orig_win, res.other_win)
         failUnlessEqual(res.orig_win, res.final_win)
 
+    @test(testID='win-temp-active')
+    def temp_active_window(self):
+        """The temp_active_window context provides controlled window switching.
+
+        :<py>:
+
+            res = Struct()
+            vpe.commands.wincmd('s')
+            orig_win = vim.current.window
+            vpe.commands.wincmd('w')
+            vpe.commands.edit(f'{vim.current.buffer.name}-b')
+            alt_win = vim.current.window
+            alt_buf = vim.current.buffer
+            orig_win.goto()
+
+            alt_buf[:] = []
+            vim.current.buffer[:] = []
+            with vpe.temp_active_window(alt_win):
+                vim.append(0, 'Alt text')
+            vim.append(0, 'Main text')
+            res.main_text = vim.current.buffer[0]
+            res.alt_text = alt_buf[0]
+
+            dump(res)
+        """
+        res = self.run_self()
+        failUnlessEqual('Alt text', res.alt_text)
+        failUnlessEqual('Main text', res.main_text)
+
     @test(testID='win-temp-options-context')
     def temp_options_context(self):
         """The temp options context.

@@ -39,7 +39,7 @@ __all__ = [
     'Log', 'error_msg', 'warning_msg', 'echo_msg', 'call_soon', 'log',
     'saved_winview', 'highlight', 'pedit', 'popup_clear',
     'timer_stopall', 'find_buffer_by_name', 'feedkeys', 'get_display_buffer',
-    'define_command', 'CommandInfo',
+    'define_command', 'CommandInfo', 'temp_active_window',
     *__api__
 ]
 id_source = itertools.count()
@@ -1477,6 +1477,28 @@ class saved_winview:
 
     def __exit__(self, *args, **kwargs):
         wrappers.vim.winrestview(self.view)
+
+
+class temp_active_window:
+    """Context manager that temporarily changes the active window.
+
+    This (currently) only works within the current tab page.
+
+    :win: The `Window` to switch to.
+    """
+    saved_win: wrappers.Window
+
+    def __init__(self, win: wrappers.Window):
+        self.win = win
+
+    def __enter__(self):
+        self.saved_win = wrappers.vim.current.window
+        if wrappers.vim.current.window.id != self.win.id:
+            wrappers.commands.wincmd('w', a=self.win.number)
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if wrappers.vim.current.window.id != self.saved_win.id:
+            wrappers.commands.wincmd('w', a=self.saved_win.number)
 
 
 def log_status():
