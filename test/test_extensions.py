@@ -105,7 +105,7 @@ class DisplayBuffer(support.Base):
     def show_display_buffer_in_split(self):
         """A display buffer can be shown in the upper part of a split window.
 
-        The number of lines left in the lower buffer is specified using the
+        The number of lines left in the lower window is specified using the
         splitlines argument.
 
         :<py>:
@@ -129,11 +129,39 @@ class DisplayBuffer(support.Base):
         failUnlessEqual(3, res.bottom_lines)
         failUnlessEqual(res.orig_lines, res.top_lines + 4)
 
+    @test(testID='dispbuf-split-show-set-display')
+    def show_split_set_disp_buf_size(self):
+        """A split can specify the number of lines for the display buffer.
+
+        The number of lines is specified using a negative value for the
+        splitlines argument.
+
+        :<py>:
+            res = Struct()
+            buf = vpe.get_display_buffer('test')
+            win = vim.current.window
+            res.orig_lines = win.height
+            buf.show(splitlines=-3)
+            win = vim.current.window
+            res.top_lines = win.height
+            res.bottom_lines = vim.windows[win.number].height
+            with buf.modifiable():
+                buf[:] = ['One', 'Two']
+            res.cur_buf = vim.current.buffer.name
+            res.lines = list(vim.current.buffer)
+            dump(res)
+        """
+        res = self.run_self()
+        failUnlessEqual('/[[test]]', fix_path(res.cur_buf))
+        failUnlessEqual(['One', 'Two'], res.lines)
+        failUnlessEqual(3, res.top_lines)
+        failUnlessEqual(res.orig_lines, res.bottom_lines + 4)
+
     @test(testID='dispbuf-split-squeeze-lower')
     def lower_window_is_made_smaller(self):
         """The display buffer will be given a minimum of one line.
 
-        If necessary the lower window is given fewer lines than requested.
+        If necessary the upper window is given fewer lines than requested.
         :<py>:
             res = Struct()
             buf = vpe.get_display_buffer('test')
@@ -156,9 +184,65 @@ class DisplayBuffer(support.Base):
         failUnlessEqual(1, res.top_lines)
         failUnless(res.ok)
 
+    @test(testID='dispbuf-vsplit-show')
+    def show_display_buffer_in_vsplit(self):
+        """A display buffer can be shown in the left part of a split window.
+
+        The number of columns left in the right window is specified using the
+        splitcols argument.
+
+        :<py>:
+            res = Struct()
+            buf = vpe.get_display_buffer('test')
+            win = vim.current.window
+            res.orig_cols = win.width
+            buf.show(splitcols=3)
+            win = vim.current.window
+            res.top_cols = win.width
+            res.bottom_cols = vim.windows[win.number].width
+            with buf.modifiable():
+                buf[:] = ['One', 'Two']
+            res.cur_buf = vim.current.buffer.name
+            res.lines = list(vim.current.buffer)
+            dump(res)
+        """
+        res = self.run_self()
+        failUnlessEqual('/[[test]]', fix_path(res.cur_buf))
+        failUnlessEqual(['One', 'Two'], res.lines)
+        failUnlessEqual(3, res.bottom_cols)
+        failUnlessEqual(res.orig_cols, res.top_cols + 4)
+
+    @test(testID='dispbuf-vsplit-show-set-display')
+    def show_vsplit_set_disp_buf_size(self):
+        """A split can specify the number of lines for the display buffer.
+
+        The number of lines is specified using a negative value for the
+        splitcols argument.
+
+        :<py>:
+            res = Struct()
+            buf = vpe.get_display_buffer('test')
+            win = vim.current.window
+            res.orig_cols = win.width
+            buf.show(splitcols=-3)
+            win = vim.current.window
+            res.top_cols = win.width
+            res.bottom_cols = vim.windows[win.number].width
+            with buf.modifiable():
+                buf[:] = ['One', 'Two']
+            res.cur_buf = vim.current.buffer.name
+            res.lines = list(vim.current.buffer)
+            dump(res)
+        """
+        res = self.run_self()
+        failUnlessEqual('/[[test]]', fix_path(res.cur_buf))
+        failUnlessEqual(['One', 'Two'], res.lines)
+        failUnlessEqual(3, res.top_cols)
+        failUnlessEqual(res.orig_cols, res.bottom_cols + 4)
+
     @test(testID='dispbuf-split-fails')
     def split_fails(self):
-        """Split and show will fail if the window iss too short.
+        """Split and show will fail if the window is too short.
 
         Basically, it must be at least 3 lines.
         :<py>:
@@ -168,6 +252,24 @@ class DisplayBuffer(support.Base):
             win = vim.current.window
             win.height = 2
             res.ok = buf.show(splitlines=1)
+            dump(res)
+        """
+        res = self.run_self()
+        failIf(res.ok)
+        failIfEqual('/[[test]]', res.cur_buf)
+
+    @test(testID='dispbuf-vsplit-fails')
+    def vsplit_fails(self):
+        """Split and show will fail if the window is too narrow.
+
+        Basically, it must be at least 3 columns.
+        :<py>:
+            res = Struct()
+            buf = vpe.get_display_buffer('test')
+            commands.wincmd('v')
+            win = vim.current.window
+            win.width = 2
+            res.ok = buf.show(splitcols=1)
             dump(res)
         """
         res = self.run_self()

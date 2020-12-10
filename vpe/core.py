@@ -120,30 +120,51 @@ class ScratchBuffer(wrappers.Buffer):
         else:
             self.name = self._base_name
 
-    def show(self, splitlines: Optional[int] = None) -> bool:
+    def show(self, splitlines: int = 0, splitcols: int = 0) -> bool:
         """Make this buffer visible.
 
-        Without a splitlines argument, this will use the current window to show
-        this buffer. If the *splitlines* argument is provided and greater than
-        zero then:
+        Without a *splitlines* or *splitcols* argument, this will use the
+        current window to show this buffer. Otherwise the current window is
+        split, horizontally if *splitlines* != 0 or vertically if *splitcols*
+        != 0. The buffer is shown in the top/left part of the split. A positive
+        split specifies how many lines/columns to allocate to the bottom/right
+        part of the split. A negative split specifies how many lines to
+        allocate to the top/left window.
 
-        1. The current window is split.
-        2. The lower split is set to be *splitlines* high.
-        3. This buffer is displayed in the upper window.
-
-        :splitlines: Number of lines to leave in the bottom window.
+        :splitlines: Number of lines allocated to the top/bottom of the split.
+        :splitcols:  Number of columns allocated to the left/right of the
+                     split.
         :return:     True if the window is successfully shown.
         """
-        if splitlines is not None and splitlines > 0:
-            win = wrappers.vim.current.window
-            if win.height < 3:
-                error_msg('Window is too small to split')
+        win = wrappers.vim.current.window
+        w_number = win.number
+        if splitlines:
+            w_height = win.height
+            if w_height < 3:
+                error_msg('Window is too short to split')
                 return False
-            lower_height = min(splitlines, win.height - 2)
+
             wrappers.commands.wincmd('s')
-            win = wrappers.vim.current.window
-            lower_win = wrappers.vim.windows[win.number]
-            lower_win.height = lower_height
+            lower_win = wrappers.vim.windows[w_number]
+            split_size = min(abs(splitlines), w_height - 2)
+            if splitlines > 0:
+                lower_win.height = split_size
+            else:
+                lower_win.height = w_height - split_size - 1
+
+        elif splitcols:
+            w_width = win.width
+            if w_width < 3:
+                error_msg('Window is too narrow to split')
+                return False
+
+            wrappers.commands.wincmd('v')
+            right_win = wrappers.vim.windows[w_number]
+            split_size = min(abs(splitcols), w_width - 2)
+            if splitcols > 0:
+                right_win.width = split_size
+            else:
+                right_win.width = w_width - split_size - 1
 
         wrappers.commands.buffer(self.number, bang=True)
         self._show_count += 1
