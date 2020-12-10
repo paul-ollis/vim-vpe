@@ -192,15 +192,18 @@ class Windows(support.Base):
     def temp_options_context(self):
         """The temp options context.
 
-        The temp option values can be set using a context variables or by
-        defining defaults.
+        The temp option values can be set using a context variables, by
+        defining defaults or using the save method.
 
         :<py>:
 
             res = Struct()
             win = vim.current.window
+            win.options['statusline'] = vim.options['statusline'].replace(
+                'W=', 'Cols=')
 
             res.orig_sl = win.options['statusline']
+
             with win.temp_options() as opts:
                 opts.statusline = res.orig_sl + 'xx'
                 res.temp_sl = win.options['statusline']
@@ -210,6 +213,12 @@ class Windows(support.Base):
                 res.temp_sl2 = win.options['statusline']
             res.restored_sl2 = win.options['statusline']
 
+            with win.temp_options() as opts:
+                opts.save('statusline')
+                win.options['statusline'] += 'xx'
+                res.temp_sl3 = win.options['statusline']
+            res.restored_sl3 = win.options['statusline']
+
             dump(res)
         """
         res = self.run_self()
@@ -217,6 +226,8 @@ class Windows(support.Base):
         failUnlessEqual(res.orig_sl, res.restored_sl)
         failUnlessEqual(res.orig_sl + 'xx', res.temp_sl2)
         failUnlessEqual(res.orig_sl, res.restored_sl2)
+        failUnlessEqual(res.orig_sl + 'xx', res.temp_sl3)
+        failUnlessEqual(res.orig_sl, res.restored_sl3)
 
     @test(testID='win-save-view')
     def saved_window_view(self):

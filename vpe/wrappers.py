@@ -412,6 +412,19 @@ class TemporaryOptions:
             self._saved[name] = self._options[name]
         self._options.__setattr__(name, value)
 
+    def save(self, *names):
+        """Explicitly back up a number of options.
+
+        This is useful when, for example, auto commands might update options
+        that you want to restore when the context exits. Only options not
+        already backup by the context manager are saved.
+
+        :names: The options to save.
+        """
+        for name in names:
+            if name not in self._saved:
+                self._saved[name] = self._options[name]
+
 
 class BufferListContext(list):
     """Context manager providing a temporary list of a buffer's lines."""
