@@ -1,9 +1,18 @@
 Version 0.5
 
-- Plugin system for pure Python plug-ins.
+- Added plugin system; easier for Python code.
+- Key mappings, user commands and auto commands now show the Python function
+  name.
 - New and modified functions.
   - Added 'soon' argument to error_msg.
-  - Added echo_msg (to match error_msg).
+  - Added echo_msg and warning_msg (to match error_msg).
+  - Added temp_active_window context manager.
+- Buffer class
+  - Enhanced the show method to allow vertiical splits and more flexibility in
+    how line/columns are allocated to each half of the split.
+  - Added a split_and_show method.
+- TemporaryOptions class
+  - Added a save method.
 
 Version 0.4.1.
 
