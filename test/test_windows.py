@@ -159,6 +159,33 @@ class Windows(support.Base):
         failIfEqual(res.orig_win, res.other_win)
         failUnlessEqual(res.orig_win, res.final_win)
 
+    @test(testID='win-close')
+    def window_close(self):
+        """Window.close closes the window if possible.
+
+        :<py>:
+
+            res = Struct()
+            vpe.commands.wincmd('o')
+            vpe.commands.wincmd('s')
+            res.orig_n_windows = len(vim.windows)
+            orig_win = vim.current.window
+            vpe.commands.wincmd('w')
+            res.orig_id = orig_win.id
+            res.close_ok = orig_win.close()
+            res.rem_n_windows = len(vim.windows)
+            res.rem_id = vim.current.window.id
+            res.close_fail = vim.current.window.close()
+
+            dump(res)
+        """
+        res = self.run_self()
+        failUnlessEqual(2, res.orig_n_windows)
+        failUnlessEqual(1, res.rem_n_windows)
+        failUnless(res.close_ok)
+        failIf(res.close_fail)
+        failIfEqual(res.orig_id, res.rem_id)
+
     @test(testID='win-temp-active')
     def temp_active_window(self):
         """The temp_active_window context provides controlled window switching.

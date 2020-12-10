@@ -771,6 +771,16 @@ class Window(Proxy):
         """
         return bool(vim.win_gotoid(self.id))
 
+    def close(self) -> bool:
+        """Close this window, if possible.
+
+        :return: True if the window was closed.
+        """
+        if len(self.tabpage.windows) > 1:
+            commands.close(a=self.number)
+            return True
+        return False
+
     @property
     def visible_line_range(self) -> Tuple[int, int]:
         """The range of buffer lines visible within this window.
