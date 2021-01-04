@@ -822,6 +822,7 @@ class AutoCmdGroup(support.CommandsBase):
 
         :<vim>:
 
+            set cpoptions&vim
             augroup test
             autocmd!
             autocmd BufReadPre <buffer> call VPE_Call("100", "callback")
@@ -843,6 +844,7 @@ class AutoCmdGroup(support.CommandsBase):
 
         :<vim>:
 
+            set cpoptions&vim
             augroup test
             autocmd!
             autocmd BufReadPre <buffer=1> call VPE_Call("100", "callback")
@@ -862,6 +864,7 @@ class AutoCmdGroup(support.CommandsBase):
 
         :<vim>:
 
+            set cpoptions&vim
             augroup test
             autocmd!
             autocmd BufReadPre <buffer> ++once ++nested call VPE_Call("100", "callback")
@@ -873,6 +876,73 @@ class AutoCmdGroup(support.CommandsBase):
         with vpe.AutoCmdGroup('test') as grp:
             grp.delete_all()
             grp.add('BufReadPre', callback, once=True, nested=True)
+        self.check_commands()
+
+    @test(testID='autocmd-event_handler')
+    def create_using_event_handler_mixin(self):
+        """The EventHandler mixin provides decorators for event handling.
+
+        :<vim>:
+
+            set cpoptions&vim
+            augroup test_autocmds
+            autocmd BufReadPre * call VPE_Call("100", "callback")
+            augroup END
+        """
+        class EH_Test(vpe.EventHandler):
+            def __init__(self):
+                self.auto_define_event_handlers('test+_autocmds')
+
+            @vpe.EventHandler.handle('BufReadPre')
+            def callback(self):
+                pass
+
+        inst = EH_Test()
+        self.check_commands()
+
+    @test(testID='autocmd-event_handler-del-all')
+    def create_using_event_handler_mixin_del_all(self):
+        """The EventHandler mixin support optional group deletion.
+
+        :<vim>:
+
+            set cpoptions&vim
+            augroup test_autocmds
+            autocmd!
+            autocmd BufReadPre * call VPE_Call("100", "callback")
+            augroup END
+        """
+        class EH_Test(vpe.EventHandler):
+            def __init__(self):
+                self.auto_define_event_handlers(
+                    'test+_autocmds', delete_all=True)
+
+            @vpe.EventHandler.handle('BufReadPre')
+            def callback(self):
+                pass
+
+        inst = EH_Test()
+        self.check_commands()
+
+    @test(testID='autocmd-event_handler-bad-name')
+    def event_handler_mixin_bad_name(self):
+        """A name that cannot be converted is handled.
+
+        An error message is printed and no handler installed.
+
+        :<vim>:
+
+            <NOP>
+        """
+        class EH_Test(vpe.EventHandler):
+            def __init__(self):
+                self.auto_define_event_handlers('+_')
+
+            @vpe.EventHandler.handle('BufReadPre')
+            def callback(self):
+                pass
+
+        inst = EH_Test()
         self.check_commands()
 
 
@@ -1339,6 +1409,69 @@ class DefineCommand(support.Base):
         failUnlessEqual((), res.args)
         failUnlessEqual({}, res.kwargs)
         failUnlessEqual("", res.info)
+
+    @test(testID='ucmd-command-handler')
+    def basic_command_using_commmand_handler(self):
+        """The CommandHandler provides a method decoration approach,
+
+        The default behaviour is not to pass the information object.
+
+        :<py>:
+
+            res = Struct()
+            class CE_Test(vpe.CommandHandler):
+                def __init__(self):
+                    self.auto_define_commands()
+
+                @vpe.CommandHandler.command(
+                    'TestCommand', kwargs={'extra': 'dec'})
+                def handle_command(self, *args, **kwargs):
+                    res.args = args
+                    res.kwargs = kwargs
+
+            inst = CE_Test()
+            vim.vim().command('silent! TestCommand')
+            dump(res)
+        """
+        res = self.run_self()
+        failUnlessEqual((), res.args)
+        failUnlessEqual({'extra': 'dec'}, res.kwargs)
+
+    @test(testID='ucmd-command-handler-info')
+    def commmand_handler_with_info(self):
+        """The CommandHandler can decorator can specify info to be provided.
+
+        :<py>:
+
+            res = Struct()
+            class CE_Test(vpe.CommandHandler):
+                def __init__(self):
+                    self.auto_define_commands()
+
+                @vpe.CommandHandler.command(
+                    'TestCommand', kwargs={'extra': 'dec'}, pass_info=True)
+                def handle_command(self, info, *args, **kwargs):
+                    res.info = info
+                    res.args = args
+                    res.kwargs = kwargs
+
+            inst = CE_Test()
+            vim.vim().command('silent! TestCommand')
+            dump(res)
+        """
+        res = self.run_self()
+        failUnlessEqual((), res.args)
+        failUnlessEqual({'extra': 'dec'}, res.kwargs)
+        failUnlessEqual(1, res.info.line1)
+        failUnlessEqual(1, res.info.line2)
+        if vim_if.VimSession.has_patch("patch-8.0.1089"):
+            failUnlessEqual(0, res.info.range)
+        else:
+            failUnlessEqual(-1, res.info.range)
+        failUnlessEqual(-1, res.info.count)
+        failUnless(res.info.bang is False)
+        failUnlessEqual('silent!', res.info.mods)
+        failUnlessEqual('', res.info.reg)
 
 
 if __name__ == '__main__':

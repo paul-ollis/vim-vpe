@@ -47,7 +47,7 @@ import importlib
 import traceback
 import sys
 from pathlib import Path
-from typing import Tuple
+from typing import Tuple, Union, Any
 
 import vim as _vim
 
@@ -191,6 +191,27 @@ def _init_vpe_plugins():
     else:                                                    # pragma: no cover
          with AutoCmdGroup('VPECore') as au:
              au.add('VimEnter', _load_plugins, nested=True)
+
+
+class temp_log:                                              # pragma: no cover
+    """Temporarily append output to a log file.
+
+    This is only intended to be used for ad-hoc debugging.
+    """
+    f: Any
+    saved: Tuple[Any, Any]
+
+    def __init__(self, file_path: Union[Path, str]):
+        self.path = Path(file_path)
+
+    def __enter__(self):
+        self.f = open(self.path, 'at')
+        self.saved = sys.stderr, sys.stdout
+        sys.stderr = sys.stdout = self.f
+
+    def __exit__(self, exc_type, exc_value, exc_tb):
+        self.f.close()
+        sys.stderr, sys.stdout = self.saved
 
 
 _init_vpe_plugins()

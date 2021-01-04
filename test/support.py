@@ -117,9 +117,19 @@ class CodeSource:
 
             # Remove all but the first buffer.
             def zap_bufs():
-                numbers = [buf.number for buf in vim.buffers]
-                for n in numbers[1:]:
-                    vpe.commands.bwipeout(n)
+                with vpe.temp_log('/tmp/paul.log'):
+                    for b in vim.buffers:
+                        b.options.modified = False
+                    vpe.commands.buffer(1)
+                    vpe.commands.tabonly()
+                    vpe.commands.wincmd('o')
+                    print("N-tabs", len(vim.tabpages))
+                    print("N-wins", len(vim.windows))
+                    print("N-bufs", len(vim.buffers))
+                    numbers = [buf.number for buf in vim.buffers]
+                    for n in numbers[1:]:
+                        vpe.commands.bwipeout(n)
+                    print("N-bufs", len(vim.buffers))
 
             # Switch the current buffer to another.
             def get_alt_buffer():
@@ -397,9 +407,12 @@ class CommandsBase(Base):
         code = self.myvimcode(stack_level=2)
         e_lines = code.splitlines()
         a_lines = self.commands
-        for i, (expected, actual) in enumerate(zip(e_lines, a_lines)):
-            failUnlessEqual(expected, actual, add_message=f'Index {i}')
-        if len(a_lines) > len(e_lines):
-            for i, line in enumerate(a_lines[len(e_lines):]):
-                print(f'Extra line {i + len(e_lines)}: {line}')
-        failUnlessEqual(len(e_lines), len(a_lines))
+        if e_lines == ['<NOP>']:
+            failUnlessEqual(0, len(a_lines))
+        else:
+            for i, (expected, actual) in enumerate(zip(e_lines, a_lines)):
+                failUnlessEqual(expected, actual, add_message=f'Index {i}')
+            if len(a_lines) > len(e_lines):
+                for i, line in enumerate(a_lines[len(e_lines):]):
+                    print(f'Extra line {i + len(e_lines)}: {line}')
+            failUnlessEqual(len(e_lines), len(a_lines))

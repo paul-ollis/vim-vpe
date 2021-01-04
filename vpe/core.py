@@ -86,6 +86,21 @@ endfunction
 _vim.command(_VIM_FUNC_DEFS)
 
 
+def _clean_ident(s):
+    """Clean up a string so it is a valid Vim identifier."""
+    valid_chars = set(string.ascii_letters + string.digits + '_')
+    def fold_to_ident_char(c):
+        if c not in valid_chars:
+            return '_'                                       # pragma: no cover
+        return c
+    ident = ''.join(fold_to_ident_char(c) for c in s)
+    if ident != s:
+        while '__' in ident:
+            ident = ident.replace('__', '_')
+        return ident
+    return s                                                 # pragma: no cover
+
+
 class ScratchBuffer(wrappers.Buffer):
     """A scratch buffer.
 
@@ -207,8 +222,8 @@ def get_display_buffer(
         ) -> ScratchBuffer:
     """Get a named display-only buffer.
 
-    The actual buffer name will be of the form '/[[name]]'. The
-    buffer is created if it does not already exist.
+    The actual buffer name will be of the form '/[[name]]'. The buffer is
+    created if it does not already exist.
 
     :name:     An identifying name for this buffer. This becomes the
                `ScratchBuffer.simple_name` attribute.
@@ -219,19 +234,28 @@ def get_display_buffer(
     else:
         buf_name = f'/[[{name}]]'
     b = _known_special_buffers.get(buf_name, None)
-    if b is not None:
-        return b
+    with vpe.temp_log('/tmp/paul.log'):
+        if b is not None and b.valid:
+            return b
+        print("Need new buffer", name, b)
 
-    for b in wrappers.vim.buffers:
-        if b.name == buf_name:
-            break
-    else:
-        wrappers.commands.new()
-        b = wrappers.vim.current.buffer
-        wrappers.commands.wincmd('c')
+        for b in wrappers.vim.buffers:
+            if b.name == buf_name:
+                break
+        else:
+            print("Wraping new", name)
+            print("N buffers", len(wrappers.vim.buffers))
+            for b in wrappers.vim.buffers:
+                print("    ", b.number, b.name)
+            wrappers.commands.new()
+            print("Created new buffer")
+            b = wrappers.vim.current.buffer
+            print("New buffer is", b)
+            wrappers.commands.wincmd('c')
+            print("Closed split")
 
-    b = buf_class(buf_name, b, name)
-    _known_special_buffers[buf_name] = b
+        b = buf_class(buf_name, b, name)
+        _known_special_buffers[buf_name] = b
     return b
 
 
@@ -1189,15 +1213,21 @@ class AutoCmdGroup:
 
     :name: The name of the group.
     """
+    options_context: wrappers.TemporaryOptions
+
     def __init__(self, name):
         self.name = name
 
     def __enter__(self):
+        self.options_context = wrappers.vim.temp_options(
+            cpoptions=vpe.VIM_DEFAULT)
+        self.options_context.activate()
         common.vim_command(f'augroup {self.name}')
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         common.vim_command('augroup END')
+        self.options_context.restore()
 
     @staticmethod
     def delete_all():
@@ -1249,24 +1279,23 @@ class EventHandler:
             return inspect.ismethod(obj) or inspect.isfunction(obj)
 
         group_ident = _clean_ident(group_name)
-        if group_ident in ('', '__'):
+        if group_ident in ('', '_', '__'):
             vpe.error_msg(
                 f'{group_name} cannot be converted to a sensible Vim'
                 ' identifier', soon=True)
             return
 
-        with wrappers.vim.temp_options(cpoptions=vpe.VIM_DEFAULT):
-            with AutoCmdGroup(group_name) as grp:
-                if delete_all:
-                    grp.delete_all()
-                for _, method in inspect.getmembers(self, is_method):
-                    info = getattr(method, '_eventmappings_', None)
-                    if info is not None:
-                        for name, kwargs in info:
-                            kw = kwargs.copy()
-                            if 'pat' not in kw:
-                                kw['pat'] = self._default_event_pattern or self
-                            grp.add(name, method, **kw)
+        with AutoCmdGroup(group_ident) as grp:
+            if delete_all:
+                grp.delete_all()
+            for _, method in inspect.getmembers(self, is_method):
+                info = getattr(method, '_eventmappings_', None)
+                if info is not None:
+                    for name, kwargs in info:
+                        kw = kwargs.copy()
+                        if 'pat' not in kw:
+                            kw['pat'] = self._default_event_pattern or self
+                        grp.add(name, method, **kw)
 
     @staticmethod
     def handle(name: str, **kwargs) -> Callable[[Callable], Callable]:

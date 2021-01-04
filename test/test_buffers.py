@@ -26,7 +26,7 @@ class BuffersList(support.Base):
     vim_buffers: vpe.wrappers.Buffers
 
     def suiteSetUp(self):
-        """called to set up the suite."""
+        """Called to set up the suite."""
         super().suiteSetUp()
         self.vim_buffers = self.eval('vim.buffers')
 
@@ -606,7 +606,7 @@ class Buffers(support.Base):
     def goto_same_window(self):
         """The goto_active_window method prefers the current window.
 
-        Otherwise is uses the lowest numbered matching window.
+        Otherwise it uses the lowest numbered matching window.
         :<py>:
 
             res = Struct()
@@ -626,15 +626,15 @@ class Buffers(support.Base):
             b2 = vim.current.buffer
 
             vpe.commands.wincmd('w', a=1)
-            res.r.append(b1.goto_active_window())
+            res.r.append(bool(b1.goto_active_window()))
             res.same_win = vim.current.window.number
 
             vpe.commands.wincmd('w', a=2)
-            res.r.append(b1.goto_active_window())
+            res.r.append(bool(b1.goto_active_window()))
             res.same_win2 = vim.current.window.number
 
             vpe.commands.wincmd('w', a=3)
-            res.r.append(b1.goto_active_window())
+            res.r.append(bool(b1.goto_active_window()))
             res.same_win3 = vim.current.window.number
 
             dump(res)
@@ -675,7 +675,7 @@ class Buffers(support.Base):
 
             vpe.commands.tabnext(a=3)
             res.start_tab = vim.current.tabpage.number
-            res.r.append(target.goto_active_window())
+            res.r.append(target.goto_active_window(all_tabpages=True))
             res.tab_found = vim.current.tabpage.number
 
             vpe.commands.tabnext(a=1)
@@ -692,7 +692,8 @@ class Buffers(support.Base):
         failUnlessEqual(2, res.tab_found)
         failUnlessEqual(2, res.start_tab2)
         failUnlessEqual(2, res.end_tab)
-        failUnlessEqual([True, False], res.r)
+        failUnless(isinstance(res.r[0], vpe.wrappers.Window))
+        failUnless(res.r[1] is None)
 
     def setup_tabs_and_windows(self):
         r"""Set up a well defined pattern of windows and tab pages.
@@ -742,18 +743,18 @@ class Buffers(support.Base):
             res = Struct()
             res.find_all_cur_first = [
                 (w.tabpage.number, w.number)
-                for w in target.find_active_windows()]
+                for w in target.find_active_windows(all_tabpages=True)]
 
             vpe.commands.tabnext(a=3)
             res.find_all = [
                 (w.tabpage.number, w.number)
-                for w in target.find_active_windows()]
+                for w in target.find_active_windows(all_tabpages=True)]
 
             vpe.commands.tabnext(a=2)
             vpe.commands.wincmd('j', a=2)
             res.find_all_cur_tab_second = [
                 (w.tabpage.number, w.number)
-                for w in target.find_active_windows()]
+                for w in target.find_active_windows(all_tabpages=True)]
             dump(res)
         """
         self.setup_tabs_and_windows()
@@ -772,12 +773,12 @@ class Buffers(support.Base):
             vpe.commands.tabnext(a=3)
             res.find_zero = [
                 (w.tabpage.number, w.number)
-                for w in target.find_active_windows(all_tabpages=False)]
+                for w in target.find_active_windows()]
 
             vpe.commands.tabnext(a=2)
             res.find_two = [
                 (w.tabpage.number, w.number)
-                for w in target.find_active_windows(all_tabpages=False)]
+                for w in target.find_active_windows()]
             dump(res)
         """
         self.setup_tabs_and_windows()
@@ -833,6 +834,79 @@ class Buffers(support.Base):
         failUnlessEqual(1, res.loaded)
         failUnlessEqual(1, res.lnum)
         failUnlessEqual('Nothing', res.nothing)
+
+    @test(testID='buf-temp-active')
+    def temp_active_buffer(self):
+        """The temp_active_buffer context optionally switches the buffer.
+
+        :<py>:
+
+            res = Struct()
+            res.r = []
+            vpe.commands.tabonly()
+            vpe.commands.wincmd('o')
+            b1 = vim.current.buffer
+            res.alt_buffer = vim.current.buffer.number
+
+            vpe.commands.enew()
+            b2 = vim.current.buffer
+            res.initial_buffer = vim.current.buffer.number
+            res.orig_eventignore = str(vim.options.eventignore)
+
+            with vpe.temp_active_buffer(b1):
+                res.temp_active_buffer = vim.current.buffer.number
+                res.eventignore = str(vim.options.eventignore)
+            res.final_buffer = vim.current.buffer.number
+            res.final_eventignore = str(vim.options.eventignore)
+
+            dump(res)
+        """
+        res = self.run_self()
+        print(">>>", res)
+        failUnlessEqual(res.alt_buffer, res.temp_active_buffer)
+        failUnlessEqual(res.initial_buffer, res.final_buffer)
+        failUnlessEqual('all', res.eventignore)
+        failUnlessEqual(res.orig_eventignore, res.final_eventignore)
+
+        # Sanity check test validity.
+        failIfEqual('all', res.final_eventignore)
+
+    @test(testID='buf-temp-active-no-change')
+    def temp_active_buffer_no_change(self):
+        """The temp_active_buffer context handles target is current buffer.
+
+        No action is required to change the buffer so no options get modified.
+        :<py>:
+
+            res = Struct()
+            res.r = []
+            vpe.commands.tabonly()
+            vpe.commands.wincmd('o')
+            b1 = vim.current.buffer
+            res.alt_buffer = vim.current.buffer.number
+
+            vpe.commands.enew()
+            b2 = vim.current.buffer
+
+            res.initial_buffer = vim.current.buffer.number
+            res.orig_eventignore = str(vim.options.eventignore)
+
+            with vpe.temp_active_buffer(b2):
+                res.temp_active_buffer = vim.current.buffer.number
+                res.eventignore = str(vim.options.eventignore)
+            res.final_buffer = vim.current.buffer.number
+            res.final_eventignore = str(vim.options.eventignore)
+
+            dump(res)
+        """
+        res = self.run_self()
+        failUnlessEqual(res.initial_buffer, res.temp_active_buffer)
+        failUnlessEqual(res.initial_buffer, res.final_buffer)
+        failUnlessEqual(res.orig_eventignore, res.final_eventignore)
+        failUnlessEqual(res.orig_eventignore, res.final_eventignore)
+
+        # Sanity check test validity.
+        failIfEqual('all', res.final_eventignore)
 
 
 if __name__ == '__main__':

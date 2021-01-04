@@ -9,11 +9,12 @@ unpicked types will work as expected.
 from __future__ import annotations
 
 from typing import (
-    Any, ClassVar, Dict, Generator, Tuple, Set, Optional,
-    Callable, Union, List as ListType)
+    Any, Callable, ClassVar, Dict, Generator, List as ListType, Optional, Set,
+    Tuple, Union)
 
 import builtins
 import re
+from pathlib import Path
 
 __name__ = 'vim'  # pylint: disable=redefined-builtin
 __qualname__ = 'vim'
@@ -192,8 +193,13 @@ class Options(Base):
     def __init__(self, read_only: Optional[ListType[str]] = None):
         super().__init__()
         self.__dict__['_read_only'] = read_only or []
+        self.__dict__['_dummy_values'] = {}
+        home = Path(__file__).resolve().parent.parent / 'test/rt_test_data'
+        self._dummy_values['runtimepath'] = str(home / '.vim')
 
     def __getitem__(self, name: str) -> Any:
+        if name in self._dummy_values:
+            return self._dummy_values[name]
         return self.__dict__.get(name, '')
 
     def __setitem__(self, name: str, value: Any):
@@ -334,6 +340,10 @@ def win_gotoid(_win):
 
 def setreg(_name, _value):
     """Set a register's value."""
+
+
+def timer_start(_time, _callback, _options):
+    """Set up a timer."""
 
 
 def register_command_callback(func: Union[Callable, None]):

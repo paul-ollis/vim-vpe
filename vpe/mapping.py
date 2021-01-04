@@ -107,7 +107,7 @@ class MappingInfo:
 #   script  - Probably not useful.
 #   expr    - Probably should have a different function.
 def map(
-        mode: str, keys: str, func: Callable,
+        mode: str, keys: Union[str, Iterable[str]], func: Callable,
         *, buffer: bool = True, silent: bool = True, unique: bool = False,
         nowait: bool = False, command: bool = False, pass_info=True,
         args=(), kwargs: Optional[dict] = None,
@@ -175,9 +175,12 @@ def map(
     else:
         raise NotImplementedError
 
-    map_cmd = mode_to_map_command[mode]
-    cmd = f'{map_cmd} <special> {" ".join(specials)} {keys} {rhs}'
-    vim.command(cmd)
+    if isinstance(keys, str):
+        keys = [keys]
+    for key_seq in keys:
+        map_cmd = mode_to_map_command[mode]
+        cmd = f'{map_cmd} <special> {" ".join(specials)} {key_seq} {rhs}'
+        vim.command(cmd)
 
 
 def nmap(
@@ -237,6 +240,7 @@ def imap(
         pass_info=pass_info)
 
 
+# TODO: Rename this and other handlers ...Mixin?
 class KeyHandler:
     """Mix-in to support mapping key sequences to methods."""
 

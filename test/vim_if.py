@@ -122,8 +122,12 @@ class VimSession:
             cmd = [
                 'xterm','-e',
                 'gdb', '-ex', 'run', '--args',
-                '/usr/local/bin/gvim', '-f', '--noplugin', '--servername',
-                'TEST']
+                '/home/paul/develop/tracking/vim/vim/src/vim', '-g',
+                '-f', '--noplugin',
+                '--servername', 'TEST']
+            cmd = [
+                '/home/paul/develop/tracking/vim/vim/src/vim', '-g',
+                '--noplugin', '--servername', 'TEST']
             cmd = ['gvim', '--noplugin', '--servername', 'TEST']
             self.proc = subprocess.Popen(cmd, stderr=subprocess.DEVNULL)
 
