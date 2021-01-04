@@ -435,17 +435,23 @@ class Syntax(SyntaxBase):
 
     This stores a sequence of syntax highlighting directives. The directives
     are executed (as syntax and highlight commands) when the context is exited.
+
+    :group_prefix: A prefix added to the name of all groups created using this
+                   Syntax instance.
+    :clear:        Whether to clear any previous syntax for the current buffer.
+                   This is ``True`` by default.
     """
     group_type = Group
     sync_group_type = SyncGroup
     _directives: List[Tuple[Callable, Tuple, Dict]]
 
-    def __init__(self, group_prefix):
+    def __init__(self, group_prefix, clear: bool = True):
         self.prefix = group_prefix
         self.groups = {}
         self.std_groups = {}
         self.clusters = {}
         self.simple_includes = []
+        self.clear_prev_syntax = clear
 
     def std_group(self, name):
         """Create a standard (externally defined) group.
@@ -539,7 +545,8 @@ class Syntax(SyntaxBase):
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        wrappers.commands.syntax('clear')
+        if self.clear_prev_syntax:
+            wrappers.commands.syntax('clear')
         for syn_name in self.simple_includes:
             wrappers.commands.runtime(f'syntax/{syn_name}.vim')
         for func, args, kwargs in self._directives:
