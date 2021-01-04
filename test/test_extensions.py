@@ -326,7 +326,7 @@ class DisplayBuffer(support.Base):
         failUnlessEqual(res.orig_num, res.wrapped_num)
 
     @test(testID='dispbuf-ext-name')
-    def create_display_buffer(self):
+    def display_buffer_ext_name(self):
         """A Scratch buffer's name may an extension part.
 
         The extension can be changed.
@@ -346,6 +346,20 @@ class DisplayBuffer(support.Base):
         failUnlessEqual('/[[test]]', fix_path(res.simple_name))
         failUnlessEqual('/[[test]]/aaa', fix_path(res.ext_aaa_name))
         failUnlessEqual('/[[test]]/bbb', fix_path(res.ext_bbb_name))
+
+    @test(testID='dispbuf-syntax-prefix')
+    def syntax_prefix(self):
+        """The syntax_prefix property is helps uniquely name syntax groups.
+
+        :<py>:
+
+            res = Struct()
+            buf = vpe.get_display_buffer('test')
+            res.syn_prefix = buf.syntax_prefix
+            dump(res)
+        """
+        res = self.run_self()
+        failUnlessEqual('Syn_test_', res.syn_prefix)
 
 
 class Timers(support.Base):

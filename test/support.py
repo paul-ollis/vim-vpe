@@ -190,7 +190,6 @@ class CodeSource:
                 cov.start()
         """
         if not CodeSource.cov_running:
-            print("Cov Start")
             self.run_self(py_name=COV_START_SCRIPT_NAME)
             CodeSource.cov_running = True
 
@@ -232,7 +231,6 @@ class CodeSource:
                     pass #  Occurs when Vim gets restarted.
         """
         if CodeSource.cov_running:
-            print("Cov Stop")
             self.run_self(py_name=COV_STOP_SCRIPT_NAME)
             CodeSource.cov_running = False
 

@@ -42,8 +42,8 @@ class VimSuite(support.Base):
             failIf(attr is None, f'Vim has no {aname} member')
 
     @test(testID='read-only-attrs')
-    def attr_types(self):
-        """The Vim object's attributes are read-only.
+    def attrs_are_read_only(self):
+        """The Vim object's attributes are mostly read-only.
 
         This prevents, for example, accidentally making the buffers
         inaccessible.

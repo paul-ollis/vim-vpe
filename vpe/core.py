@@ -92,11 +92,18 @@ class ScratchBuffer(wrappers.Buffer):
 
     Direct instantiation is not recommended; use `get_display_buffer`, which
     creates bufferes with suitably formatted names.
+
+    :name:         The name for the buffer.
+    :buffer:       The :vim:`python-buffer' that this wraps.
+    :@simple_name: An alternative simple name. This is used in the generation
+                   of the `syntax_prefix` and `auto_grp_name' property values.
+                   If this is not set then is is the same a the *name*
+                   parameter.
     """
-    def __init__(self, name, buffer):
+    def __init__(self, name, buffer, simple_name=None, *args):
         super().__init__(buffer)
         self.__dict__['_base_name'] = name
-        self.__dict__['_show_count'] = 0
+        self.__dict__['simple_name'] = simple_name or name
         self.set_ext_name('')
         options = self.options
         options.buftype = 'nofile'
@@ -106,6 +113,18 @@ class ScratchBuffer(wrappers.Buffer):
         options.modifiable = False
         options.bufhidden = 'hide'
         options.buflisted = True
+        with AutoCmdGroup(self.auto_grp_name) as grp:
+            grp.add('BufWinEnter', self.on_first_showing, pat=self, once=True)
+
+    @property
+    def syntax_prefix(self):
+        """A suitable prefix for syntax items in this buffer."""
+        return f'Syn_{self.simple_name}_'
+
+    @property
+    def auto_grp_name(self):
+        """A suitable name for auto commands for this buffer."""
+        return f'Syn{self.simple_name}'
 
     def set_ext_name(self, name):
         """Set the extension name for this buffer.
@@ -167,9 +186,6 @@ class ScratchBuffer(wrappers.Buffer):
                 right_win.width = w_width - split_size - 1
 
         wrappers.commands.buffer(self.number, bang=True)
-        self._show_count += 1
-        if self._show_count == 1:
-            self.on_first_showing()
         return True
 
     def on_first_showing(self):
@@ -191,7 +207,8 @@ def get_display_buffer(
     The actual buffer name will be of the form '/[[name]]'. The
     buffer is created if it does not already exist.
 
-    :name:     An identifying name for this buffer.
+    :name:     An identifying name for this buffer. This becomes the
+               `ScratchBuffer.simple_name` attribute.
     """
     # pylint: disable=unsubscriptable-object
     if platform.system() == 'Windows': # pragma: no cover windows
@@ -210,7 +227,7 @@ def get_display_buffer(
         b = wrappers.vim.current.buffer
         wrappers.commands.wincmd('c')
 
-    b = buf_class(buf_name, b)
+    b = buf_class(buf_name, b, name)
     _known_special_buffers[buf_name] = b
     return b
 

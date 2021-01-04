@@ -82,6 +82,18 @@ class Buffers(support.Base):
         attrErrorCheck(setattr, buffer, 'valid', buffer.valid)
         attrErrorCheck(setattr, buffer, 'number', buffer.number)
 
+    @test(testID='buf-modifible-attrs')
+    def modifiable_attributes(self):
+        """A Buffer object's does allow modifiable, extension attributes.
+
+        Such attributes must originally be set via the __dict__ attribute.
+        """
+        buffer = self.buffer
+        buffer.__dict__['wibble'] = 1
+        failUnlessEqual(1, buffer.wibble)
+        buffer.wibble = 2
+        failUnlessEqual(2, buffer.wibble)
+
     @test(testID='buf-vars-attr')
     def buffer_vars_as_attributes(self):
         """Buffer.vars provides attribute style access.
