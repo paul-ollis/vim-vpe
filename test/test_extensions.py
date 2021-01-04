@@ -1129,6 +1129,11 @@ class DefineCommand(support.Base):
                 res.info = info
                 res.args = args
                 res.kwargs = kwargs
+
+            def do_simple_command(*args, **kwargs):
+                res.info = ''
+                res.args = args
+                res.kwargs = kwargs
         """
         super().suiteSetUp()
         self.run_suite_setup()
@@ -1316,6 +1321,24 @@ class DefineCommand(support.Base):
         failUnlessEqual('silent!', res.info.mods)
         failUnlessEqual('', res.info.reg)
         failUnless('buf' in res.captured)
+
+    @test(testID='ucmd-no-info')
+    def command_taking_no_info(self):
+        """A user defined command function can receive no info argument.
+
+        :<py>:
+
+            res = Struct()
+            vpe.define_command(
+                'TestCommand2', do_simple_command, pass_info=False)
+            vim.vim().command('silent! TestCommand2')
+            vim.execute('command TestCommand2').splitlines()[2]
+            dump(res)
+        """
+        res = self.run_self()
+        failUnlessEqual((), res.args)
+        failUnlessEqual({}, res.kwargs)
+        failUnlessEqual("", res.info)
 
 
 if __name__ == '__main__':

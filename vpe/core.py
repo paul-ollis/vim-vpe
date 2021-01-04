@@ -1042,16 +1042,26 @@ class CommandCallback(Callback):
 
     This extends the core `Callback` to provide a `CommandInfo` as the first
     positional argument.
+
+    @pass_info: If True, provide a MappingInfo object as the first argument to
     """
     vim_func = 'VPE_CmdCall'
+
+    def __init__(self, *args, **kwargs):
+        self.pass_info = kwargs.pop('pass_info', False)
+        super().__init__(*args, **kwargs)
 
     def get_call_args(self, vpe_args: Dict[str, Any]):
         """Get the Python positional and keyword arguments.
 
-        This makes the first positional argument a `CommandInfo` instance.
+        This makes the first positional argument a `CommandInfo` instance,
+        unless the `pass_info` has been set false.
         """
         vpe_args['bang'] = bool(vpe_args['bang'])
-        py_args = CommandInfo(**vpe_args), *self.py_args
+        if self.pass_info:
+            py_args = CommandInfo(**vpe_args), *self.py_args
+        else:
+            py_args = self.py_args
         return py_args, self.py_kwargs
 
 
@@ -1419,8 +1429,8 @@ def define_command(
         name: str, func: Callable, *, nargs: Union[int, str] = 0,
         complete: str = '', range: str = '', count: str = '', addr: str = '',
         bang: bool = False, bar: bool = False, register: bool = False,
-        buffer: bool = False, replace: bool = True, args=(),
-        kwargs: Optional[dict] = None):
+        buffer: bool = False, replace: bool = True, pass_info: bool = True,
+        args=(), kwargs: Optional[dict] = None):
     """Create a user defined command that invokes a Python function.
 
     When the command is executed, the function is invoked as:<py>:
@@ -1432,32 +1442,35 @@ def define_command(
     *cmd_args* are those provided to the command; each a string.
     The *args* and *kwargs* are those provided to this function.
 
-    :name:     The command name; must follow the rules for :vim:`:command`.
-    :func:     The function that implements the command.
-    :nargs:    The number of supported arguments; must follow the rules for
-               :vim:`:command-nargs', except that integer values of 0, 1 are
-               permitted.
-    :complete: Argument completion mode (see :vim:`command-complete`). Does not
-               currently support 'custom' or 'customlist'.
-    :range:    The permitted type of range; must follow the rules for
-               :vim:`:command-range', except that the N value may be an
-               integer.
-    :count:    The permitted type of count; must follow the rules for
-               :vim:`:command-count', except that the N value may be an
-               integer. Use count=0 to get the same behaviour as '-count'.
-    :addr:     How range or count valuesa re interpreted :vim:`:command-addr`).
-    :bang:     If set then the '!' modifieer is supported (see
-               :vim:`@command-register`).
-    :bar:      If set then the command may be followed by a '|' (see
-               :vim:`@command-register`).
-    :register: If set then an optional register is supported (see
-               :vim:`@command-register`).
-    :buffer:   If set then the command is only for the current buffer (see
-               :vim:`@command-register`).
-    :replace:  If set (the detault) then 'command!' is used to replace an
-               existing command of the same name.
-    :args:     Additional arguments to pass to the mapped function.
-    :kwargs:   Additional keyword arguments to pass to the mapped function.
+    :name:      The command name; must follow the rules for :vim:`:command`.
+    :func:      The function that implements the command.
+    :nargs:     The number of supported arguments; must follow the rules for
+                :vim:`:command-nargs', except that integer values of 0, 1 are
+                permitted.
+    :complete:  Argument completion mode (see :vim:`command-complete`). Does
+                not currently support 'custom' or 'customlist'.
+    :range:     The permitted type of range; must follow the rules for
+                :vim:`:command-range', except that the N value may be an
+                integer.
+    :count:     The permitted type of count; must follow the rules for
+                :vim:`:command-count', except that the N value may be an
+                integer. Use count=0 to get the same behaviour as '-count'.
+    :addr:      How range or count valuesa re interpreted
+                :vim:`:command-addr`).
+    :bang:      If set then the '!' modifieer is supported (see
+                :vim:`@command-register`).
+    :bar:       If set then the command may be followed by a '|' (see
+                :vim:`@command-register`).
+    :register:  If set then an optional register is supported (see
+                :vim:`@command-register`).
+    :buffer:    If set then the command is only for the current buffer (see
+                :vim:`@command-register`).
+    :replace:   If set (the detault) then 'command!' is used to replace an
+                existing command of the same name.
+    :pass_info: If set then the first argument passed to func is a MappingInfo
+                object. Defaults to True.
+    :args:      Additional arguments to pass to the mapped function.
+    :kwargs:    Additional keyword arguments to pass to the mapped function.
     """
     cmd_args = [
         expr_arg('<line1>'), expr_arg('<line2>'), expr_arg('<range>'),
@@ -1467,7 +1480,7 @@ def define_command(
         cmd_args[2] = -1                                     # pragma: no cover
     cb = CommandCallback(
         func, name=name, py_args=args, py_kwargs=kwargs or {},
-        vim_exprs=tuple(cmd_args))
+        vim_exprs=tuple(cmd_args), pass_info=pass_info)
     cmd = ['command' + '!' if replace else '']
     if nargs:
         cmd.append(f'-nargs={nargs}')
