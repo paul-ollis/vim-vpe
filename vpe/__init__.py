@@ -26,6 +26,9 @@ newer.
 
     This is in instance of the `Commands` class.
 
+@VI_DEFAULT:  Special value representing default Vi value for an option.
+@VIM_DEFAULT: Special value representing default Vim value for an option.
+
 The VPE module uses certain global Vim variables for its own internal purposes.
 The names are chosen to be suitably obscure, but obviously associated with VPE.
 
@@ -59,7 +62,7 @@ from . import channels, mapping, syntax
 from .mapping import MapCallback
 from .wrappers import (
     Buffer, Buffers, Current, GlobalOptions, Range, Registers, Struct, TabPage,
-    TabPages, Variables, Window, Windows, commands)
+    TabPages, Variables, Window, Windows, commands, VI_DEFAULT, VIM_DEFAULT)
 
 __api__ = [
     'AutoCmdGroup', 'Timer', 'Popup', 'PopupAtCursor', 'PopupBeval',
@@ -74,7 +77,7 @@ __api__ = [
     # Types and functions that should not be directly invoked.
     'Variables', 'Window', 'TabPage', 'Windows', 'TabPages', 'Buffers',
     'Current', 'GlobalOptions', 'Function', 'Buffer',
-    'Range', 'Struct', 'ScratchBuffer',
+    'Range', 'Struct', 'ScratchBuffer', 'VI_DEFAULT', 'VIM_DEFAULT',
 ]
 
 PLUGIN_SUBDIR = 'vpe_plugins'

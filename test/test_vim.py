@@ -121,6 +121,28 @@ class VimSuite(support.Base):
         failUnlessEqual(res.alt_bg, res.in_context_bg)
         failUnlessEqual(res.orig_bg, res.post_context_bg)
 
+    @test(testID='default-option')
+    def reset_options(self):
+        """The VI_DEFAULT and VIM_DEFAULT constants allow option resetting.
+
+        :<py>:
+
+            res = Struct()
+            o = vim.options
+            o.esckeys = True
+            res.orig_esc_keys = o.esckeys
+            o.esckeys = vpe.VI_DEFAULT
+            res.vi_esc_keys = o.esckeys
+            o.esckeys = vpe.VIM_DEFAULT
+            res.vim_esc_keys = o.esckeys
+
+            dump(res)
+        """
+        res = self.run_self()
+        failUnless(res.orig_esc_keys)
+        failIf(res.vi_esc_keys)
+        failUnless(res.vim_esc_keys)
+
     @test(testID='vim-to-py-script')
     def vim_to_py_script(self):
         """The script_py_path function converts source path to python path.

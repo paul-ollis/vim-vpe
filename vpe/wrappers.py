@@ -18,11 +18,16 @@ from . import common
 
 __all__ = ('tabpages', 'TabPage', 'Vim', 'Registers', 'vim',
            'Function', 'windows', 'Window',
-           'buffers', 'Buffer', 'Range', 'Struct')
+           'buffers', 'Buffer', 'Range', 'Struct', 'VI_DEFAULT', 'VI_DEFAULT')
 __api__ = ('Commands', 'Command')
 
 # A sentinel object used to indicate that a parameter was not provided.
 _NOT_PROVIDED = object()
+
+# Special values used to reset represent Vi or Vim default values. Currently
+# only use to set options.
+VI_DEFAULT =  object()
+VIM_DEFAULT =  object()
 
 _blockedVimCommands = set((
     "function",
@@ -1043,7 +1048,8 @@ class GlobalOptions(Options):
 
         v = super().__getattr__(name)
         if v is None:
-            # This may be a global-local option, which needs special handling.
+            # This may be a global-local option, which cannot be accessed using
+            # the standard vim.options.
             oname_form = f'+{name}'
             if common.vim_simple_eval(f'exists({oname_form!r})') == '0':
                 raise AttributeError(
@@ -1051,6 +1057,13 @@ class GlobalOptions(Options):
         return self._wrap_or_decode(common.vim_eval(f'&g:{name}'), name)
 
     def __setattr__(self, name, value):
+        if value is VI_DEFAULT:
+            common.vim_command(f'set {name}&vi')
+            return
+        if value is VIM_DEFAULT:
+            common.vim_command(f'set {name}&vim')
+            return
+
         try:
             super().__setattr__(name, value)
             return
@@ -1058,6 +1071,9 @@ class GlobalOptions(Options):
             oname_form = f'+{name}'
             if common.vim_simple_eval(f'exists({oname_form!r})') == '0':
                 raise e
+
+        # This may be a global-local option, which cannot be accessed using
+        # the standard vim.options.
         v = int(value) if isinstance(value, bool) else value
         v_expr = repr(v)
         if v_expr[0] == "'":
@@ -1066,7 +1082,7 @@ class GlobalOptions(Options):
             s = s.replace('"', r'\"')
             s = s.replace(r"\'", "'")
             v_expr = '"' + s + '"'
-        common.vim_command(f'let &{name} = {v_expr}')
+        common.vim_command(f'let &g:{name} = {v_expr}')
 
 
 class Registers:
