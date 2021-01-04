@@ -189,7 +189,7 @@ def _init_vpe_plugins():
         _load_plugins()
     else:                                                    # pragma: no cover
          with AutoCmdGroup('VPECore') as au:
-             au.add('VimEnter', _load_plugins)
+             au.add('VimEnter', _load_plugins, nested=True)
 
 
 _init_vpe_plugins()
