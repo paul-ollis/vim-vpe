@@ -42,6 +42,36 @@ class WindowsList(support.Base):
         failUnlessEqual(1, res.init_len)
         failUnlessEqual(2, res.len_two)
 
+    @test(testID='vim-window-iteration')
+    def vim_windows_iter(self):
+        """The Vim.iter_all_windows visits windows on all tabs.
+
+        :<py>:
+
+            res = Struct()
+
+            vpe.commands.tabonly()
+            vpe.commands.wincmd('o')
+
+            res.known_ids = set()
+            res.known_ids.add(
+                (vim.current.tabpage.number, vim.current.window.id))
+            vpe.commands.wincmd('s')
+            res.known_ids.add(
+                (vim.current.tabpage.number, vim.current.window.id))
+            vpe.commands.tabnew()
+            res.known_ids.add(
+                (vim.current.tabpage.number, vim.current.window.id))
+
+            res.visited_ids = set()
+            for t, w in vim.iter_all_windows():
+                res.visited_ids.add((t.number, w.id))
+
+            dump(res)
+        """
+        res = self.run_self()
+        failUnlessEqual(res.visited_ids, res.known_ids)
+
 
 class Windows(support.Base):
     """VPE support for standard windows.

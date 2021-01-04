@@ -785,6 +785,26 @@ class Buffers(support.Base):
         failUnlessEqual([], res.find_zero)
         failUnlessEqual([(2, 1), (2, 2)], res.find_two)
 
+    @test(testID='buf-is-active')
+    def buf_is_active_method(self):
+        """The is_active method checks the current windows shows the buffer.
+
+        :<py>:
+
+            res = Struct()
+            buf = vim.current.buffer
+            vpe.commands.wincmd('s')
+            vpe.commands.enew()
+            active_buf = vim.current.buffer
+
+            res.is_active = active_buf.is_active()
+            res.is_not_active = buf.is_active()
+            dump(res)
+        """
+        res = self.run_self()
+        failUnless(res.is_active is True)
+        failUnless(res.is_not_active is False)
+
     @test(testID='buf-info')
     def getbufinfo_as_properties(self):
         """The getbufinfo() values appear as properties.

@@ -3,21 +3,29 @@ Version 0.5
 - Added plugin system; easier for Python code.
 - Key mappings, user commands and auto commands now show the Python function
   name.
+- Allow key mappings and use commands that do not pass an info object.
 - New and modified functions.
   - Added 'soon' argument to error_msg.
   - Added echo_msg and warning_msg (to match error_msg).
   - Added temp_active_window context manager.
 - Buffer class
-  - Enhanced the show method to allow vertiical splits and more flexibility in
+  - Enhanced the show method to allow vertiical splits more flexibility in
     how line/columns are allocated to each half of the split.
   - Added a split_and_show method.
 - TemporaryOptions class
   - Added a save method.
+- Syntax class
+  - Can be used without clearing previous syntax items.
 - Window class
   - Added a close method.
+  - Added is_active method.
+- Vim class
+  - Added iter_all_windows method.
 - Added support for vertical, aboveleft, belowright, topleft, botright and
   keepalt modifiers for vpe.commands.
 - Made the vpe.commands object appear in the documentation.
+- Provide mechanism to reset a Vim option to its default value.
+
 
 Version 0.4.1.
 

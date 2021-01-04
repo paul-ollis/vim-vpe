@@ -609,6 +609,10 @@ class Buffer(MutableSequenceProxy):
             return self.name
         return self.location
 
+    def is_active(self):
+        """True if visible in the current window."""
+        return vim.current.buffer is self
+
     def append(self, line_or_lines, nr=None):
         """Append one or more lines to the buffer.
 
@@ -1306,6 +1310,15 @@ class Vim:
     def error(self) -> Type[_vim.error]:
         """The plain built-in Vim exception (:vim:`python-error`)."""
         return _vim.error
+
+    def iter_all_windows(self) -> Iterator[Tuple[TabPage, Window]]:
+        """Iterate over all the windows in all tabs.
+
+        :yield: A tuple of TagPage and Window.
+        """
+        for tab in vim.tabpages:
+            for win in tab.windows:
+                yield tab, win
 
     @staticmethod
     def _vim_singletons():
