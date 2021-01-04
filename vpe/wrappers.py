@@ -4,13 +4,14 @@ You should not normally need to import this module directly.
 """
 # pylint: disable=too-many-lines
 
-from typing import Set, ClassVar, Any, Dict, Optional, List, Tuple, Union
-from typing import Type, Callable
 import collections
-import itertools
 import functools
+import itertools
 import pathlib
 import weakref
+from typing import (
+    Any, Callable, ClassVar, Dict, Iterator, List, Optional, Set, Tuple, Type,
+    Union)
 
 import vim as _vim
 
@@ -214,6 +215,7 @@ class Proxy:
     _writeable: set = set()
 
     def __init__(self, obj=None):
+        super().__init__()
         if obj is not None:
             self.__dict__['_proxied'] = self._resolve_item(obj)
 
@@ -477,10 +479,10 @@ class Buffer(MutableSequenceProxy):
     _writeable = set(('name',))
 
     def __init__(self, buffer):
-        super().__init__()
         self.__dict__['_number'] = buffer.number
         self.__dict__['_store'] = collections.defaultdict(Struct)
         self._known[buffer.number] = self
+        super().__init__()
 
     @property
     def number(self):
