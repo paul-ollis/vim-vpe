@@ -318,8 +318,13 @@ class Log:
         if buf:
             for w in wrappers.vim.windows:
                 if w.buffer.number == buf.number:
-                    win_execute(wrappers.vim.win_getid(w.number), '$')
-                    win_execute(wrappers.vim.win_getid(w.number), 'redraw')
+                    # TODO: Figure out why this can cause:
+                    #           Vim(redraw):E315: ml_get: invalid lnum: 2
+                    try:
+                        win_execute(wrappers.vim.win_getid(w.number), '$')
+                        win_execute(wrappers.vim.win_getid(w.number), 'redraw')
+                    except _vim.error:                       # pragma: no cover
+                        pass
 
     def flush(self):
         """File like I/O support."""
