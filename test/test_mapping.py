@@ -90,6 +90,23 @@ class NormalMapping(Mapping):
         failUnless(info.line_range is None)
         failUnlessEqual('MappingInfo(normal,f)', res.info_str)
 
+    @test(testID='simple-mapping-to_str')
+    def simple_mapping_str(self):
+        """A mapping may simply map to a string.
+
+        :<py>:
+
+            from vpe.mapping import nmap
+
+            res = Struct()
+            res.value = 0
+            vim.vars.vpe_test_var = 0
+            nmap('f', ':py3 res.value = 1<CR>')
+            vpe.feedkeys(r'f', literal=True)
+        """
+        res = self.run_mapping()
+        failUnlessEqual(1, res.value)
+
     @test(testID='special-key-mapping')
     def special_key_mapping(self):
         r"""A normal mode mapping of a special key.

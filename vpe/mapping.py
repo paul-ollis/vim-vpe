@@ -17,8 +17,11 @@ mode_to_map_command = {
     'visual': 'xnoremap',
     'op-pending': 'onoremap',
     'insert': 'inoremap',
-    # Not supported unless (and until) a valid use-case presents itself.
-    # 'command':    cnoremap,
+
+    # These are not supported for mappings to functions unless (and until) a
+    # valid use-case presents itself.
+    'command': 'cnoremap',
+    'select': 'snoremap',
 }
 
 
@@ -107,7 +110,7 @@ class MappingInfo:
 #   script  - Probably not useful.
 #   expr    - Probably should have a different function.
 def map(
-        mode: str, keys: Union[str, Iterable[str]], func: Callable,
+        mode: str, keys: Union[str, Iterable[str]], func: Union[Callable, str],
         *, buffer: bool = True, silent: bool = True, unique: bool = False,
         nowait: bool = False, command: bool = False, pass_info=True,
         args=(), kwargs: Optional[dict] = None,
@@ -131,10 +134,17 @@ def map(
     do. It is recommended that these mode specific versions are use in
     preference to this function.
 
+    The *func* argument may also be a string, in which case it is interpreted
+    as the literal RHS of the key mapping.
+
     :mode:      A string defining the mode in which the mapping occurs. This
-                should be one of: normal, visual, op-pending, insert, command.
-    :keys:      The key sequence to be mapped.
-    :func:      The Python function to invoke for the mapping.
+                should be one of: normal, visual, op-pending, insert, command,
+                select. The command and select mode are not supported when
+                *func* is not a string.
+    :keys:      The key sequence to be mapped. This may be an interable set of
+                key sequences that should all be mapped to the same action.
+    :func:      The Python function to invoke for the mapping or a string to
+                use as the right hand side of the mapping.
     :buffer:    Use the <buffer> special argument. Defaults to True.
     :silent:    Use the <silent> special argument. Defaults to True.
     :unique:    Use the <unique> special argument. Defaults to False.
@@ -153,27 +163,30 @@ def map(
     # pylint: disable=redefined-builtin
     # pylint: disable=too-many-arguments
     # pylint: disable=too-many-locals
-    cb = MapCallback(
-        func, info=(mode, keys), py_args=args, py_kwargs=kwargs or {},
-        vim_exprs=vim_exprs, pass_info=pass_info)
     specials = [el for el in [
         '<buffer>' if buffer else '',
         '<silent>' if silent else '',
         '<unique>' if unique else '',
         '<nowait>' if nowait else ''] if el]
-    if mode == 'normal':
-        rhs = f':silent {cb.as_call()}<CR>'
-    elif mode == 'insert':
-        if command:
-            rhs = rf'<C-\><C-N>:silent {cb.as_call()}<CR>'
-        else:
-            rhs = f'<C-R>={cb.as_invocation()}<CR>'
-    elif mode == 'visual':
-        rhs = f':<C-U>silent {cb.as_call()}<CR>'
-    elif mode == 'op-pending':
-        rhs = f':<C-U>silent {cb.as_call()}<CR>'
+    if isinstance(func, str):
+        rhs = func
     else:
-        raise NotImplementedError
+        cb = MapCallback(
+            func, info=(mode, keys), py_args=args, py_kwargs=kwargs or {},
+            vim_exprs=vim_exprs, pass_info=pass_info)
+        if mode == 'normal':
+            rhs = f':silent {cb.as_call()}<CR>'
+        elif mode == 'insert':
+            if command:
+                rhs = rf'<C-\><C-N>:silent {cb.as_call()}<CR>'
+            else:
+                rhs = f'<C-R>={cb.as_invocation()}<CR>'
+        elif mode == 'visual':
+            rhs = f':<C-U>silent {cb.as_call()}<CR>'
+        elif mode == 'op-pending':
+            rhs = f':<C-U>silent {cb.as_call()}<CR>'
+        else:
+            raise NotImplementedError
 
     if isinstance(keys, str):
         keys = [keys]
@@ -184,7 +197,7 @@ def map(
 
 
 def nmap(
-        keys: str, func: Callable,
+        keys: Union[str, Iterable[str]], func: Union[Callable, str],
         *, buffer: bool = True, silent: bool = True, unique: bool = False,
         pass_info=True, nowait: bool = False, args=(),
         kwargs: Optional[dict] = None):
@@ -198,7 +211,7 @@ def nmap(
 
 
 def xmap(
-        keys: str, func: Callable,
+        keys: Union[str, Iterable[str]], func: Union[Callable, str],
         *, buffer: bool = True, silent: bool = True, unique: bool = False,
         pass_info=True, nowait: bool = False, args=(),
         kwargs: Optional[dict] = None):
@@ -212,7 +225,7 @@ def xmap(
 
 
 def omap(
-        keys: str, func: Callable,
+        keys: Union[str, Iterable[str]], func: Union[Callable, str],
         *, buffer: bool = True, silent: bool = True, unique: bool = False,
         pass_info=True, nowait: bool = False, args=(),
         kwargs: Optional[dict] = None):
@@ -226,7 +239,7 @@ def omap(
 
 
 def imap(
-        keys: str, func: Callable,
+        keys: Union[str, Iterable[str]], func: Union[Callable, str],
         *, buffer: bool = True, silent: bool = True, unique: bool = False,
         pass_info=True, nowait: bool = False, command: bool = False,
         args=(), kwargs: Optional[dict] = None):
