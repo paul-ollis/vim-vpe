@@ -412,6 +412,7 @@ class Timers(support.Base):
             timer = vpe.Timer(ms=10, func=on_expire)
             res.init_time = timer.time
             res.ticks = 0
+            res.repr = repr(timer)
             dump(res)
         """
         res = self.run_self()
@@ -425,6 +426,7 @@ class Timers(support.Base):
         failUnlessEqual(10, res.init_time)
         failUnless(res.dead)
         failUnlessEqual(1, res.fire_count)
+        failUnlessEqual('Timer(on_expire)', res.repr)
 
     @test(testID='timer-repeat')
     def create_repeating(self):
@@ -1009,11 +1011,13 @@ class Miscellaneous(support.CommandsBase):
                 'hello'))
             print(cb.as_invocation())
             res.ret = vim.eval(cb.as_invocation())
+            res.repr = repr(cb)
 
             dump(res)
         """
         res = self.run_self()
         failUnlessEqual(([1, 2], {'a': 1, 'b': 2}, 'hello'), res.args)
+        failUnlessEqual('Callback(callback)', res.repr)
 
     @test(testID='misc-callback_failure')
     def callback_failure_handling(self):
@@ -1051,6 +1055,9 @@ class Miscellaneous(support.CommandsBase):
             vim.command(cb_method_fail.as_call())
             vim.command(cb_deleted.as_call())
 
+            res.repr_deleted = repr(cb_deleted)
+            res.repr_method = repr(cb_method_fail)
+
             dump(res)
         """
         res = self.run_self()
@@ -1059,6 +1066,9 @@ class Miscellaneous(support.CommandsBase):
         failUnlessEqual(1, res.count)
         failUnlessEqual(1, res.method_count)
         failIf(res.impossible)
+
+        failUnlessEqual('Callback(<Dead callable>)', res.repr_deleted)
+        failUnlessEqual('Callback(BadClass.fail)', res.repr_method)
 
     @test(testID='misc-build-dict-arg')
     def build_dict_arg(self):

@@ -154,7 +154,7 @@ class ScratchBuffer(wrappers.Buffer):
     @property
     def auto_grp_name(self):
         """A suitable name for auto commands for this buffer."""
-        return f'Syn{self.simple_name}'
+        return f'Grp{self.simple_name}'
 
     def set_ext_name(self, name):
         """Set the extension name for this buffer.
@@ -470,6 +470,9 @@ class Timer:
         self._callback = CallableRef(func, self.stop)
         self.fire_count = 0
         self.dead = False
+
+    def __repr__(self):
+        return f'Timer({self._callback})'
 
     @property
     def id(self) -> int:
@@ -878,6 +881,20 @@ class CallableRef:
         """"Handle deletion of weak reference to method's instance."""
         self.deleted_callback(**self.kwargs)
 
+    def __repr__(self):
+        inst, method = self.get_inst_and_method()
+        if inst is None:
+            return '<Dead callable>'
+        if method is not None:
+            try:
+                return f'{method.__qualname__}'
+            except:                                          # pragma: no cover
+                return repr(method)
+        try:
+            return f'{inst.__qualname__}'
+        except:                                              # pragma: no cover
+            return repr(inst)
+
     def __call__(self, *args, **kwargs):
         inst, method = self.get_inst_and_method()
         if inst is None:
@@ -972,6 +989,9 @@ class Callback:
             coerce_arg(a, keep_bytes=self.pass_bytes) for a in vim_args]
         args, kwargs = self.get_call_args(vpe_args)
         return self.func_ref(*args, *vim_args, **kwargs)
+
+    def __repr__(self):
+        return f'Callback({self.func_ref})'
 
     def get_call_args(self, _vpe_args: Dict[str, Any]):
         """Get the Python positional and keyword arguments.
@@ -1255,7 +1275,7 @@ class AutoCmdGroup:
                  methods are supported.
         :pat:    The file pattern to match. If not supplied then the special
                  '<buffer>' pattern is used. If the argument is a `Buffer` then
-                 the special pattern for 'buffer=N> is used.
+                 the special pattern '<buffer=N> is used.
         :once:   The standard ':autocmd' options.
         :nested: The standard ':autocmd' options.
         """
