@@ -1642,26 +1642,81 @@ class saved_winview:
         wrappers.vim.winrestview(self.view)
 
 
-class temp_active_window:
-    """Context manager that temporarily changes the active window.
+class saved_current_window:
+    """Context manager that saves and restores the active window."""
+    saved_win: wrappers.Window
 
-    This (currently) only works within the current tab page.
+    def __enter__(self):
+        self.saved_win = wrappers.vim.current.window
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if self.saved_win.valid:
+            if wrappers.vim.current.window.id != self.saved_win.id:
+                wrappers.commands.wincmd('w', a=self.saved_win.number)
+
+
+class temp_active_window(saved_current_window):
+    """Context manager that temporarily changes the active window.
 
     :win: The `Window` to switch to.
     """
-    saved_win: wrappers.Window
-
     def __init__(self, win: wrappers.Window):
         self.win = win
 
     def __enter__(self):
-        self.saved_win = wrappers.vim.current.window
+        super().__enter__()
         if wrappers.vim.current.window.id != self.win.id:
             wrappers.commands.wincmd('w', a=self.win.number)
 
+
+class temp_active_buffer:
+    """Context manager that temporarily changes the active buffer.
+
+    If the current window is not currently showing this buffer then the window
+    is switched to this buffer. When the context exits, the original buffer is
+    restored. No actions occur unless necessary.
+
+    If a switch is made then while the context is actives:
+
+    - autocommands are disabled (by setting eventignore=all).
+    - the replaced buffer has bufhidden=hide set.
+    - The alternative buffer register ('#') is not updated.
+
+    This can be used to execute Vim operations that only apply to the current
+    buffer; for example setting up syntax highlighting.
+
+    :buf: The `Buffer` to switch to.
+    """
+    saved_buf: wrappers.Buffer
+    buf_options_ctxt: wrappers.TemporaryOptions
+    glob_options_ctxt: wrappers.TemporaryOptions
+
+    def __init__(self, buf: wrappers.Buffer):
+        self.buf = buf
+        self.no_action_required = False
+
+    def __enter__(self):
+        if wrappers.vim.current.buffer.number == self.buf.number:
+            self.no_action_required = True
+            return
+
+        self.saved_buf = wrappers.vim.current.buffer
+        self.buf_options_ctxt = self.saved_buf.temp_options(bufhidden='hide')
+        self.glob_options_ctxt = wrappers.vim.temp_options(eventignore='all')
+
+        self.buf_options_ctxt.activate()
+        self.glob_options_ctxt.activate()
+        wrappers.commands.buffer(self.buf.number)
+
     def __exit__(self, exc_type, exc_val, exc_tb):
-        if wrappers.vim.current.window.id != self.saved_win.id:
-            wrappers.commands.wincmd('w', a=self.saved_win.number)
+        if self.no_action_required:
+            self.no_action_required = False
+            return
+
+        if wrappers.vim.current.buffer.number != self.saved_buf.number:
+            wrappers.commands.buffer(self.saved_buf.number)
+        self.buf_options_ctxt.restore()
+        self.glob_options_ctxt.restore()
 
 
 def log_status():

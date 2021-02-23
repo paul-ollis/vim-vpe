@@ -384,9 +384,13 @@ class TemporaryOptions:
     User code should not directly instantiate this class. VPE creates and
     manages instances of this class as required.
 
+    This may also be used for a more manual way to save, modify and restore
+    option values, using `activate` and `restore`. This is typically used by
+    other context managers.
+
     :options: The options object.
     :presets: Keyword arguments use to preset option values to be set while the
-              context us active.
+              context is active.
     """
     def __init__(self, vim_options, **presets):
         self.__dict__.update({
@@ -396,14 +400,11 @@ class TemporaryOptions:
         })
 
     def __enter__(self):
-        self._saved.clear()
-        for name, value in self._presets.items():
-            self.__setitem__(name, value)
+        self.activate()
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        for name, value in self._saved.items():
-            self._options[name] = value
+        self.restore()
 
     def __getattr__(self, name):
         return self._options[name]
@@ -418,6 +419,25 @@ class TemporaryOptions:
         if name not in self._saved:
             self._saved[name] = self._options[name]
         self._options.__setattr__(name, value)
+
+    def activate(self):
+        """Activate the temporary option changes.
+
+        This is normally invoked automatically when the context is entered.
+        However, other context managers invoke this directly.
+        """
+        self._saved.clear()
+        for name, value in self._presets.items():
+            self.__setitem__(name, value)
+
+    def restore(self):
+        """Restore backed up options to their original values.
+
+        This is normally invoked automatically when the context is exited.
+        However, other context managers invoke this directly.
+        """
+        for name, value in self._saved.items():
+            self._options[name] = value
 
     def save(self, *names):
         """Explicitly back up a number of options.
