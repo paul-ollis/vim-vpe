@@ -123,16 +123,17 @@ class ScratchBuffer(wrappers.Buffer):
 
     :name:         The name for the buffer.
     :buffer:       The :vim:`python-buffer' that this wraps.
-    :@simple_name: An alternative simple name. This is used in the generation
-                   of the `syntax_prefix` and `auto_grp_name' property values.
-                   If this is not set then is is the same a the *name*
-                   parameter.
+    :@simple_name:
+        An alternative simple name. This is used in the generation of the
+        `syntax_prefix` and `auto_grp_name' property values. If this is not set
+        then is is the same a the *name* parameter. If this is not a valid
+        identifier then it is converted to one by replacing invalid characters
+        to underscores and then eliminitating sequence of multiple underscores.
     """
     def __init__(self, name, buffer, simple_name=None, *args):
         super().__init__(buffer)
         self.__dict__['_base_name'] = name
-        self.__dict__['simple_name'] = simple_name or name
-        self.set_ext_name('')
+        self.__dict__['simple_name'] = _clean_ident(simple_name or name)
         options = self.options
         options.buftype = 'nofile'
         options.swapfile = False
@@ -141,6 +142,7 @@ class ScratchBuffer(wrappers.Buffer):
         options.modifiable = False
         options.bufhidden = 'hide'
         options.buflisted = True
+        self.set_ext_name('')
         with AutoCmdGroup(self.auto_grp_name) as grp:
             grp.add('BufWinEnter', self.on_first_showing, pat=self, once=True)
 
@@ -179,8 +181,8 @@ class ScratchBuffer(wrappers.Buffer):
         allocate to the top/left window.
 
         :splitlines: Number of lines allocated to the top/bottom of the split.
-        :splitcols:  Number of columns allocated to the left/right of the
-                     split.
+        :splitcols:  Number of columns allocated to the left or right window of
+                     the split.
         :return:     True if the window is successfully shown.
         """
         win = wrappers.vim.current.window
@@ -219,7 +221,7 @@ class ScratchBuffer(wrappers.Buffer):
     def on_first_showing(self):
         """Invoked when the buffer is first, successfully displayed.
 
-        This is expected to be over-ridden by subclasses.
+        This is expected to be extended (possibly over-ridden) by subclasses.
         """
 
     def modifiable(self) -> wrappers.TemporaryOptions:

@@ -132,9 +132,9 @@ class PanelViewBuffer(support.Base):
         failUnlessEqual(['Top', 'Middle', 'Bottom'], res.content)
         failUnlessEqual(3, res.change_count)
         failUnlessEqual(3, res.reindex_count)
-        failUnlessEqual('Syn_test-panels_0_', res.prefixes[0])
-        failUnlessEqual('Syn_test-panels_1_', res.prefixes[1])
-        failUnlessEqual('Syn_test-panels_2_', res.prefixes[2])
+        failUnlessEqual('Syn_test_panels_0_', res.prefixes[0])
+        failUnlessEqual('Syn_test_panels_1_', res.prefixes[1])
+        failUnlessEqual('Syn_test_panels_2_', res.prefixes[2])
 
     @test(testID='pview-insert-panel-at-start')
     def insert_panel_at_start(self):
