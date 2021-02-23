@@ -66,7 +66,17 @@ function! VPE_Call(uid, func_name, ...)
     let g:_vpe_args_ = {}
     let g:_vpe_args_['uid'] = a:uid
     let g:_vpe_args_['args'] = a:000
-    return py3eval('vpe.Callback.invoke()')
+    try
+        return py3eval('vpe.Callback.invoke()')
+    finally
+        " Without this a circular reference seem to 'escape', which can
+        " cause Vim to accumulate memory while it is inactive and timers are
+        " regularly firing (an artifact of when Vim permits its garbage
+        " collector to run).
+        if has_key(g:_vpe_args_, 'args')
+            unlet g:_vpe_args_['args']
+        endif
+    endtry
 endfunction
 
 function! VPE_CmdCall(uid, func_name, line1, line2, range, count, bang, mods, reg, ...)
