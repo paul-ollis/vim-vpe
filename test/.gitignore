@@ -4,3 +4,4 @@ test.log
 /.coverage
 /coverage.json
 /covhtml
+/rt_test_data
