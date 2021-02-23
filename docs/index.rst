@@ -1,11 +1,3 @@
-
-.. toctree::
-    :maxdepth: 1
-
-    plugins
-    api/api.vpe
-
-
 Introduction
 ============
 
@@ -13,8 +5,8 @@ Introduction
 
                 _    ______  ______
                | |  / / __ \/ ____/
-               | | / / /_/ / __/     The Vim Python Extensions
-               | |/ / ____/ /___
+               | | / / /_/ / __/
+               | |/ / ____/ /___     The Vim Python Extensions
                |___/_/   /_____/
 
 VPE adds to Vim's built-in support for Python scripting with the following
@@ -26,6 +18,13 @@ aims.
   plug-ins.
 
 - Be extremely compatible with existing Vim Python scripts.
+
+
+.. toctree::
+    :maxdepth: 1
+
+    plugins
+    api/api.vpe
 
 
 Requirements
