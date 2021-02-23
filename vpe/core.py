@@ -10,22 +10,23 @@ module. It is intended that a Vim instance can be uses as a replacement for the
 """
 # pylint: disable=too-many-lines
 
-from functools import partial
-from typing import Optional, Any, Tuple, Dict, Union, Callable, Type
 import collections
+import inspect
 import io
 import itertools
 import platform
+import string
 import sys
 import time
 import traceback
 import weakref
+from functools import partial
+from typing import Any, Callable, Dict, Optional, Tuple, Type, Union
 
 import vim as _vim
 
-from . import colors
-from . import common
-from . import wrappers
+import vpe
+from . import colors, common, wrappers
 
 __api__ = [
     'expr_arg', 'Callback',
@@ -39,7 +40,9 @@ __all__ = [
     'Log', 'error_msg', 'warning_msg', 'echo_msg', 'call_soon', 'log',
     'saved_winview', 'highlight', 'pedit', 'popup_clear',
     'timer_stopall', 'find_buffer_by_name', 'feedkeys', 'get_display_buffer',
-    'define_command', 'CommandInfo', 'temp_active_window',
+    'define_command', 'CommandInfo', 'temp_active_window', 'CommandHandler',
+    'EventHandler', 'BufEventHandler', 'temp_active_buffer',
+    'saved_current_window',
     *__api__
 ]
 id_source = itertools.count()
@@ -1225,6 +1228,72 @@ class AutoCmdGroup:
         common.vim_command(' '.join(cmd_seq))
 
 
+class EventHandler:
+    """Mix-in to support mapping events to methods.
+
+    This provides a convenient alternative to direct use of `AutoCmdGroup`.
+    The default pattern (see vim:`autocmd-patterns`) is '*' unless explicitly
+    set by the `handle` decorator.
+    """
+    _default_event_pattern = '*'
+
+    def auto_define_event_handlers(self, group_name: str, delete_all=False):
+        """Set up mappings for event handling methods.
+
+        :group_name: The name for the auto command group (see :vim:`augrp`).
+                     This will be converted to a valid Vim identifier.
+        :delete_all: If set then all previous auto commands in the group are
+                     deleted.
+        """
+        def is_method(obj):
+            return inspect.ismethod(obj) or inspect.isfunction(obj)
+
+        group_ident = _clean_ident(group_name)
+        if group_ident in ('', '__'):
+            vpe.error_msg(
+                f'{group_name} cannot be converted to a sensible Vim'
+                ' identifier', soon=True)
+            return
+
+        with wrappers.vim.temp_options(cpoptions=vpe.VIM_DEFAULT):
+            with AutoCmdGroup(group_name) as grp:
+                if delete_all:
+                    grp.delete_all()
+                for _, method in inspect.getmembers(self, is_method):
+                    info = getattr(method, '_eventmappings_', None)
+                    if info is not None:
+                        for name, kwargs in info:
+                            kw = kwargs.copy()
+                            if 'pat' not in kw:
+                                kw['pat'] = self._default_event_pattern or self
+                            grp.add(name, method, **kw)
+
+    @staticmethod
+    def handle(name: str, **kwargs) -> Callable[[Callable], Callable]:
+        """Decorator to make an event invoke a method.
+
+        name:   The name of the event (see :vim:`autocmd-events`.
+        kwargs: See `AutoCmdGroup.add` for the supported values.
+        """
+        def wrapper(func: Callable) -> Callable:
+            info = getattr(func, '_eventmappings_', None)
+            if info is None:
+                setattr(func, '_eventmappings_', [])
+                info = getattr(func, '_eventmappings_')
+            info.append((name, kwargs))
+            return func
+
+        return wrapper
+
+
+class BufEventHandler(EventHandler):
+    """Mix-in to support mapping events to methods for buffers.
+
+    This differs from EventHandler by use ``self`` as the default pattern.
+    """
+    _default_event_pattern = None
+
+
 def highlight(
         *, group=None, clear=False, default=False, link=None, disable=False,
         **kwargs):
@@ -1503,6 +1572,40 @@ def define_command(
     cmd.append(name)
     cmd.append(cb.as_call())
     wrappers.vim.command(' '.join(cmd))
+
+
+class CommandHandler:
+    """Mix-in to support mapping user commands to methods."""
+
+    def auto_define_commands(self):
+        """Set up mappings for command methods."""
+        def is_method(obj):
+            return inspect.ismethod(obj) or inspect.isfunction(obj)
+
+        def_cmd = partial(define_command, pass_info=False)
+        with wrappers.vim.temp_options(cpoptions=vpe.VIM_DEFAULT):
+            for _, method in inspect.getmembers(self, is_method):
+                info = getattr(method, '_cmdmappings_', None)
+                if info is not None:
+                    for name, kwargs in info:
+                        def_cmd(name, method, **kwargs)
+
+    @staticmethod
+    def command(name: str, **kwargs) -> Callable[[Callable], Callable]:
+        """Decorator to make a user command invoke a method.
+
+        name:   The name of the user defined command.
+        kwargs: See `define_command` for the supported values.
+        """
+        def wrapper(func: Callable) -> Callable:
+            info = getattr(func, '_cmdmappings_', None)
+            if info is None:
+                setattr(func, '_cmdmappings_', [])
+                info = getattr(func, '_cmdmappings_')
+            info.append((name, kwargs))
+            return func
+
+        return wrapper
 
 
 def timer_stopall():

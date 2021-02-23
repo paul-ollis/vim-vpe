@@ -78,6 +78,7 @@ __api__ = [
     'Variables', 'Window', 'TabPage', 'Windows', 'TabPages', 'Buffers',
     'Current', 'GlobalOptions', 'Function', 'Buffer',
     'Range', 'Struct', 'ScratchBuffer', 'VI_DEFAULT', 'VIM_DEFAULT',
+    'CommandHandler', 'EventHandler', 'BufEventHandler',
 ]
 
 PLUGIN_SUBDIR = 'vpe_plugins'

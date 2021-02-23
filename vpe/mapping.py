@@ -4,8 +4,11 @@ This module provides support for mapping key sequences to Python function
 calls.
 """
 
-from typing import Tuple, Optional, List, Callable, Dict, Any
+import inspect
+from functools import partial
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
+import vpe
 from . import core
 from .wrappers import vim
 
@@ -232,3 +235,41 @@ def imap(
         'insert', keys, func, buffer=buffer, silent=silent, unique=unique,
         nowait=nowait, command=command, args=args, kwargs=kwargs,
         pass_info=pass_info)
+
+
+class KeyHandler:
+    """Mix-in to support mapping key sequences to methods."""
+
+    def auto_map_keys(self):
+        """Set up mappings for methods."""
+        def is_method(obj):
+            return inspect.ismethod(obj) or inspect.isfunction(obj)
+
+        kmap = partial(map, pass_info=False)
+        with vim.temp_options(cpoptions=vpe.VIM_DEFAULT):
+            for _, method in inspect.getmembers(self, is_method):
+                info = getattr(method, '_keymappings_', None)
+                if info is not None:
+                    for mode, keyseq, kwargs in info:
+                        kmap(mode, keyseq, method, **kwargs)
+
+    @staticmethod
+    def mapped(
+            mode: str, keyseq: Union[str, Iterable[str]],
+            **kwargs) -> Callable[[Callable], Callable]:
+        """Decorator to make a keyboard mapping invoke a method.
+
+        mode:   The mode in which the mapping applies, one of normal,
+                op-pending, visual or insert.
+        keyseq: A key sequence or sequence thereof, as used by `vpe.map`.
+        kwargs: See `map` for the supported values.
+        """
+        def wrapper(func: Callable) -> Callable:
+            info = getattr(func, '_keymappings_', None)
+            if info is None:
+                setattr(func, '_keymappings_', [])
+                info = getattr(func, '_keymappings_')
+            info.append((mode, keyseq, kwargs))
+            return func
+
+        return wrapper
