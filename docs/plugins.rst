@@ -10,10 +10,10 @@ Using Vim's standard mechanism for VPE based plug-ins is a bit fiddly because:
 - You need a vim script file that then imports and initialises the actual
   Python code. Note that is it not a good idea to simply put all the code
   within 'python3 <<EOF ... EOF' because that will pollute Vim's global Python
-  namespace. 
+  namespace.
 
 - Such plug-ins depend on the VPE plug-in being loaded first.
-  
+
 So the Vim Python Extensions (VPE) provides a framework that simplifies writing
 plug-ins in Python.
 
@@ -46,9 +46,9 @@ Plug-in loading and initialisation
 Loading
 -------
 
-VPE plug-ins are loaded after other Vim startup (by using :vim:`VimEnter` auto
-command). VPE scans the vpe_plugins directory for auto-loadable plug-in modules
-and packages during normal Vim start up.
+VPE plug-ins are loaded after other Vim startup (by using the :vim:`VimEnter`
+auto command). VPE scans the vpe_plugins directory for auto-loadable plug-in
+modules and packages during normal Vim start up.
 
 Each one it finds is loaded by simply importing it as a sub-module or
 sub-pakage of the vpe_plugins package. For example if your plugin file is
