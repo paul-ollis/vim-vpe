@@ -630,7 +630,7 @@ class Buffer(MutableSequenceProxy):
         return self.location
 
     def is_active(self):
-        """True if visible in the current window."""
+        """Test whether the current window is showing this buffer."""
         return vim.current.buffer is self
 
     def append(self, line_or_lines, nr=None):
@@ -691,16 +691,16 @@ class Buffer(MutableSequenceProxy):
         """
         return TemporaryOptions(self.options, **presets)
 
-    def find_active_windows(self, all_tabpages=True) -> List["Window"]:
+    def find_active_windows(self, all_tabpages=False) -> List['Window']:
         """Find windows where this buffer is active.
 
         The list windows returned is prioritised as a result of searching in
         the following order. The current window, windows in the current tab
         page, all windows in all tab pages.
 
-        :all_tabpages: If True (the default) all tab pages are searched.
-                       Otherwise only the current tab page is searched.
-        :return:       A list of the windows found.
+        :all_tabpages: If True then all tab pages are searched. Otherwise only
+                       the current tab page is searched.
+        :return: A list of the windows found.
         """
         def add_win(win):
             k = win.tabpage.number, win.number
@@ -717,21 +717,31 @@ class Buffer(MutableSequenceProxy):
                     add_win(win)
         return list(windows.values())
 
-    def goto_active_window(self) -> bool:
-        """Goto a window where this buffer is active.
+    def find_best_active_window(self, all_tabpages=False) -> Optional['Window']:
+        """Find tehe best choice for a window where this buffer is active.
 
-        Windows are search in the following order. The current window, windows
-        in the current tab page, all windows in all tab pages.
+        This returns the first entry found by `find_active_windows`.
 
-        This has no effect (and returns False) if the buffer is not active in
-        any window.
-
-        :return: True if an active window was found
+        :all_tabpages: If True (the default) all tab pages are searched.
+                       Otherwise only the current tab page is searched.
+        :return: The window or None.
         """
-        windows = self.find_active_windows()
-        if windows:
-            windows[0].goto()
-        return bool(windows)
+        windows = self.find_active_windows(all_tabpages=all_tabpages)
+        return windows[0] if windows else None
+
+    def goto_active_window(self, all_tabpages=False) -> Optional['Window']:
+        """Goto the best choice window where this buffer is active.
+
+        This goes to the first entry found by `find_active_windows`.
+
+        :all_tabpages: If True (the default) all tab pages are searched.
+                       Otherwise only the current tab page is searched.
+        :return: The window that was chosen or None.
+        """
+        window = self.find_best_active_window(all_tabpages=all_tabpages)
+        if window:
+            window.goto()
+        return window
 
     def __getattr__(self, name):
         """Make the values from getbufinfo() available as attributes.
