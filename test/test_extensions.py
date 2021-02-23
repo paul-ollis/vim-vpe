@@ -980,12 +980,12 @@ class Miscellaneous(support.CommandsBase):
 
         :<vim>:
 
-            highlight clear
-            highlight clear test
-            highlight test NONE
-            highlight test default guifg=Blue guibg=#1874cd
-            highlight test gui=bold ctermfg=16
-            highlight link PythonFunction Function
+            keepalt highlight clear
+            keepalt highlight clear test
+            keepalt highlight test NONE
+            keepalt highlight test default guifg=Blue guibg=#1874cd
+            keepalt highlight test gui=bold ctermfg=16
+            keepalt highlight link PythonFunction Function
         """
         vpe.highlight(clear=True)
         vpe.highlight(group='test', clear=True)

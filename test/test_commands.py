@@ -192,6 +192,33 @@ class Commands(support.Base):
         res = self.run_self()
         failUnlessEqual(2, res.win_num)
 
+    @test(testID='command-keepalt')
+    def run_command_keepalt(self):
+        """The keepalt modifier is true by default.
+
+        :<py>:
+
+            from vpe import commands
+
+            res = Struct()
+
+            commands.wincmd('o')
+            res.orig_alt = vim.registers['#']
+            commands.edit('/tmp/vpe-wiley.txt')
+            res.new_alt = vim.registers['#']
+            res.new_buf = vim.current.buffer.name
+
+            commands.edit('/tmp/vpe-wilier.txt', keepalt=False)
+            res.newer_alt = vim.registers['#']
+
+            dump(res)
+        """
+        res = self.run_self()
+        failUnlessEqual(res.orig_alt, res.new_alt)
+        failUnlessEqual(res.orig_alt, res.new_alt)
+        failIfEqual(res.orig_alt, res.newer_alt)
+        failUnlessEqual(res.new_buf, res.newer_alt)
+
     @test(testID='command-unknown')
     def unknown_comand_is_attributue_error(self):
         """An unknown command is raises an AttributeError.

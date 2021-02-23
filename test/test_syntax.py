@@ -31,8 +31,8 @@ class BasicSyntaxUse(support.CommandsBase):
 
         :<vim>:
 
-            syntax clear
-            syntax match TestMain "Hello"
+            keepalt syntax clear
+            keepalt syntax match TestMain "Hello"
         """
         with syntax.Syntax('Test') as syn:
             grp = syn.group('Main')
@@ -45,9 +45,9 @@ class BasicSyntaxUse(support.CommandsBase):
 
         :<vim>:
 
-            syntax clear
-            syntax match TestMain "Hello"
-            syntax match TestMain "Goodbye"
+            keepalt syntax clear
+            keepalt syntax match TestMain "Hello"
+            keepalt syntax match TestMain "Goodbye"
         """
         with syntax.Syntax('Test') as syn:
             grp = syn.group('Main')
@@ -61,9 +61,9 @@ class BasicSyntaxUse(support.CommandsBase):
 
         :<vim>:
 
-            syntax clear
-            syntax match TestMain "Hello" nextgroup=PythonMain
-            syntax match TestMain "Goodbye" matchgroup=TestGroupB
+            keepalt syntax clear
+            keepalt syntax match TestMain "Hello" nextgroup=PythonMain
+            keepalt syntax match TestMain "Goodbye" matchgroup=TestGroupB
         """
         with syntax.Syntax('Test') as syn:
             grp = syn.group('Main')
@@ -86,10 +86,10 @@ class BasicSyntaxUse(support.CommandsBase):
 
         :<vim>:
 
-            syntax clear
-            syntax match TestMain "Hello" contains=@TestGroupA
-            syntax match TestMain "Hello" contains=TestMain,TestOther
-            syntax cluster TestGroupA contains=TestConst,TestMain,TestVar
+            keepalt syntax clear
+            keepalt syntax match TestMain "Hello" contains=@TestGroupA
+            keepalt syntax match TestMain "Hello" contains=TestMain,TestOther
+            keepalt syntax cluster TestGroupA contains=TestConst,TestMain,TestVar
         """
         with syntax.Syntax('Test') as syn:
             grp = syn.group('Main')
@@ -106,8 +106,8 @@ class BasicSyntaxUse(support.CommandsBase):
 
         :<vim>:
 
-            syntax clear
-            syntax match TestMain "Hello" contains=@ExtGroup
+            keepalt syntax clear
+            keepalt syntax match TestMain "Hello" contains=@ExtGroup
         """
         with syntax.Syntax('Test') as syn:
             grp = syn.group('Main')
@@ -123,8 +123,8 @@ class BasicSyntaxUse(support.CommandsBase):
 
         :<vim>:
 
-            syntax clear
-            syntax sync match TestMain grouphere NONE "Hello"
+            keepalt syntax clear
+            keepalt syntax sync match TestMain grouphere NONE "Hello"
         """
         with syntax.Syntax('Test') as syn:
             grp = syn.sync_group('Main')
@@ -137,9 +137,9 @@ class BasicSyntaxUse(support.CommandsBase):
 
         :<vim>:
 
-            syntax clear
-            syntax match TestMain "Hello"
-            syntax match TestMain "Goodbye"
+            keepalt syntax clear
+            keepalt syntax match TestMain "Hello"
+            keepalt syntax match TestMain "Goodbye"
         """
         with syntax.Syntax('Test') as syn:
             grp = syn.group('Main')
@@ -147,7 +147,7 @@ class BasicSyntaxUse(support.CommandsBase):
             preview = syn.preview_last()
             grp.add_match('Goodbye')
         self.check_commands()
-        failUnlessEqual('syntax match TestMain "Hello"', preview)
+        failUnlessEqual('keepalt syntax match TestMain "Hello"', preview)
 
     @test(testID='syntax-cluster-empty')
     def syntax_cluster_empty(self):
@@ -155,8 +155,8 @@ class BasicSyntaxUse(support.CommandsBase):
 
         :<vim>:
 
-            syntax clear
-            syntax match TestMain "Hello" contains=@TestGroupA
+            keepalt syntax clear
+            keepalt syntax match TestMain "Hello" contains=@TestGroupA
         """
         with syntax.Syntax('Test') as syn:
             grp = syn.group('Main')
@@ -170,9 +170,9 @@ class BasicSyntaxUse(support.CommandsBase):
 
         :<vim>:
 
-            syntax clear
-            syntax match TestMain "Hello" contains=@TestGroupA
-            syntax cluster TestGroupA contains=ALL
+            keepalt syntax clear
+            keepalt syntax match TestMain "Hello" contains=@TestGroupA
+            keepalt syntax cluster TestGroupA contains=ALL
         """
         with syntax.Syntax('Test') as syn:
             grp = syn.group('Main')
@@ -186,9 +186,9 @@ class BasicSyntaxUse(support.CommandsBase):
 
         :<vim>:
 
-            syntax clear
-            syntax match TestMain "Hello" contains=@TestGroupA
-            syntax cluster TestGroupA contains=ALLBUT,TestOther
+            keepalt syntax clear
+            keepalt syntax match TestMain "Hello" contains=@TestGroupA
+            keepalt syntax cluster TestGroupA contains=ALLBUT,TestOther
         """
         with syntax.Syntax('Test') as syn:
             grp = syn.group('Main')
@@ -205,10 +205,10 @@ class BasicSyntaxUse(support.CommandsBase):
 
         :<vim>:
 
-            syntax clear
-            syntax match TestMain "Hello" contains=@TestGroupA
-            syntax match TestThird "Goodbyte"
-            syntax cluster TestGroupA contains=TestOther,TestThird
+            keepalt syntax clear
+            keepalt syntax match TestMain "Hello" contains=@TestGroupA
+            keepalt syntax match TestThird "Goodbyte"
+            keepalt syntax cluster TestGroupA contains=TestOther,TestThird
         """
         with syntax.Syntax('Test') as syn:
             grp = syn.group('Main')
@@ -224,9 +224,9 @@ class BasicSyntaxUse(support.CommandsBase):
 
         :<vim>:
 
-            syntax clear
-            runtime syntax/python.vim
-            syntax match TestMain "Hello"
+            keepalt syntax clear
+            keepalt runtime syntax/python.vim
+            keepalt syntax match TestMain "Hello"
         """
         with syntax.Syntax('Test') as syn:
             grp = syn.group('Main')
@@ -240,10 +240,10 @@ class BasicSyntaxUse(support.CommandsBase):
 
         :<vim>:
 
-            syntax clear
-            syntax include @TestGroupA syntax/python
-            syntax match TestMain "Hello" contains=@TestGroupA
-            syntax cluster TestGroupA contains=TestOther
+            keepalt syntax clear
+            keepalt syntax include @TestGroupA syntax/python
+            keepalt syntax match TestMain "Hello" contains=@TestGroupA
+            keepalt syntax cluster TestGroupA contains=TestOther
         """
         with syntax.Syntax('Test') as syn:
             grp = syn.group('Main')
@@ -266,9 +266,9 @@ class Groups(support.CommandsBase):
 
         :<vim>:
 
-            syntax clear
-            syntax keyword TestMain class function
-            syntax keyword TestMain def contained
+            keepalt syntax clear
+            keepalt syntax keyword TestMain class function
+            keepalt syntax keyword TestMain def contained
         """
         with syntax.Syntax('Test') as syn:
             grp = syn.group('Main')
@@ -282,8 +282,8 @@ class Groups(support.CommandsBase):
 
         :<vim>:
 
-            syntax clear
-            syntax match TestMain "def function()"ms=s+3,me=e-2
+            keepalt syntax clear
+            keepalt syntax match TestMain "def function()"ms=s+3,me=e-2
         """
         with syntax.Syntax('Test') as syn:
             grp = syn.group('Main')
@@ -296,10 +296,10 @@ class Groups(support.CommandsBase):
 
         :<vim>:
 
-            syntax clear
-            syntax match TestMain '"def function()"'
-            syntax match TestMain /['"]/
-            syntax match TestMain "'\"/\+?!=^_:@$%&*;~#,."
+            keepalt syntax clear
+            keepalt syntax match TestMain '"def function()"'
+            keepalt syntax match TestMain /['"]/
+            keepalt syntax match TestMain "'\"/\+?!=^_:@$%&*;~#,."
         """
         with syntax.Syntax('Test') as syn:
             grp = syn.group('Main')
@@ -317,10 +317,10 @@ class Groups(support.CommandsBase):
 
         :<vim>:
 
-            syntax clear
-            highlight! default link TestMain Constant
-            highlight! default link TestOther Constant
-            highlight! default link TestThird Constant
+            keepalt syntax clear
+            keepalt highlight! default link TestMain Constant
+            keepalt highlight! default link TestOther Constant
+            keepalt highlight! default link TestThird Constant
         """
         with syntax.Syntax('Test') as syn:
             main = syn.group('Main')
@@ -336,9 +336,9 @@ class Groups(support.CommandsBase):
 
         :<vim>:
 
-            syntax clear
-            syntax region TestMain start="//" end="$"
-            syntax region TestMain start="/*" skip="/*" end="*/" contained
+            keepalt syntax clear
+            keepalt syntax region TestMain start="//" end="$"
+            keepalt syntax region TestMain start="/*" skip="/*" end="*/" contained
         """
         with syntax.Syntax('Test') as syn:
             main = syn.group('Main')
@@ -352,13 +352,13 @@ class Groups(support.CommandsBase):
 
         :<vim>:
 
-            syntax clear
-            syntax keyword TestMain class function contained
-            syntax keyword TestMain pass contained
-            syntax keyword TestMain def
-            syntax match TestMain "not in" contained
-            syntax region TestMain start="//" end="$" contained
-            syntax region TestMain start="/*" end="*/" contained
+            keepalt syntax clear
+            keepalt syntax keyword TestMain class function contained
+            keepalt syntax keyword TestMain pass contained
+            keepalt syntax keyword TestMain def
+            keepalt syntax match TestMain "not in" contained
+            keepalt syntax region TestMain start="//" end="$" contained
+            keepalt syntax region TestMain start="/*" end="*/" contained
         """
         with syntax.Syntax('Test') as syn:
             grp = syn.group('Main', contained=True)
@@ -381,11 +381,11 @@ class Groups(support.CommandsBase):
 
         :<vim>:
 
-            syntax clear
-            syntax match TestMain "\%<5lpreamble"
-            syntax match TestMain "\%>4l\%<11lwarning"
-            syntax match TestMain "\%11lresult"
-            syntax match TestMain "\%>11lextra info"
+            keepalt syntax clear
+            keepalt syntax match TestMain "\%<5lpreamble"
+            keepalt syntax match TestMain "\%>4l\%<11lwarning"
+            keepalt syntax match TestMain "\%11lresult"
+            keepalt syntax match TestMain "\%>11lextra info"
         """
         with syntax.Syntax('Test') as syn:
             grp = syn.group('Main')
@@ -403,8 +403,8 @@ class Groups(support.CommandsBase):
 
         :<vim>:
 
-            syntax clear
-            highlight TestMain default guifg=Red
+            keepalt syntax clear
+            keepalt highlight TestMain default guifg=Red
         """
         with syntax.Syntax('Test') as syn:
             main = syn.group('Main')
@@ -424,9 +424,9 @@ class Regions(support.CommandsBase):
 
         :<vim>:
 
-            syntax clear
-            syntax region TestMain start="fun" start="function" end="endfunction"me=s
-            syntax region TestMain start="/*" skip="/*" end="*/"
+            keepalt syntax clear
+            keepalt syntax region TestMain start="fun" start="function" end="endfunction"me=s
+            keepalt syntax region TestMain start="/*" skip="/*" end="*/"
         """
         with syntax.Syntax('Test') as syn:
             grp = syn.group('Main')
@@ -446,9 +446,9 @@ class Regions(support.CommandsBase):
 
         :<vim>:
 
-            syntax clear
-            syntax region TestMain start="\%<5lA" end="\%>4l\%<11lB"
-            syntax region TestMain start="\%11lA" end="\%>11lB"
+            keepalt syntax clear
+            keepalt syntax region TestMain start="\%<5lA" end="\%>4l\%<11lB"
+            keepalt syntax region TestMain start="\%11lA" end="\%>11lB"
         """
         with syntax.Syntax('Test') as syn:
             grp = syn.group('Main')
@@ -466,9 +466,9 @@ class Regions(support.CommandsBase):
 
         :<vim>:
 
-            syntax clear
-            syntax region TestMain matchgroup=TestGroupA start="fun" end="endf"
-            syntax region TestMain start="fun" matchgroup=TestGroupA end="endf"
+            keepalt syntax clear
+            keepalt syntax region TestMain matchgroup=TestGroupA start="fun" end="endf"
+            keepalt syntax region TestMain start="fun" matchgroup=TestGroupA end="endf"
         """
         with syntax.Syntax('Test') as syn:
             grp = syn.group('Main')

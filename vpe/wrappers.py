@@ -1188,7 +1188,7 @@ class Command:
     :belowright: Run with the belowright command modifier.
     :topleft:    Run with the topleft command modifier.
     :botright:   Run with the botright command modifier.
-    :keepalt:    Run with the keepalt command modifier.
+    :keepalt:    Run with the keepalt command modifier. Default = True.
     :preview:    For debugging. Do not execute the command, but return what
                  would be passed to vim.command.
     """
@@ -1198,7 +1198,7 @@ class Command:
 
     def __call__(
             self, *args, bang=False, lrange='', a='', b='', preview=False,
-            **kwargs):
+            keepalt=True, **kwargs):
         exclamation = '!' if bang else ''
         cmd = f'{self.name}{exclamation}'
         arg_expr = ''
@@ -1221,10 +1221,12 @@ class Command:
                 range_expr = f'{a} '
             else:
                 range_expr = f'.,{b} '
+        mod_args = {'keepalt': keepalt}
+        mod_args.update(kwargs)
         modifiers = (
             'vertical', 'aboveleft', 'belowright', 'topleft', 'botright',
             'keepalt')
-        cmd_mods = " ".join(mod for mod in modifiers if kwargs.get(mod))
+        cmd_mods = " ".join(mod for mod in modifiers if mod_args.get(mod))
         if cmd_mods:
             cmd = f'{cmd_mods} {range_expr}{cmd}{arg_expr}'
         else:
