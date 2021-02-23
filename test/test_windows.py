@@ -10,6 +10,7 @@ from cleversheep3.Test.Tester import test, runModule
 import support
 
 import vpe
+from vpe import windows
 
 _run_after = ['test_vim.py']
 
@@ -346,6 +347,315 @@ class Windows(support.Base):
         failUnlessEqual((0, 20), res.buf_top)
         failUnlessEqual((60, 80), res.buf_bottom)
         failUnlessEqual((49, 69), res.buf_mid)
+
+
+class Layout(support.Base):
+    """VPE support windows layout.
+
+    The windows.LayoutElement provides an API to work with Vim window layout.
+    """
+    window: vpe.wrappers.Window
+
+    def setUp(self):
+        """Called to set up each test.
+        :<py>:
+
+            vpe.commands.wincmd('o')
+        """
+        super().setUp()
+        self.run_setup()
+
+    @test(testID='layout-single')
+    def single_window(self):
+        """A single window yields a single LayoutWindow instance.
+
+        The instance provides an ID and width; and has a type_name of Win.
+
+        :<py>:
+
+            from vpe import windows
+
+            res = Struct()
+            res.layout = windows.LayoutElement.create_from_vim_layout(
+                vim.winlayout())
+
+            dump(res)
+        """
+        res = self.run_self()
+        failUnless(isinstance(res.layout, windows.LayoutWindow))
+        failUnlessEqual('Win', res.layout.type_name)
+        failUnlessEqual(100, res.layout.width)
+        failUnless(isinstance(res.layout.id, int))
+        failUnlessEqual(1, len(res.layout))
+
+    @test(testID='layout-hsplit')
+    def single_hsplit(self):
+        """A simple horizontal split yields a LayoutColumn.
+
+        It has a type_name of Col.
+        The components LayoutWindow instances are available using indexing. In
+        this scenario, the iter_windows will yield the same window instances.
+
+        :<py>:
+
+            from vpe import windows
+
+            res = Struct()
+            vpe.commands.split()
+            res.layout = windows.LayoutElement.create_from_vim_layout(
+                vim.winlayout())
+
+            dump(res)
+        """
+        res = self.run_self()
+        failUnless(isinstance(res.layout, windows.LayoutColumn))
+        failUnlessEqual('Col', res.layout.type_name)
+        failUnless(isinstance(res.layout[0], windows.LayoutWindow))
+        failUnless(isinstance(res.layout[1], windows.LayoutWindow))
+        for i, layout in enumerate(res.layout.iter_windows()):
+            failUnless(layout is res.layout[i])
+        failUnlessEqual(2, len(res.layout))
+
+    @test(testID='layout-vsplit')
+    def single_vsplit(self):
+        """A simple vertical split yields a LayoutRow.
+
+        This is analogous to the LayoutColumn. Its type_name is Col.
+
+        :<py>:
+
+            from vpe import windows
+
+            res = Struct()
+            vpe.commands.split(vertical=True)
+            res.layout = windows.LayoutElement.create_from_vim_layout(
+                vim.winlayout())
+
+            dump(res)
+        """
+        res = self.run_self()
+        failUnless(isinstance(res.layout, windows.LayoutRow))
+        failUnlessEqual('Row', res.layout.type_name)
+        failUnless(isinstance(res.layout[0], windows.LayoutWindow))
+        failUnless(isinstance(res.layout[1], windows.LayoutWindow))
+        for i, layout in enumerate(res.layout.iter_windows()):
+            failUnless(layout is res.layout[i])
+        failUnlessEqual(2, len(res.layout))
+
+    @test(testID='layout-nested')
+    def nested_splits(self):
+        """Nested splits yield a nested set of rows and columns.
+
+        The iter_windows method will yield each leaf LayoutWindow.
+
+        For debug support, the describe method produces a clear description, as
+        a sequence of lines.
+
+        :<py>:
+
+            from vpe import windows
+
+            res = Struct()
+            vpe.commands.split()
+            vpe.commands.split()
+            vpe.commands.split(vertical=True)
+            vpe.commands.split()
+            res.layout = windows.LayoutElement.create_from_vim_layout(
+                vim.winlayout())
+
+            dump(res)
+        """
+        res = self.run_self()
+        failUnless(isinstance(res.layout, windows.LayoutColumn))
+        failUnless(isinstance(res.layout[0], windows.LayoutRow))
+        failUnless(isinstance(res.layout[1], windows.LayoutWindow))
+        failUnless(isinstance(res.layout[2], windows.LayoutWindow))
+
+        row = res.layout[0]
+        failUnless(isinstance(row[0], windows.LayoutColumn))
+        failUnless(isinstance(row[1], windows.LayoutWindow))
+
+        col = row[0]
+        failUnless(isinstance(col[0], windows.LayoutWindow))
+        failUnless(isinstance(col[1], windows.LayoutWindow))
+
+        iter_order = (
+            res.layout[0][0][0],
+            res.layout[0][0][1],
+            res.layout[0][1],
+            res.layout[1],
+            res.layout[2],
+        )
+        for expect, win in zip(iter_order, res.layout.iter_windows()):
+            failUnless(expect is win)
+
+        lines = res.layout.describe()
+        failUnlessEqual('Col = 100', lines[0])
+        failUnlessEqual('    Row = 100', lines[1])
+        failUnlessEqual('        Col = 50', lines[2])
+        failUnlessEqual('            Win[1] = 50', lines[3])
+        failUnlessEqual('            Win[2] = 50', lines[4])
+        failUnlessEqual('        Win[3] = 49', lines[5])
+        failUnlessEqual('    Win[4] = 100', lines[6])
+        failUnlessEqual('    Win[5] = 100', lines[7])
+
+    @test(testID='layout-adjust')
+    def adjust_layout(self):
+        """A layout can be adjusted to reflect a change in columns.
+
+        It is the layout tree that is modified, the actual Vim window layout
+        is only changed if apply_sizes is invoked.
+
+        The set_widths_from_layout method allows one layout to adjust another.
+        :<py>:
+
+            from vpe import windows
+
+            res = Struct()
+            vpe.commands.split()
+            vpe.commands.split()
+            vpe.commands.split(vertical=True)
+            vpe.commands.resize(-10, vertical=True)
+            vpe.commands.split()
+            res.layout = windows.LayoutElement.create_from_vim_layout(
+                vim.winlayout())
+            res.alt_layout = windows.LayoutElement.create_from_vim_layout(
+                vim.winlayout())
+
+            res.new_layout = windows.LayoutElement.create_from_vim_layout(
+                vim.winlayout())
+            vim.options.columns += 10
+            res.new_layout.adjust_width(vim.options.columns)
+            res.alt_layout.set_widths_from_layout(res.new_layout)
+
+            res.unadjusted = windows.LayoutElement.create_from_vim_layout(
+                vim.winlayout())
+            res.new_layout.adjust_width(vim.options.columns)
+
+            res.new_layout.apply_sizes()
+            res.adjusted = windows.LayoutElement.create_from_vim_layout(
+                vim.winlayout())
+
+            dump(res)
+        """
+        res = self.run_self()
+        lines = res.layout.describe()
+        failUnlessEqual('Col = 100', lines[0])
+        failUnlessEqual('    Row = 100', lines[1])
+        failUnlessEqual('        Col = 40', lines[2])
+        failUnlessEqual('            Win[1] = 40', lines[3])
+        failUnlessEqual('            Win[2] = 40', lines[4])
+        failUnlessEqual('        Win[3] = 59', lines[5])
+        failUnlessEqual('    Win[4] = 100', lines[6])
+        failUnlessEqual('    Win[5] = 100', lines[7])
+
+        lines = res.new_layout.describe()
+        failUnlessEqual('Col = 110', lines[0])
+        failUnlessEqual('    Row = 110', lines[1])
+        failUnlessEqual('        Col = 44', lines[2])
+        failUnlessEqual('            Win[1] = 44', lines[3])
+        failUnlessEqual('            Win[2] = 44', lines[4])
+        failUnlessEqual('        Win[3] = 65', lines[5])
+        failUnlessEqual('    Win[4] = 110', lines[6])
+        failUnlessEqual('    Win[5] = 110', lines[7])
+
+        lines = res.alt_layout.describe()
+        failUnlessEqual('Col = 110', lines[0])
+        failUnlessEqual('    Row = 110', lines[1])
+        failUnlessEqual('        Col = 44', lines[2])
+        failUnlessEqual('            Win[1] = 44', lines[3])
+        failUnlessEqual('            Win[2] = 44', lines[4])
+        failUnlessEqual('        Win[3] = 65', lines[5])
+        failUnlessEqual('    Win[4] = 110', lines[6])
+        failUnlessEqual('    Win[5] = 110', lines[7])
+
+        lines = res.unadjusted.describe()
+        failUnlessEqual('Col = 110', lines[0])
+        failUnlessEqual('    Row = 110', lines[1])
+        failUnlessEqual('        Col = 40', lines[2])
+        failUnlessEqual('            Win[1] = 40', lines[3])
+        failUnlessEqual('            Win[2] = 40', lines[4])
+        failUnlessEqual('        Win[3] = 69', lines[5])
+        failUnlessEqual('    Win[4] = 110', lines[6])
+        failUnlessEqual('    Win[5] = 110', lines[7])
+
+        lines = res.adjusted.describe()
+        failUnlessEqual('Col = 110', lines[0])
+        failUnlessEqual('    Row = 110', lines[1])
+        failUnlessEqual('        Col = 44', lines[2])
+        failUnlessEqual('            Win[1] = 44', lines[3])
+        failUnlessEqual('            Win[2] = 44', lines[4])
+        failUnlessEqual('        Win[3] = 65', lines[5])
+        failUnlessEqual('    Win[4] = 110', lines[6])
+        failUnlessEqual('    Win[5] = 110', lines[7])
+
+    @test(testID='layout-adjust-sanity')
+    def adjust_layout_sanely(self):
+        """Layout adjustment avoids invalid widths and unwarranted adjustments.
+
+        :<py>:
+
+            from vpe import windows
+
+            res = Struct()
+            vpe.commands.split()
+            vpe.commands.split()
+            vpe.commands.split(vertical=True)
+            vpe.commands.resize(-10, vertical=True)
+            vpe.commands.split()
+            res.layout = windows.LayoutElement.create_from_vim_layout(
+                vim.winlayout())
+            res.layout2 = windows.LayoutElement.create_from_vim_layout(
+                vim.winlayout())
+            res.layout3 = windows.LayoutElement.create_from_vim_layout(
+                vim.winlayout())
+
+            dump(res)
+        """
+        res = self.run_self()
+        res.layout.adjust_width(3)
+        lines = res.layout.describe()
+        failUnlessEqual('Col = 3', lines[0])
+        failUnlessEqual('    Row = 3', lines[1])
+        failUnlessEqual('        Col = 1', lines[2])
+        failUnlessEqual('            Win[1] = 1', lines[3])
+        failUnlessEqual('            Win[2] = 1', lines[4])
+        failUnlessEqual('        Win[3] = 1', lines[5])
+        failUnlessEqual('    Win[4] = 3', lines[6])
+        failUnlessEqual('    Win[5] = 3', lines[7])
+
+        res.layout2.adjust_width(4)
+        lines = res.layout2.describe()
+        failUnlessEqual('Col = 4', lines[0])
+        failUnlessEqual('    Row = 4', lines[1])
+        failUnlessEqual('        Col = 1', lines[2])
+        failUnlessEqual('            Win[1] = 1', lines[3])
+        failUnlessEqual('            Win[2] = 1', lines[4])
+        failUnlessEqual('        Win[3] = 2', lines[5])
+        failUnlessEqual('    Win[4] = 4', lines[6])
+        failUnlessEqual('    Win[5] = 4', lines[7])
+
+        res.layout2.adjust_width(8)
+        lines = res.layout2.describe()
+        failUnlessEqual('Col = 8', lines[0])
+        failUnlessEqual('    Row = 8', lines[1])
+        failUnlessEqual('        Col = 3', lines[2])
+        failUnlessEqual('            Win[1] = 3', lines[3])
+        failUnlessEqual('            Win[2] = 3', lines[4])
+        failUnlessEqual('        Win[3] = 4', lines[5])
+        failUnlessEqual('    Win[4] = 8', lines[6])
+        failUnlessEqual('    Win[5] = 8', lines[7])
+
+        res.layout2[0].adjust_width(8)
+        lines = res.layout2.describe()
+        failUnlessEqual('Col = 8', lines[0])
+        failUnlessEqual('    Row = 8', lines[1])
+        failUnlessEqual('        Col = 3', lines[2])
+        failUnlessEqual('            Win[1] = 3', lines[3])
+        failUnlessEqual('            Win[2] = 3', lines[4])
+        failUnlessEqual('        Win[3] = 4', lines[5])
+        failUnlessEqual('    Win[4] = 8', lines[6])
+        failUnlessEqual('    Win[5] = 8', lines[7])
 
 
 if __name__ == '__main__':
