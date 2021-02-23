@@ -44,10 +44,10 @@ _vpe_args_
 # pylint: disable=too-many-lines
 
 import importlib
-import traceback
 import sys
+import traceback
 from pathlib import Path
-from typing import Tuple, Union, Any
+from typing import Any, Callable, Tuple, Union
 
 import vim as _vim
 
@@ -62,7 +62,7 @@ from . import channels, mapping, syntax
 from .mapping import MapCallback
 from .wrappers import (
     Buffer, Buffers, Current, GlobalOptions, Range, Registers, Struct, TabPage,
-    TabPages, Variables, Window, Windows, commands, VI_DEFAULT, VIM_DEFAULT)
+    TabPages, VIM_DEFAULT, VI_DEFAULT, Variables, Window, Windows, commands)
 
 __api__ = [
     'AutoCmdGroup', 'Timer', 'Popup', 'PopupAtCursor', 'PopupBeval',
@@ -82,6 +82,8 @@ __api__ = [
 ]
 
 PLUGIN_SUBDIR = 'vpe_plugins'
+
+_plugin_hooks = {}
 
 
 class Finish(Exception):
@@ -117,6 +119,16 @@ def script_py_path() -> str:
     return str(py_script)
 
 
+def add_post_plugin_hook(name: str, func: Callable):
+    """Add a function to be called after a VPE plugin has been installed.
+
+    :name: The name of the VPE plugin.
+    :func: The function to be invoked.
+    """
+    _plugin_hooks.setdefault(name, [])
+    _plugin_hooks.setdefault(name).append(func)
+
+
 def _is_plugin(path):
     """Test whether a pythonfile is a plugin.
 
@@ -147,9 +159,19 @@ def _import_possible_plugin(path):
     except Finish as exc:
         print('Could not initialise VPE plug-in {path}')
         print('   {exc}')
+        return
     except Exception as exc:
         traceback.print_exc()
         print(f'Error loading VPE plug-in {path}')
+        return
+
+    # Run any user provided post-plugin hook function.
+    funcs = _plugin_hooks.get(path.stem, [])
+    for func in funcs:
+        try:
+            func()
+        except Exception as e:
+            core.error_msg(f'Error in post-plugin hook {func}, {e}', soon=True)
 
 
 def _load_plugins():

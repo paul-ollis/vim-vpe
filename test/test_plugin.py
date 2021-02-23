@@ -132,6 +132,34 @@ class TestPlugin(support.Base):
         """
         failUnless(time.time() - self.init_py.stat().st_mtime < 2.0)
 
+    @test(testID='plugin-load-hook')
+    def load_hook(self):
+        """The user can add hook functions to be invoked upon plugin init.
+
+        :<py>:
+            res = Struct()
+            res.plugin_hook_loaded = vim.vars.vpe_plugin_hook_loaded
+            res.plugin_hook_ok = vim.vars.vpe_plugin_hook_ok
+            dump(res)
+        """
+        res = self.run_self()
+        failUnlessEqual(1, res.plugin_hook_loaded)
+        failUnlessEqual(1, res.plugin_hook_ok)
+
+    @test(testID='plugin-load-hook-err')
+    def load_hook_error(self):
+        """Errors in the hook callback are handled gracefully.
+
+        :<py>:
+            res = Struct()
+            res.plugin_hook_loaded = vim.vars.vpe_plugin_hook_loaded
+            res.plugin_hook_ok = vim.vars.vpe_plugin_hook_ok
+            dump(res)
+        """
+        res = self.run_self()
+        failUnlessEqual(1, res.plugin_hook_loaded)
+        failUnlessEqual(1, res.plugin_hook_ok)
+
 
 if __name__ == '__main__':
     runModule()
