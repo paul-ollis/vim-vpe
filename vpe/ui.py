@@ -472,7 +472,6 @@ class ConfigPanelBuffer(
     def get_field_by_idx(self, index: int):
         """Get the editable field with a given index."""
         for panel in self.config_panels():
-            print("Try panel", panel)
             field = panel.get_field_by_idx(index)
             if field:
                 return panel, field

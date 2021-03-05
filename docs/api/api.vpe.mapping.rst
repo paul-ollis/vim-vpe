@@ -8,6 +8,46 @@ Python support for key sequence mapping.
 This module provides support for mapping key sequences to Python function
 calls.
 
+KeyHandler
+----------
+
+.. py:class:: vpe.mapping.KeyHandler
+
+    Mix-in to support mapping key sequences to methods.
+
+    **Methods**
+
+        .. py:method:: vpe.mapping.KeyHandler.auto_map_keys()
+
+            Set up mappings for methods.
+
+    **Static methods**
+
+        .. py:staticmethod:: vpe.mapping.KeyHandler.mapped(...)
+
+            .. parsed-literal::
+
+                mapped(
+                    mode: str,
+                    keyseq: Union[str, typing.Iterable[str]],
+                    \*\*kwargs
+                ) -> Callable[[typing.Callable], typing.Callable]
+
+            Decorator to make a keyboard mapping invoke a method.
+
+
+            **Parameters**
+
+            .. container:: parameters itemdetails
+
+                *mode*: str
+                    The mode in which the mapping applies, one of normal,
+                    op-pending, visual or insert.
+                *keyseq*: typing.Union[str, typing.Iterable[str]]
+                    A key sequence string or sequence thereof, as used by `map`.
+                *kwargs*
+                    See `map` for the supported values.
+
 MapCallback
 -----------
 
@@ -32,7 +72,8 @@ MapCallback
 
             Get the Python positional and keyword arguments.
 
-            This makes the first positional argument a `MappingInfo` instance.
+            This makes the first positional argument a `MappingInfo` instance,
+            unless self.pass_info has been cleared.
 
 MappingInfo
 -----------
@@ -88,8 +129,8 @@ imap
     .. parsed-literal::
 
         imap(
-            keys: str,
-            func: typing.Callable,
+            keys: Union[str, typing.Iterable[str]],
+            func: Union[typing.Callable, str],
             \*,
             buffer: bool = True,
             silent: bool = True,
@@ -113,8 +154,8 @@ map
 
         map(
             mode: str,
-            keys: str,
-            func: typing.Callable,
+            keys: Union[str, typing.Iterable[str]],
+            func: Union[typing.Callable, str],
             \*,
             buffer: bool = True,
             silent: bool = True,
@@ -145,17 +186,24 @@ map
     do. It is recommended that these mode specific versions are use in
     preference to this function.
 
+    The *func* argument may also be a string, in which case it is interpreted
+    as the literal RHS of the key mapping.
+
     **Parameters**
 
     .. container:: parameters itemdetails
 
         *mode*: str
             A string defining the mode in which the mapping occurs. This
-            should be one of: normal, visual, op-pending, insert, command.
-        *keys*: str
-            The key sequence to be mapped.
-        *func*: typing.Callable
-            The Python function to invoke for the mapping.
+            should be one of: normal, visual, op-pending, insert, command,
+            select. The command and select mode are not supported when
+            *func* is not a string.
+        *keys*: typing.Union[str, typing.Iterable[str]]
+            The key sequence to be mapped. This may be an interable set of
+            key sequences that should all be mapped to the same action.
+        *func*: typing.Union[typing.Callable, str]
+            The Python function to invoke for the mapping or a string to
+            use as the right hand side of the mapping.
         *buffer*: bool
             Use the <buffer> special argument. Defaults to True.
         *silent*: bool
@@ -188,8 +236,8 @@ nmap
     .. parsed-literal::
 
         nmap(
-            keys: str,
-            func: typing.Callable,
+            keys: Union[str, typing.Iterable[str]],
+            func: Union[typing.Callable, str],
             \*,
             buffer: bool = True,
             silent: bool = True,
@@ -211,8 +259,8 @@ omap
     .. parsed-literal::
 
         omap(
-            keys: str,
-            func: typing.Callable,
+            keys: Union[str, typing.Iterable[str]],
+            func: Union[typing.Callable, str],
             \*,
             buffer: bool = True,
             silent: bool = True,
@@ -234,8 +282,8 @@ xmap
     .. parsed-literal::
 
         xmap(
-            keys: str,
-            func: typing.Callable,
+            keys: Union[str, typing.Iterable[str]],
+            func: Union[typing.Callable, str],
             \*,
             buffer: bool = True,
             silent: bool = True,

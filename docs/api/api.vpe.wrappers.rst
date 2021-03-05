@@ -66,7 +66,7 @@ Command
         *botright*
             Run with the botright command modifier.
         *keepalt*
-            Run with the keepalt command modifier.
+            Run with the keepalt command modifier. Default = True.
         *preview*
             For debugging. Do not execute the command, but return what
             would be passed to vim.command.

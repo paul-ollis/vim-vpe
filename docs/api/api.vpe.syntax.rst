@@ -585,12 +585,23 @@ SyncGroup
 Syntax
 ------
 
-.. py:class:: vpe.syntax.Syntax(group_prefix)
+.. py:class:: vpe.syntax.Syntax(group_prefix,clear: bool = True)
 
     Context manager for defining syntax highlighting.
 
     This stores a sequence of syntax highlighting directives. The directives
     are executed (as syntax and highlight commands) when the context is exited.
+
+    **Parameters**
+
+    .. container:: parameters itemdetails
+
+        *group_prefix*
+            A prefix added to the name of all groups created using this
+            Syntax instance.
+        *clear*
+            Whether to clear any previous syntax for the current buffer.
+            This is ``True`` by default.
 
     .. py:class:: vpe.syntax.Syntax.group_type(syn,name,std=False,contained=False)
 

@@ -122,10 +122,10 @@ class ScratchBuffer(wrappers.Buffer):
     creates bufferes with suitably formatted names.
 
     :name:         The name for the buffer.
-    :buffer:       The :vim:`python-buffer' that this wraps.
+    :buffer:       The :vim:`python-buffer` that this wraps.
     :@simple_name:
         An alternative simple name. This is used in the generation of the
-        `syntax_prefix` and `auto_grp_name' property values. If this is not set
+        `syntax_prefix` and `auto_grp_name` property values. If this is not set
         then is is the same a the *name* parameter. If this is not a valid
         identifier then it is converted to one by replacing invalid characters
         to underscores and then eliminitating sequence of multiple underscores.
@@ -1131,7 +1131,7 @@ class CommandInfo:
     @line2: The end line of the command range.
     @range: The number of items in the command range: 0, 1 or 2 Requires at
             least vim 8.0.1089; for earlier versions this is fixed as -1.
-    @count: Any count value supplied (see vim:`command:count`).
+    @count: Any count value supplied (see :vim:`command-count`).
     @bang:  True if the command was invoked with a '!'.
     @mods:  The command modifiers (see :vim:`:command-modifiers`).
     @reg:   The optional register, if provided.
@@ -1294,7 +1294,7 @@ class EventHandler:
     """Mix-in to support mapping events to methods.
 
     This provides a convenient alternative to direct use of `AutoCmdGroup`.
-    The default pattern (see vim:`autocmd-patterns`) is '*' unless explicitly
+    The default pattern (see :vim:`autocmd-patterns`) is '*' unless explicitly
     set by the `handle` decorator.
     """
     _default_event_pattern = '*'
@@ -1575,15 +1575,15 @@ def define_command(
     :name:      The command name; must follow the rules for :vim:`:command`.
     :func:      The function that implements the command.
     :nargs:     The number of supported arguments; must follow the rules for
-                :vim:`:command-nargs', except that integer values of 0, 1 are
+                :vim:`:command-nargs`, except that integer values of 0, 1 are
                 permitted.
     :complete:  Argument completion mode (see :vim:`command-complete`). Does
                 not currently support 'custom' or 'customlist'.
     :range:     The permitted type of range; must follow the rules for
-                :vim:`:command-range', except that the N value may be an
+                :vim:`:command-range`, except that the N value may be an
                 integer.
     :count:     The permitted type of count; must follow the rules for
-                :vim:`:command-count', except that the N value may be an
+                :vim:`:command-count`, except that the N value may be an
                 integer. Use count=0 to get the same behaviour as '-count'.
     :addr:      How range or count valuesa re interpreted
                 :vim:`:command-addr`).
@@ -1655,8 +1655,8 @@ class CommandHandler:
     def command(name: str, **kwargs) -> Callable[[Callable], Callable]:
         """Decorator to make a user command invoke a method.
 
-        name:   The name of the user defined command.
-        kwargs: See `define_command` for the supported values.
+        :name:   The name of the user defined command.
+        :kwargs: See `vpe.define_command` for the supported values.
         """
         def wrapper(func: Callable) -> Callable:
             info = getattr(func, '_cmdmappings_', None)

@@ -276,10 +276,10 @@ class KeyHandler:
             **kwargs) -> Callable[[Callable], Callable]:
         """Decorator to make a keyboard mapping invoke a method.
 
-        mode:   The mode in which the mapping applies, one of normal,
-                op-pending, visual or insert.
-        keyseq: A key sequence or sequence thereof, as used by `vpe.map`.
-        kwargs: See `map` for the supported values.
+        :mode:   The mode in which the mapping applies, one of normal,
+                 op-pending, visual or insert.
+        :keyseq: A key sequence string or sequence thereof, as used by `map`.
+        :kwargs: See `map` for the supported values.
         """
         def wrapper(func: Callable) -> Callable:
             info = getattr(func, '_keymappings_', None)

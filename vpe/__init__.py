@@ -71,6 +71,7 @@ __api__ = [
     'vim', 'log', 'saved_winview', 'highlight', 'pedit', 'popup_clear',
     'timer_stopall', 'find_buffer_by_name', 'script_py_path',
     'get_display_buffer', 'version', 'dot_vim_dir', 'temp_active_window',
+    'define_command', 'CommandInfo',
 
     'core', 'commands', 'mapping', 'syntax', 'wrappers',
 

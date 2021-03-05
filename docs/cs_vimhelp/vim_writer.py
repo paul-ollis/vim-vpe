@@ -429,7 +429,7 @@ class VimWriter(writers.Writer):
             if node.tagname == 'desc_content':
                 self.put_desc_content(nodes, level, node)
 
-    def format_refids(self, node):
+    def format_refids(self, node, prefix=''):
         refids = []
         ref_map = self.builder.config.vim_link_map
         for refid in node.attributes.get('ids', []):
@@ -441,12 +441,12 @@ class VimWriter(writers.Writer):
             if ref and ref not in refids:
                 if ref not in self._used_refids:
                     self._used_refids.add(ref)
-                    refids.append(ref)
+                    refids.append(f'{prefix}{ref}')
             refid = ref_map.get(refid, refid)
             if refid not in refids:
                 if refid not in self._used_refids:
                     self._used_refids.add(refid)
-                    refids.append(refid)
+                    refids.append(f'{prefix}{refid}')
 
         if refids:
             return ' '.join(f'*{refid}*' for refid in refids)
@@ -579,7 +579,7 @@ class VimWriter(writers.Writer):
         else:
             put()
 
-        refs = self.format_refids(node)
+        refs = self.format_refids(node, prefix='vpe.')
         for level, node in iter_level(nodes, this_level):
             if node.tagname == 'section':
                 nums[-1] += 1

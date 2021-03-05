@@ -1,30 +1,105 @@
 Version 0.5
 
-- Added plugin system; easier for Python code.
+- Try to prevent VPE's help obscuring help for standard Vim commands and
+  functions.
+
+- Added plugin system; I find this easier to use for Python based plug-ins.
+
 - Key mappings, user commands and auto commands now show the Python function
   name.
-- Allow key mappings and use commands that do not pass an info object.
+
+- Allow key mappings and user commands that do not pass an info object.
+
+- Support creating key mappings that simply expand as strings; for when a Python
+  fucnction is overkill.
+
+- All commands available via vpe.commands now get prefixed with 'keepalt' by
+  default. This is a backwardly incompatible change, but should have minimal
+  impact on existing code.
+
+- New modules.
+
+  - vpe.windows. Provides a wrapping around the output of winlayout().
+
+  - vpe.app_ui_support. Provides a way to query information about Vim's
+    application window when runninf on an X-desktop.
+
+  - vpe.config. Provides a mechanism defined configuration values which can
+    stored on disk.
+
+  - vpe.panels. Provides an extension to ScratchBuffer that horizontally
+    divides the buffer into one or more independent panels.
+
+  - vpe.ui. Adds user interaction support, building on vpe.panels. Currently
+    it is focussed on supporting interactive modification of values managed by
+    vpe.config.
+
 - New and modified functions.
+
   - Added 'soon' argument to error_msg.
+
   - Added echo_msg and warning_msg (to match error_msg).
+
   - Added temp_active_window context manager.
+
+  - Added saved_current_window and temp_active_buffer context managers.
+
+- New classes
+
+  - CommandHandler, EventHandler, BufEventHandler and KeyHandler. These support
+    using Python decorators as a clean way to map user commands, event and key
+    sequences to Python methods.
+
 - Buffer class
-  - Enhanced the show method to allow vertiical splits more flexibility in
-    how line/columns are allocated to each half of the split.
+
+  - Enhanced the show method to allow vertical splits and provide more
+    flexibility in how line/columns are allocated to each half of the split.
+
   - Added a split_and_show method.
+
+  - Added is_active method. Return True if the buffer is showing in the current
+    window.
+
+  - Methods find_active_windows and goto_active_window now only search the
+    current tab page by default. This is backwardly incompatible. Also added
+    find_best_active_window.
+
 - TemporaryOptions class
+
   - Added a save method.
+
 - Syntax class
+
   - Can be used without clearing previous syntax items.
+
 - Window class
+
   - Added a close method.
-  - Added is_active method.
+
 - Vim class
+
   - Added iter_all_windows method.
+
+- Syntax class
+
+  - It is not possible to prevent automatic deletion of old syntax.
+
+- ScratchBuffer class
+
+  - New method on_first_showing is invoked when the buffer is first shown. This
+    is intended to be over-ridden or extended.
+
+  - Added auto_grp_name and syntax_prefix properties. These are useful to avoid
+    name clashes when adding syntax and auto commands.
+
 - Added support for vertical, aboveleft, belowright, topleft, botright and
   keepalt modifiers for vpe.commands.
-- Made the vpe.commands object appear in the documentation.
+
 - Provide mechanism to reset a Vim option to its default value.
+
+- Work around an issue where Vim can consume large amounts of memory due to
+  code executed by timer. This could only occur when a Vim session was left
+  without focus.
 
 
 Version 0.4.1.

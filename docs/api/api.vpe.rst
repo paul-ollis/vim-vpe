@@ -39,6 +39,15 @@ _vpe_args_
 
 **Attributes**
 
+    .. py:attribute:: vpe.VIM_DEFAULT
+
+        Special value representing default Vim value for an option.
+
+
+    .. py:attribute:: vpe.VI_DEFAULT
+
+        Special value representing default Vi value for an option.
+
     .. py:attribute:: vpe.commands
 
         An object providing Vim commands a methods.
@@ -115,7 +124,7 @@ AutoCmdGroup
                 *pat*
                     The file pattern to match. If not supplied then the special
                     '<buffer>' pattern is used. If the argument is a `Buffer` then
-                    the special pattern for 'buffer=N> is used.
+                    the special pattern '<buffer=N> is used.
                 *once*
                     The standard ':autocmd' options.
                 *nested*
@@ -124,6 +133,15 @@ AutoCmdGroup
         .. py:staticmethod:: vpe.AutoCmdGroup.delete_all()
 
             Delete all entries in the group.
+
+BufEventHandler
+---------------
+
+.. py:class:: vpe.BufEventHandler
+
+    Mix-in to support mapping events to methods for buffers.
+
+    This differs from EventHandler by use ``self`` as the default pattern.
 
 Buffer
 ------
@@ -288,13 +306,33 @@ Buffer
                 *nr*
                     If present then append after this line number.
 
-        .. py:method:: vpe.Buffer.find_active_windows(all_tabpages=True) -> List[ForwardRef('Window')]
+        .. py:method:: vpe.Buffer.find_active_windows(all_tabpages=False) -> List[ForwardRef('Window')]
 
             Find windows where this buffer is active.
 
             The list windows returned is prioritised as a result of searching in
             the following order. The current window, windows in the current tab
             page, all windows in all tab pages.
+
+            **Parameters**
+
+            .. container:: parameters itemdetails
+
+                *all_tabpages*
+                    If True then all tab pages are searched. Otherwise only
+                    the current tab page is searched.
+
+            **Return value**
+
+            .. container:: returnvalue itemdetails
+
+                A list of the windows found.
+
+        .. py:method:: vpe.Buffer.find_best_active_window(all_tabpages=False) -> Optional[ForwardRef('Window')]
+
+            Find tehe best choice for a window where this buffer is active.
+
+            This returns the first entry found by `find_active_windows`.
 
             **Parameters**
 
@@ -308,23 +346,31 @@ Buffer
 
             .. container:: returnvalue itemdetails
 
-                A list of the windows found.
+                The window or None.
 
-        .. py:method:: vpe.Buffer.goto_active_window() -> bool
+        .. py:method:: vpe.Buffer.goto_active_window(all_tabpages=False) -> Optional[ForwardRef('Window')]
 
-            Goto a window where this buffer is active.
+            Goto the best choice window where this buffer is active.
 
-            Windows are search in the following order. The current window, windows
-            in the current tab page, all windows in all tab pages.
+            This goes to the first entry found by `find_active_windows`.
 
-            This has no effect (and returns False) if the buffer is not active in
-            any window.
+            **Parameters**
+
+            .. container:: parameters itemdetails
+
+                *all_tabpages*
+                    If True (the default) all tab pages are searched.
+                    Otherwise only the current tab page is searched.
 
             **Return value**
 
             .. container:: returnvalue itemdetails
 
-                True if an active window was found
+                The window that was chosen or None.
+
+        .. py:method:: vpe.Buffer.is_active()
+
+            Test whether the current window is showing this buffer.
 
         .. py:method:: vpe.Buffer.list()
 
@@ -445,12 +491,144 @@ Buffers
 
     This is a proxy that extends the vim.Buffer behaviour in various ways.
 
+CommandHandler
+--------------
+
+.. py:class:: vpe.CommandHandler
+
+    Mix-in to support mapping user commands to methods.
+
+    **Methods**
+
+        .. py:method:: vpe.CommandHandler.auto_define_commands()
+
+            Set up mappings for command methods.
+
+    **Static methods**
+
+        .. py:staticmethod:: vpe.CommandHandler.command(...)
+
+            .. parsed-literal::
+
+                command(
+                    name: str,
+                    \*\*kwargs
+                ) -> Callable[[typing.Callable], typing.Callable]
+
+            Decorator to make a user command invoke a method.
+
+
+            **Parameters**
+
+            .. container:: parameters itemdetails
+
+                *name*: str
+                    The name of the user defined command.
+                *kwargs*
+                    See `vpe.define_command` for the supported values.
+
+CommandInfo
+-----------
+
+.. py:class:: vpe.CommandInfo(...)
+
+    .. parsed-literal::
+
+        CommandInfo(
+            \*,
+            line1: int,
+            line2: int,
+            range: int,
+            count: int,
+            bang: bool,
+            mods: str,
+            reg: str)
+
+    Information passed to a user command callback handler.
+
+
+    **Attributes**
+
+        .. py:attribute:: vpe.CommandInfo.bang
+
+            True if the command was invoked with a '!'.
+
+        .. py:attribute:: vpe.CommandInfo.count
+
+            Any count value supplied (see :vim:`command-count`).
+
+        .. py:attribute:: vpe.CommandInfo.line1
+
+            The start line of the command range.
+
+        .. py:attribute:: vpe.CommandInfo.line2
+
+            The end line of the command range.
+
+        .. py:attribute:: vpe.CommandInfo.mods
+
+            The command modifiers (see :vim:`:command-modifiers`).
+
+        .. py:attribute:: vpe.CommandInfo.range
+
+            The number of items in the command range: 0, 1 or 2 Requires at
+            least vim 8.0.1089; for earlier versions this is fixed as -1.
+
+        .. py:attribute:: vpe.CommandInfo.reg
+
+            The optional register, if provided.
+
 Current
 -------
 
 .. py:class:: vpe.Current(obj=None)
 
     Wrapper around the built-in vim.current attribute.
+
+EventHandler
+------------
+
+.. py:class:: vpe.EventHandler
+
+    Mix-in to support mapping events to methods.
+
+    This provides a convenient alternative to direct use of `AutoCmdGroup`.
+    The default pattern (see :vim:`autocmd-patterns`) is '*' unless explicitly
+    set by the `handle` decorator.
+
+    **Methods**
+
+        .. py:method:: vpe.EventHandler.auto_define_event_handlers(group_name: str,delete_all=False)
+
+            Set up mappings for event handling methods.
+
+
+            **Parameters**
+
+            .. container:: parameters itemdetails
+
+                *group_name*: str
+                    The name for the auto command group (see :vim:`augrp`).
+                    This will be converted to a valid Vim identifier.
+                *delete_all*
+                    If set then all previous auto commands in the group are
+                    deleted.
+
+    **Static methods**
+
+        .. py:staticmethod:: vpe.EventHandler.handle(...)
+
+            .. parsed-literal::
+
+                handle(
+                    name: str,
+                    \*\*kwargs
+                ) -> Callable[[typing.Callable], typing.Callable]
+
+            Decorator to make an event invoke a method.
+
+            name:   The name of the event (see :vim:`autocmd-events`.
+            kwargs: See `AutoCmdGroup.add` for the supported values.
 
 GlobalOptions
 -------------
@@ -850,7 +1028,7 @@ Registers
 ScratchBuffer
 -------------
 
-.. py:class:: vpe.ScratchBuffer(name,buffer)
+.. py:class:: vpe.ScratchBuffer(name,buffer,simple_name=None,*args)
 
     A scratch buffer.
 
@@ -860,6 +1038,43 @@ ScratchBuffer
 
     Direct instantiation is not recommended; use `get_display_buffer`, which
     creates bufferes with suitably formatted names.
+
+    **Parameters**
+
+    .. container:: parameters itemdetails
+
+        *name*
+            The name for the buffer.
+        *buffer*
+            The :vim:`python-buffer` that this wraps.
+        *simple_name*
+            An alternative simple name. This is used in the generation of the
+            `syntax_prefix` and `auto_grp_name` property values. If this is not set
+            then is is the same a the *name* parameter. If this is not a valid
+            identifier then it is converted to one by replacing invalid characters
+            to underscores and then eliminitating sequence of multiple underscores.
+
+    **Attributes**
+
+        .. py:attribute:: vpe.ScratchBuffer.simple_name
+
+            An alternative simple name. This is used in the generation of the
+            `syntax_prefix` and `auto_grp_name` property values. If this is not set
+            then is is the same a the *name* parameter. If this is not a valid
+            identifier then it is converted to one by replacing invalid characters
+            to underscores and then eliminitating sequence of multiple underscores.
+
+    **Properties**
+
+        .. py:method:: vpe.ScratchBuffer.auto_grp_name()
+            :property:
+
+            A suitable name for auto commands for this buffer.
+
+        .. py:method:: vpe.ScratchBuffer.syntax_prefix()
+            :property:
+
+            A suitable prefix for syntax items in this buffer.
 
     **Methods**
 
@@ -871,25 +1086,7 @@ ScratchBuffer
 
             Invoked when the buffer is first, successfully displayed.
 
-            This is expected to be over-ridden by subclasses.
-
-        .. py:method:: vpe.ScratchBuffer.set_ext_name(name)
-
-            Set the extension name for this buffer.
-
-
-            **Parameters**
-
-            .. container:: parameters itemdetails
-
-                *name*
-                    The extension part of the name
-
-        .. py:method:: vpe.ScratchBuffer.show(splitlines: Optional[int] = None) -> bool
-
-            Invoked when the buffer is first, successfully displayed.
-
-            This is expected to be over-ridden by subclasses.
+            This is expected to be extended (possibly over-ridden) by subclasses.
 
         .. py:method:: vpe.ScratchBuffer.set_ext_name(name)
 
@@ -922,27 +1119,14 @@ ScratchBuffer
                 *splitlines*: int
                     Number of lines allocated to the top/bottom of the split.
                 *splitcols*: int
-                    Number of columns allocated to the left/right of the
-                    split.
+                    Number of columns allocated to the left or right window of
+                    the split.
 
             **Return value**
 
             .. container:: returnvalue itemdetails
 
                 True if the window is successfully shown.
-
-        .. py:method:: vpe.ScratchBuffer.split_and_show(**split_kwargs)
-
-            Split the current window to show this buffer.
-
-
-            **Parameters**
-
-            .. container:: parameters itemdetails
-
-                *split_kwargs*
-                    The keyword args to pass to commands.split (see `wrappers.Command`
-                    for details.
 
 Struct
 ------
@@ -1241,6 +1425,18 @@ Vim
                 *VimError*
                     A more detailed version vim.error (:vim:`python-error`).
 
+        .. py:method:: vpe.Vim.iter_all_windows() -> Iterator[Tuple[vpe.wrappers.TabPage, vpe.wrappers.Window]]
+
+            Iterate over all the windows in all tabs.
+
+
+            **Parameters**
+
+            .. container:: parameters itemdetails
+
+                *yield*
+                    A tuple of TagPage and Window.
+
         .. py:method:: vpe.Vim.temp_options(**presets) -> TemporaryOptions
 
             Context used to temporarily change options.
@@ -1391,7 +1587,6 @@ temp_active_window
 
     Context manager that temporarily changes the active window.
 
-    This (currently) only works within the current tab page.
 
     **Parameters**
 
@@ -1418,10 +1613,97 @@ call_soon
         *func*
             The function to be invoked. It takes no arguments.
 
+define_command
+--------------
+
+.. py:function:: vpe.define_command(...)
+
+    .. parsed-literal::
+
+        define_command(
+            name: str,
+            func: typing.Callable,
+            \*,
+            nargs: Union[int, str] = 0,
+            complete: str = '',
+            range: str = '',
+            count: str = '',
+            addr: str = '',
+            bang: bool = False,
+            bar: bool = False,
+            register: bool = False,
+            buffer: bool = False,
+            replace: bool = True,
+            pass_info: bool = True,
+            args=(),
+            kwargs: Optional[dict] = None)
+
+    Create a user defined command that invokes a Python function.
+
+    When the command is executed, the function is invoked as:
+
+    .. code-block:: py
+
+        func(info, *args, *cmd_args, **kwargs)
+
+    The *info* parameter is `CommandInfo` instance which carries all the meta
+    information, such as the command name, range, modifiers, *etc*. The
+    *cmd_args* are those provided to the command; each a string.
+    The *args* and *kwargs* are those provided to this function.
+
+    **Parameters**
+
+    .. container:: parameters itemdetails
+
+        *name*: str
+            The command name; must follow the rules for :vim:`:command`.
+        *func*: typing.Callable
+            The function that implements the command.
+        *nargs*: typing.Union[int, str]
+            The number of supported arguments; must follow the rules for
+            :vim:`:command-nargs`, except that integer values of 0, 1 are
+            permitted.
+        *complete*: str
+            Argument completion mode (see :vim:`command-complete`). Does
+            not currently support 'custom' or 'customlist'.
+        *range*: str
+            The permitted type of range; must follow the rules for
+            :vim:`:command-range`, except that the N value may be an
+            integer.
+        *count*: str
+            The permitted type of count; must follow the rules for
+            :vim:`:command-count`, except that the N value may be an
+            integer. Use count=0 to get the same behaviour as '-count'.
+        *addr*: str
+            How range or count valuesa re interpreted
+            :vim:`:command-addr`).
+        *bang*: bool
+            If set then the '!' modifieer is supported (see
+            :vim:`@command-register`).
+        *bar*: bool
+            If set then the command may be followed by a '|' (see
+            :vim:`@command-register`).
+        *register*: bool
+            If set then an optional register is supported (see
+            :vim:`@command-register`).
+        *buffer*: bool
+            If set then the command is only for the current buffer (see
+            :vim:`@command-register`).
+        *replace*: bool
+            If set (the detault) then 'command!' is used to replace an
+            existing command of the same name.
+        *pass_info*: bool
+            If set then the first argument passed to func is a MappingInfo
+            object. Defaults to True.
+        *args*
+            Additional arguments to pass to the mapped function.
+        *kwargs*: typing.Optional[dict]
+            Additional keyword arguments to pass to the mapped function.
+
 dot_vim_dir
 -----------
 
-.. py:function:: vpe.dot_vim_dir()
+.. py:function:: vpe.dot_vim_dir() -> str
 
     Return the path to the ~/.vim directory or its equivalent.
 
@@ -1497,15 +1779,16 @@ get_display_buffer
 
     Get a named display-only buffer.
 
-    The actual buffer name will be of the form '/[[name]]'. The
-    buffer is created if it does not already exist.
+    The actual buffer name will be of the form '/[[name]]'. The buffer is
+    created if it does not already exist.
 
     **Parameters**
 
     .. container:: parameters itemdetails
 
         *name*: str
-            An identifying name for this buffer.
+            An identifying name for this buffer. This becomes the
+            `ScratchBuffer.simple_name` attribute.
 
 highlight
 ---------
