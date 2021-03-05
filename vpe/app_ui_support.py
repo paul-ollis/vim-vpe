@@ -5,7 +5,6 @@ Currently this only works on X.Org based desktops.
 
 import re
 import subprocess
-from functools import cache
 from typing import Optional, Tuple
 
 from vpe import vim
@@ -13,18 +12,24 @@ from vpe import vim
 R_COORD = re.compile(r'([+-]-?\d+)([+-]-?\d+)')
 R_GEOM = re.compile(r'(\d+)x(\d+)([+-]-?\d+)([+-]-?\d+)')
 R_DIMS = re.compile(r'(\d+)x(\d+)')
+_my_id = None
 
 
 def _system(cmd):
     """Simple wrapper of subprocess to provide."""
-    proc = subprocess.run(cmd.split(), capture_output=True)
+    proc = subprocess.run(
+        cmd.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     return proc.returncode, proc.stdout.decode(errors='ignore')
 
 
 # VimRegistry(STRING) = "1a00003 GVIM1", "2800003 GVIM2", "4800003 GVIM", "4400003 TEST"
 
-@cache
 def _my_xwin_id():
+    global _my_id
+    if _my_id is not None:
+        return _my_id
+
+    _my_id = ''
     exitcode, text = _system('xprop -root VimRegistry')
     if exitcode != 0:
         return ''                                            # pragma: no cover
@@ -36,7 +41,8 @@ def _my_xwin_id():
         except ValueError:                                   # pragma: no cover
             continue
         if name == my_servername:
-            return f'0x{wid}'
+            _my_id = f'0x{wid}'
+            return _my_id
     return ''                                                # pragma: no cover
 
 

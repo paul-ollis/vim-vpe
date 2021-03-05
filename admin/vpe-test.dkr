@@ -4,7 +4,7 @@
 FROM vim80-py36 AS vpe-test
 
 COPY admin/requirements.txt admin/test-requirements.txt ./
-RUN python3.9 -m pip install -r requirements.txt -r test-requirements.txt
+RUN python3.10 -m pip install -r requirements.txt -r test-requirements.txt
 
 USER paul
 WORKDIR /home/paul/

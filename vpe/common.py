@@ -72,8 +72,19 @@ def invoke_vim_function(func: Callable, *args) -> Any:
     :args:   Positional arguments, passed unmodified.
     """
     try:
-        return func(*args)
+        ret = func(*args)
+        return ret
     except _vim.error as e:
+        # This is a bit hacky, but some older versions of Vim have issues using
+        # keepalt for some commands. I have seen it with, ironically, the
+        # buffer command.
+        if repr(func) == '<built-in function command>' and args:
+            if args[0].startswith('keepalt '):
+                args = tuple([args[0][8:], *args[1:]])
+                try:
+                    return func(*args)
+                except _vim.error as e:
+                    raise VimError(e)  # pylint: disable=raise-missing-from
         raise VimError(e)  # pylint: disable=raise-missing-from
 
 

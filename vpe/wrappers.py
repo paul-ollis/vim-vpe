@@ -1383,12 +1383,11 @@ class Vim:
             f'can\'t set attribute {name} for {self.__class__.__name__}')
 
     def _get_vim_function(self, name):
-        fname_form = f'*{name}'
-        if common.vim_simple_eval(f'exists({fname_form!r})') != '0':
-            if name not in _blockedVimFunctions:
-                return Function(name)
-        raise AttributeError(
-            f'{self.__class__.__name__} object has no attribute {name!r}')
+        try:
+            return Function(name)
+        except ValueError:
+            raise AttributeError(          # pylint: disable=raise-missing-from
+                f'{self.__class__.__name__} object has no attribute {name!r}')
 
 
 class Function(_vim.Function):

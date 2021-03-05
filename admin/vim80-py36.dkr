@@ -20,6 +20,7 @@ RUN ldconfig
 RUN python3.6 -m pip install coverage
 
 RUN apt-get install -y gdb sudo
+RUN apt-get install -y x11-xserver-utils
 
 #
 # Build Vim with GUI support.

@@ -969,7 +969,7 @@ class Callback:
 
     def __init__(
             self, func, *, py_args=(), py_kwargs={}, vim_exprs=(),
-            pass_bytes=False, **kwargs):
+            pass_bytes=False, once=False, **kwargs):
         # pylint: disable=dangerous-default-value
         uid = self.uid = str(next(id_source))
         self.callbacks[uid] = self
@@ -979,15 +979,20 @@ class Callback:
         self.py_kwargs = py_kwargs.copy()
         self.extra_kwargs = kwargs
         self.pass_bytes = pass_bytes
+        self.once = once
+        self.call_count = 0
         try:
             self.func_name = func.__name__
         except AttributeError:                               # pragma: no cover
             self.func_name = str(func)
 
     def __call__(self, vim_args, vpe_args):
+        if self.once and self.call_count > 0:
+            return
         vim_args = [
             coerce_arg(a, keep_bytes=self.pass_bytes) for a in vim_args]
         args, kwargs = self.get_call_args(vpe_args)
+        self.call_count += 1
         return self.func_ref(*args, *vim_args, **kwargs)
 
     def __repr__(self):
@@ -1283,10 +1288,14 @@ class AutoCmdGroup:
             pat = f'<buffer={pat.number}>'
         cmd_seq = ['autocmd', event, pat]
         if once:
-            cmd_seq.append('++once')
+            if wrappers.vim.has('patch-8.1.1113'):
+                cmd_seq.append('++once')
         if nested:
-            cmd_seq.append('++nested')
-        cmd_seq.append(Callback(func).as_call())
+            if wrappers.vim.has('patch-8.1.1113'):
+                cmd_seq.append('++nested')
+            else:
+                cmd_seq.append('nested')
+        cmd_seq.append(Callback(func, once=once).as_call())
         common.vim_command(' '.join(cmd_seq))
 
 

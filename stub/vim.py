@@ -346,6 +346,11 @@ def timer_start(_time, _callback, _options):
     """Set up a timer."""
 
 
+def has(spec):
+    """Test whether Vim has some function, variable, etc."""
+    return True
+
+
 def register_command_callback(func: Union[Callable, None]):
     """Register a function to be invoked when vim.command is invoked.
 

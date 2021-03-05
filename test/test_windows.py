@@ -5,9 +5,11 @@ from functools import partial
 
 # pylint: disable=unused-wildcard-import,wildcard-import
 from cleversheep3.Test.Tester import *
+from cleversheep3.Test.Tester import Collection
 from cleversheep3.Test.Tester import test, runModule
 
 import support
+import vim_if
 
 import vpe
 from vpe import windows
@@ -257,11 +259,10 @@ class Windows(support.Base):
 
             res = Struct()
             win = vim.current.window
-            win.options['statusline'] = vim.options['statusline'].replace(
-                'W=', 'Cols=')
+            glob_status = vim.options['statusline'].replace('W=', 'Cols=')
+            win.options['statusline'] = f'>>{glob_status}'
 
             res.orig_sl = win.options['statusline']
-
             with win.temp_options() as opts:
                 opts.statusline = res.orig_sl + 'xx'
                 res.temp_sl = win.options['statusline']
@@ -355,6 +356,11 @@ class Layout(support.Base):
     The windows.LayoutElement provides an API to work with Vim window layout.
     """
     window: vpe.wrappers.Window
+
+    def __init__(self, *args, **kwargs):
+        if not vim_if.VimSession.has_patch('patch-8.1.0307'):
+            raise Collection.Unsupported
+        super().__init__(*args, **kwargs)
 
     def setUp(self):
         """Called to set up each test.
