@@ -14,7 +14,7 @@ RUN ./do_config
 RUN make -j5
 RUN make install
 RUN ldconfig
-RUN python3.9 -m pip install coverage
+RUN python3.10 -m pip install coverage
 
 #
 # Build Vim with GUI support.

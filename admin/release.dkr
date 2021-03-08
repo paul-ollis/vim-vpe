@@ -7,7 +7,7 @@ ARG version
 
 COPY admin/requirements.txt ./
 COPY docs/requirements.txt docs-requirements.txt
-RUN python3.9 -m pip install -r requirements.txt -r docs-requirements.txt
+RUN python3.10 -m pip install -r requirements.txt -r docs-requirements.txt
 RUN apt-get install -y strace
 
 USER paul
@@ -28,4 +28,4 @@ RUN echo 'helptags ../start/vpe/doc' | ex | true
 WORKDIR /home/paul/.vim/pack/vim-vpe
 RUN ./admin/mk-release.py
 ENV version=${version}
-CMD cp vim-vpe.zip ~/release/vim-vpe-${version}.zip 
+CMD cp vim-vpe.zip ~/release/vim-vpe-${version}.zip

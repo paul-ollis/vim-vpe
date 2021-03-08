@@ -1,27 +1,71 @@
-News
-  VPE is now tested on Windows 10. Testing is done using Vim 8.2.1970 and
-  Python 3.8.6.
+News A lot has been added since version 0.4, most significantly in areas that
+  make writing and maintaining non-trivial plug-ins easier.
+
+  The new features have API documentation, but I plan to produce more of a
+  user guide in the near future (before release 0.6).
+
+  This will be made available at https://vim-vpe.readthedocs.io/. So keep
+  a lookout for changes there.
+
+Requirements
+
+  VPE requires a minimum of Vim 8.0.0700 and Python 3.6.
+
+  VPE is tested on Linux and Windows 10. On Windows, testing is done using Vim
+  8.2.1970 and Python 3.8.6. On Linux testing is done using
+  Vim-8.0.0700/Python-3.6.0 and very recent versions both vim and Python.
+
+Status
+    Although it has not yet reached a version 1.0 release, I believe that VPE
+    is quite stable. I make heavy, daily use of VPE within my (Linux) Vim
+    environment without problems.
+
+    While the API should be considered unstable, it has actually proven fairly
+    stable, with only a few, minor incompatible changes since version 0.1.
 
 Introduction
 
   VPE adds to Vim’s built-in support for Python scripting. This is a brief list
   of VPE’s features.
 
-  - A Vim class that provides an enhanced, drop-in replacement for the
-    standard python-vim module.
-  - Classes Window, Buffer, TabPage are enhanced wrappers around the
-    standard vim versions.
-  - Support for cleanly invoking Python functions for keyboard mappings.
+  - A Vim class that provides an enhanced, drop-in replacement for the standard
+    python-vim module.
+
+  - Classes Window, Buffer, TabPage are enhanced wrappers around the standard
+    vim versions.
+
+  - Support for cleanly invoking Python functions for keyboard mappings, user
+    defined commands and events.
+
+    New in 0.5 is support for using Python decorators to set up these mappings.
+
   - Pythonic support for using popup-windows. (Requires Vim 8.2.)
-  - Pythonic support for using timers; when a timer firee a Python function is
+
+  - Pythonic support for using timers; when a timer fires a Python function is
     invoked.
-  - Pythonic support for autocommands that invoke Python functions.
+
   - Pythonic support for channels.
+
   - Syntax class and supporting context managers to define highlighting.
-  - Ability to define user commands that invoke Python functions.
+
   - Logging to a buffer. Useful when developing and debugging plug-ins.
     When active in a window, the window automatically scrolls to show new
     output.
+
+  - A plug-in support mechanism. I find this more convenient for non-trivial
+    Python based plug-ins.
+
+  - Other relatively high level support for non-trivial plug-ins. This includes
+    management of configuration values, scratch (display only) buffers,
+    user-interface like components (panels and fields).
+
+  The above just scratches the surface, see :help vpe.txt for detailed
+  documentation or the more readable form at https://vim-vpe.readthedocs.io/.
+
+Source code
+
+  The source code is maintained at https://github.com/paul-ollis/vim-vpe.git.
+  You can raise bugs or feature requests there.
 
 Quick start
 
@@ -34,7 +78,7 @@ Quick start
   enhancements.
 
   - Most of Vim’s functions appear as members, for example:
-      
+
       vim.cursor(4, 10)            # Position cursor at row 4, column 10.
       m = vim.execute('messages')  # Get all the recent Vim messages.
 
@@ -48,9 +92,6 @@ Quick start
   - When errors occur a VimError is raised, which provides a better
     breakdown of the error. This is a subclass of vim.error so existing
     code that catches vim.error still works.
-
-  The above just scratches the surface, see :help vpe.txt for detailed
-  documentation or https://vim-vpe.readthedocs.io/.
 
 Examples
 
@@ -68,15 +109,34 @@ Examples
       Lanzarotta's excellent vimscript #42, but it does not attempt to be
       a clone.
 
-Requirements
+Installation
 
-  VPE requires a minimum of Vim 8.0.0700 and Python 3.6.
+  The VPE directory tree is structured as a package with a single plugin.
+  Assuming your Vim files are in the “~/.vim” directory, add a “pack” sub-
+  directory and install VPE into the “~/.vim/pack” directory.
 
-  VPE has not been been tested on Windows (yet) or Mac. If you manage to test
-  it before me, let me know how it goes.
- 
-Status
+      $ cd ~/.vim/pack
+      $ unzip vim-vpe.zip
 
-  I consider the code to be quite stable. It passes a reasonably
-  comprehensive set of tests and I use VPE daily for my standard Vim
-  configuration.
+  This will create a vim-vpe directory. The most significant sub-directories
+  within vim-vpe are:
+
+  vpe
+      The vpe package itself.
+
+  docs/html
+      The VPE documentation in HTML format. I find this easier to read, but less
+      convenient than the help.
+
+  start/vpe/doc
+      Contains the VPE help file plus pre-generated tags.
+
+  start/vpe/examples
+      Some examples, intended as an aid to learning what you can do with VPE.
+
+  start/vpe/plugin
+      Containes the vpe.vim start up script, which initialises support for
+      importing and using the vpe package.
+
+  You can clone this into ~/.vim/pack, but that will, currently, not include the
+  Vim help file.

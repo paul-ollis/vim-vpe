@@ -8,15 +8,24 @@
 
 
 :status:
-    It must be considered alpha, but I am personally using VPE to configure
-    nearly all of my Vim environment and for some quite complex plug-ins.
+    Although it has not yet reached a version 1.0 release, I make heavy, daily
+    use of VPE within my Vim  environment without problems.
+
+    While the API should be considered unstable, it has acttully proven fairly
+    stable, with only a few, minor incompatible changes since version 0.1.
 
 
 Introduction
 ============
 
-The Vim Python Extensions plugin adds a layer on top of Vim's built-in Python
-support.
+The Vim Python Extensions package aims to make it easier to Python 3 to extend Vim
+using Python 3. It does this by:
+
+- Adding a layer on top of Vim's built-in Python support, providing a highlyly
+  compatible, but more capable replacement for the standard `python-vim
+  <https://vimhelp.org/if_pyth.txt.html#python-vim>`_ module.
+
+- Providing additional functions and classes as part of the ``vpe`` package.
 
 
 Quick start
@@ -53,7 +62,7 @@ of enhancements.
   of the error (code and command are available as attributes). This is a
   subclass of `vim.error <https://vimhelp.org/if_pyth.txt.html#python-error>`_
   so existing code that catches vim.error still works.
-  
+
 
 Features
 --------
