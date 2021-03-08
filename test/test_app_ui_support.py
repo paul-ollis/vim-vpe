@@ -9,6 +9,7 @@ import platform
 
 # pylint: disable=unused-wildcard-import,wildcard-import
 from cleversheep3.Test.Tester import *
+from cleversheep3.Test.Tester import Collection
 from cleversheep3.Test.Tester import test, runModule
 
 import support
@@ -16,6 +17,9 @@ import support
 import vpe
 
 _run_after = ['test_vim.py']
+
+if platform.platform().startswith('CYGWIN'):
+    raise Collection.Unsupported
 
 
 class PanelViewBuffer(support.Base):

@@ -217,7 +217,8 @@ class Commands(support.Base):
         failUnlessEqual(res.orig_alt, res.new_alt)
         failUnlessEqual(res.orig_alt, res.new_alt)
         failIfEqual(res.orig_alt, res.newer_alt)
-        failUnlessEqual(res.new_buf, res.newer_alt)
+        expected = res.new_buf[2:] if res.new_buf[1] == ':' else res.new_buf
+        failUnlessEqual(expected, res.newer_alt)
 
     @test(testID='command-unknown')
     def unknown_comand_is_attributue_error(self):

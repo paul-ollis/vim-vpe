@@ -18,12 +18,9 @@ import vpe
 _run_after = ['test_vim.py', 'test_mapping_x.py']
 
 
-def install_test_plugins():
+def install_test_plugins(dot_vim_dir: str):
     """Install special test plug-in code."""
-    if platform.system() == 'Windows':
-        plugin_dir_path = Path.home() / 'vimfiles' / 'pack' / 'vpe_plugins'
-    else:
-        plugin_dir_path = Path.home() / '.vim' / 'pack' / 'vpe_plugins'
+    plugin_dir_path = Path(dot_vim_dir) / 'pack' / 'vpe_plugins'
     test_plugin_path = Path(__file__).parent / 'test_plugins'
 
     init = plugin_dir_path / '__init__.py'
@@ -51,9 +48,16 @@ class TestPlugin(support.Base):
     """Core VPE plug-in behaviour."""
 
     def suiteSetUp(self):
-        """Make sure Vim gets restarted with test plug-ins in place."""
+        """Make sure Vim gets restarted with test plug-ins in place.
+
+        :<py>:
+            res = Struct()
+            res.dot_vim_dir = vpe.dot_vim_dir()
+            dump(res)
+        """
+        res = self.run_suite_setup()
         self.stop_vim_session()
-        self.init_py, *self.added_paths = install_test_plugins()
+        self.init_py, *self.added_paths = install_test_plugins(res.dot_vim_dir)
         super().suiteSetUp()
 
     def suiteTearDown(self):
@@ -130,7 +134,8 @@ class TestPlugin(support.Base):
             res.plugin_err = vim.vars.vpe_plugin_load_fail_err
             dump(res)
         """
-        failUnless(time.time() - self.init_py.stat().st_mtime < 2.0)
+        res = self.run_self()
+        failUnless(time.time() - self.init_py.stat().st_mtime < 10.0)
 
     @test(testID='plugin-load-hook')
     def load_hook(self):

@@ -1,11 +1,12 @@
 """Tests for the VPE configuration support."""
 
+import os
 import shutil
 from pathlib import Path
 
 # pylint: disable=unused-wildcard-import,wildcard-import
 from cleversheep3.Test.Tester import *
-from cleversheep3.Test.Tester import test, runModule
+from cleversheep3.Test.Tester import runModule, test
 
 import support
 
@@ -324,7 +325,7 @@ class Config(support.Base):
     def config_save_load(self):
         """The config can be saved and loaded.
 
-        The config.d directory is created is required.
+        The config.d directory is created as required.
         """
         conf = config.Config('test_conf')
         bopt = config.Bool('test_bool', True)
@@ -335,7 +336,15 @@ class Config(support.Base):
         conf.add_(iopt)
 
         home = Path(__file__).resolve().parent / 'rt_test_data'
-        shutil.rmtree(home / '.vim/config.d')
+        config_d = home / '.vim/config.d'
+        if config_d.exists():
+            try:
+                shutil.rmtree(config_d)
+            except OSError:
+                # I do not understand, but running under Cygwin I have seen
+                # PermissionError raised when shtil.rmtree tries
+                # os.rmdir(config_d). Yet the following succeeds!
+                os.rmdir(config_d)
 
         conf.save_()
         bopt.set(False)

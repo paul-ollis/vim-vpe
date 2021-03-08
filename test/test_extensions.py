@@ -31,6 +31,7 @@ class TestInfo(support.Base):
         """VPE provides a version function.
 
         :<py>:
+            res = Struct()
             res.version = vpe.version()
             dump(res)
         """
@@ -307,10 +308,14 @@ class DisplayBuffer(support.Base):
         as a display buffer.
 
         :<py>:
+            import platform
             res = Struct()
 
             name = 'existing'
-            disp_name = f'/[[{name}]]'
+            if platform.system() == 'Windows':
+                disp_name = rf'C:\[[{name}]]'
+            else:
+                disp_name = f'/[[{name}]]'
             commands.new()
             b = vim.current.buffer
             res.orig_num = b.number

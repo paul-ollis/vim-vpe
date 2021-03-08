@@ -44,6 +44,8 @@ _vpe_args_
 # pylint: disable=too-many-lines
 
 import importlib
+import importlib.util
+import importlib.machinery
 import sys
 import traceback
 from pathlib import Path
