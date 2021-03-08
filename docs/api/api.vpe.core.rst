@@ -29,6 +29,7 @@ Callback
             py_kwargs={},
             vim_exprs=(),
             pass_bytes=False,
+            once=False,
             \*\*kwargs)
 
     Wrapper for a function to be called from Vim.

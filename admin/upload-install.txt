@@ -25,5 +25,5 @@ start/vpe/plugin
     Containes the vpe.vim start up script, which initialises support for
     importing and using the vpe package.
 
-The source code is at https://github.com/paul-ollis/vim-vpe.git. You can clone
-this into ~/.vim/pack, but that will, currently, not include the Vim help file.
+You can clone this into ~/.vim/pack, but that will, currently, not include the
+Vim help file.

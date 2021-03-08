@@ -4,10 +4,12 @@ from __future__ import annotations
 import os
 import pathlib
 import platform
+import re
 import subprocess
 import time
 
 SESSION = 'TEST'
+R_PATCH = re.compile(r'patch-(\d+)\.(\d+)\.(\d+)')
 
 
 def get_tmp_paths(filename: str) -> Tuple[pathlib.Path, pathlib.Path]:
@@ -60,7 +62,6 @@ def single_quote(expr):
 class VimSession:
     version_str = ''
     version = []
-    patch_cache = {}
 
     def __init__(self):
         self.proc = None
@@ -101,10 +102,9 @@ class VimSession:
 
     @classmethod
     def has_patch(cls, patch_name):
-        if patch_name not in cls.patch_cache:
-            v = cls.eval_vim(f"has('{patch_name}')") == '1'
-            cls.patch_cache[patch_name] = v
-        return cls.patch_cache[patch_name]
+        m = R_PATCH.match(patch_name)
+        p_ver = [int(v, 10) for v in m.groups()]
+        return p_ver <= cls.get_version()
 
     @classmethod
     def get_version(cls):
@@ -113,6 +113,7 @@ class VimSession:
             lines = cproc.stdout.strip().decode().splitlines()
             cls.version_str = lines[0].split()[4]
             cls.version = [int(p) for p in cls.version_str.split('.')[:2]]
+            cls.version.append(int(lines[1].split()[-1].split('-')[-1], 10))
         return cls.version
 
     def ensure_vim_session(self):
@@ -140,6 +141,7 @@ class VimSession:
             self.execute_vim('set columns=100')
             self.execute_vim('set lines=60')
             self.execute_vim('winpos 0 0')
+            self.execute_vim('set directory=./test-swap//')
 
             # Switch back to the nominated editor window, if defined.
             edvim = os.environ.get('EDVIM', '')

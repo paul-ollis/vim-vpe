@@ -321,9 +321,11 @@ class Windows(support.Base):
             res = Struct()
             buf = vim.current.buffer
             buf[:] = [str(n) for n in range(80)]
+            vpe.commands.wincmd('o')
             vpe.commands.wincmd('s')
             win = vim.current.window
             vpe.commands.resize(20)
+            vpe.commands.redraw()
 
             vim.command('1')
             res.buf_top = win.visible_line_range
@@ -531,6 +533,7 @@ class Layout(support.Base):
             res.new_layout = windows.LayoutElement.create_from_vim_layout(
                 vim.winlayout())
             vim.options.columns += 10
+            vpe.commands.redraw()
             res.new_layout.adjust_width(vim.options.columns)
             res.alt_layout.set_widths_from_layout(res.new_layout)
 
@@ -608,6 +611,7 @@ class Layout(support.Base):
             vpe.commands.split()
             vpe.commands.split(vertical=True)
             vpe.commands.resize(-10, vertical=True)
+            vim.options.columns += 10
             vpe.commands.split()
             res.layout = windows.LayoutElement.create_from_vim_layout(
                 vim.winlayout())
