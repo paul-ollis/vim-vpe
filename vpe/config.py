@@ -85,6 +85,10 @@ class String(Option):
     def __init__(self, name, default_value='', *, description=''):
         super().__init__(name, default_value, description=description)
 
+    def set(self, value: str) -> str:
+        """Try to set this option's value."""
+        self._value = value
+
 
 class Bool(Option):
     """A boolean `config.Option`.
