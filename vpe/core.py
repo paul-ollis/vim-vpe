@@ -1751,6 +1751,7 @@ class temp_active_buffer:
     saved_buf: wrappers.Buffer
     buf_options_ctxt: wrappers.TemporaryOptions
     glob_options_ctxt: wrappers.TemporaryOptions
+    view: dict = {}
 
     def __init__(self, buf: wrappers.Buffer):
         self.buf = buf
@@ -1761,6 +1762,7 @@ class temp_active_buffer:
             self.no_action_required = True
             return
 
+        self.view = wrappers.vim.winsaveview()
         self.saved_buf = wrappers.vim.current.buffer
         self.buf_options_ctxt = self.saved_buf.temp_options(bufhidden='hide')
         self.glob_options_ctxt = wrappers.vim.temp_options(eventignore='all')
@@ -1778,6 +1780,7 @@ class temp_active_buffer:
             wrappers.commands.buffer(self.saved_buf.number)
         self.buf_options_ctxt.restore()
         self.glob_options_ctxt.restore()
+        wrappers.vim.winrestview(self.view)
 
 
 def log_status():
