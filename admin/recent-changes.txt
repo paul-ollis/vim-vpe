@@ -1,3 +1,11 @@
+Version 0.5.1
+
+- Added a load of missing API documentation that I foolishly forgot about.
+
+- The temp_active_buffer context manager now also preserves the window's
+  view.
+
+
 Version 0.5
 
 - Try to prevent VPE's help obscuring help for standard Vim commands and
