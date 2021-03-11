@@ -1,8 +1,8 @@
 """Support for managing configuration information.
 
-Configuration values are held as `Option` instances, which carry additional
-meta-data such default values, valid ranges and descriptions. Options prevent
-assignment of invalid values.
+Configuration values are held as `config.Option` instances, which carry
+additional meta-data such default values, valid ranges and descriptions.
+Options prevent assignment of invalid values.
 
 The `Config` class groups a set options together. It supports storage of option
 values in an INI style configuration file and makes option values available as
@@ -87,7 +87,7 @@ class String(Option):
 
 
 class Bool(Option):
-    """A boolean `Option`.
+    """A boolean `config.Option`.
 
     Its value is always forced to be ``True`` or ``False``.
     """
@@ -117,7 +117,7 @@ class Bool(Option):
 
 
 class Choice(Option):
-    """An `Option` that can take one of a set of values.
+    """A `config.Option` that can take one of a set of values.
 
     :description:   A description for the value, used for help generation.
     :name:          The name of the value.
@@ -157,7 +157,7 @@ class Choice(Option):
 
 
 class Int(Option):                     # pylint: disable=too-few-public-methods
-    """An `Option` that can take an integer value.
+    """A `config.Option` that can take an integer value.
 
     :description:   A description for the value, used for help generation.
     :name:          The name of the value.
@@ -196,7 +196,7 @@ class Config:
     this class end with an underscore in order to prevent name clashes with
     options values.
 
-    :name:   The name of this configuration. By convention, for a plug-in,
+    :@name:   The name of this configuration. By convention, for a plug-in,
               this is typically the plug-in's name.
     """
     def __init__(self, name: str):
@@ -206,14 +206,14 @@ class Config:
     def add_(self, option):
         """Add an option to this configuration.
 
-        :option: The `Option` to add.
+        :option: The `config.Option` to add.
         """
         self._options[option.name] = option
 
     def get_(self, name):
         """Get the option with a given name.
 
-        :raise: KeyError if the option does not exist.
+        :raise KeyError: if the option does not exist.
         """
         return self._options[name]
 

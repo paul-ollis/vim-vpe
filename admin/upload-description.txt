@@ -1,4 +1,6 @@
-News A lot has been added since version 0.4, most significantly in areas that
+News
+
+  A lot has been added since version 0.4, most significantly in areas that
   make writing and maintaining non-trivial plug-ins easier.
 
   The new features have API documentation, but I plan to produce more of a
@@ -13,7 +15,7 @@ Requirements
 
   VPE is tested on Linux and Windows 10. On Windows, testing is done using Vim
   8.2.1970 and Python 3.8.6. On Linux testing is done using
-  Vim-8.0.0700/Python-3.6.0 and very recent versions both vim and Python.
+  Vim-8.0.0700/Python-3.6.0 and very recent versions of both vim and Python.
 
 Status
     Although it has not yet reached a version 1.0 release, I believe that VPE

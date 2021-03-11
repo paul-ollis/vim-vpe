@@ -118,7 +118,7 @@ class Field:                     # pylint: disable=too-many-instance-attributes
                     negative number, the prefix is right justified.
     :@suffix_width: The width spec for the prefix. It follows the same pattern
                     as the prefix_width.
-    :@value_width:  The width spec for the value. It follows the same pattern
+    :value_width:   The width spec for the value. It follows the same pattern
                     as the prefix_width.
     """
     active = True
@@ -357,7 +357,7 @@ class ConfigPanel(panels.Panel):
     def apply_syntax(self):
         """Apply syntax highlighting for this panel.
 
-        This is only called when the panel's `start_idx` is correctly set.
+        This is only called when the panel's `start_lidx` is correctly set.
         """
         with syntax.Syntax(self.syntax_prefix, clear=False) as syn:
             prefix = syn.group('prefix', link_to=PREFIX_HL)
@@ -377,7 +377,7 @@ class ConfigPanel(panels.Panel):
             border.add_match('^.', lrange=(a, b))
             border.add_match(r'-\+', lidx=b - 1)
 
-    def _format_contents(self):
+    def on_format_contents(self):
         """Refresh to formatted lines for this panel."""
         n_lines = max((f.lidx for f in self.fields.values()), default=0) + 1
         lines = [''] * n_lines

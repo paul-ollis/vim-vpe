@@ -40,7 +40,7 @@ class PanelViewBuffer(support.Base):
                     self.test_lines = lines
                     self.lie_about_changes = False
 
-                def _format_contents(self):
+                def on_format_contents(self):
                     self.content[:] = self.test_lines
                     if self.lie_about_changes:
                         self.view.notify_content_change(self)
@@ -109,7 +109,7 @@ class PanelViewBuffer(support.Base):
     def add_panels(self):
         """Panels may be added to the end of the panel list.
 
-        When a panel is added the _format_contents method is automatically
+        When a panel is added the on_format_contents method is automatically
         invoked to set the (initial) contents.
 
         Each panel will have its own unique syntax prefix.
@@ -140,8 +140,8 @@ class PanelViewBuffer(support.Base):
     def insert_panel_at_start(self):
         """Panels may be inserted at the start of the panel list.
 
-        As for adding, the _format_contents method is automatically invoked to
-        set the (initial) contents.
+        As for adding, the on_format_contents method is automatically invoked
+        to set the (initial) contents.
 
         :<py>:
 
@@ -166,8 +166,8 @@ class PanelViewBuffer(support.Base):
     def insert_panel_in_middle(self):
         """Panels may be inserted within the panel list.
 
-        As for adding, the _format_contents method is automatically invoked to
-        set the (initial) contents.
+        As for adding, the on_format_contents method is automatically invoked
+        to set the (initial) contents.
 
         :<py>:
 

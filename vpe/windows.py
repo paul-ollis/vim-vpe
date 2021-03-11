@@ -19,6 +19,8 @@ class LayoutElement:
     """An element in a window layout.
 
     Each element is either a LayoutRow, LayoutColumn or a LayoutWindow.
+
+    @type_name: A class attribute used to identify the type of element.
     """
     id = None
     type_name = ''

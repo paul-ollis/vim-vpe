@@ -347,9 +347,11 @@ class MutableMappingProxy(ContainerProxy):
         """Remove en entry and return is value.
 
         :key:    The key of the item to remove.
-        :return: The removed item (if found) or the default (if provided).
-                 The returned value may be decoded or wrapped.
-        :raise:  KeyError if key is not found and no default provided.
+        :return:
+            The removed item (if found) or the default (if provided). The
+            returned value may be decoded or wrapped.
+        :raise KeyError:
+            if key is not found and no default provided.
         """
         if default is _NOT_PROVIDED:
             return self._wrap_or_decode(self._proxied.pop(key), key)
