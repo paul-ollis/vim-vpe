@@ -862,7 +862,6 @@ class Buffers(support.Base):
             dump(res)
         """
         res = self.run_self()
-        print(">>>", res)
         failUnlessEqual(res.alt_buffer, res.temp_active_buffer)
         failUnlessEqual(res.initial_buffer, res.final_buffer)
         failUnlessEqual('all', res.eventignore)

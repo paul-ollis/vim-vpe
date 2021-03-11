@@ -4,9 +4,15 @@ Module vpe
 .. toctree::
     :maxdepth: 1
 
+    api.vpe.app_ui_support
+    api.vpe.channels
+    api.vpe.config
     api.vpe.core
     api.vpe.mapping
+    api.vpe.panels
     api.vpe.syntax
+    api.vpe.ui
+    api.vpe.windows
     api.vpe.wrappers
 .. py:module:: vpe
 

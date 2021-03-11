@@ -75,7 +75,8 @@ __api__ = [
     'get_display_buffer', 'version', 'dot_vim_dir', 'temp_active_window',
     'define_command', 'CommandInfo',
 
-    'core', 'commands', 'mapping', 'syntax', 'wrappers',
+    'core', 'commands', 'mapping', 'syntax', 'wrappers', 'panels',
+    'ui', 'config', 'channels', 'windows', 'app_ui_support',
 
     # Types and functions that should not be directly invoked.
     'Variables', 'Window', 'TabPage', 'Windows', 'TabPages', 'Buffers',

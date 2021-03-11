@@ -166,7 +166,6 @@ def get_app_win_info() -> Optional[AppWin]:
         return None                                          # pragma: no cover
 
     _, text = _system(f'xwininfo -id {wid}')
-    print('>>>>', repr(text))
     print(text)
     for line in text.splitlines():
         line = line.strip()
@@ -182,8 +181,6 @@ def get_app_win_info() -> Optional[AppWin]:
 
     _, text = _system(
         f'xprop -id {wid} _NET_FRAME_EXTENTS WM_NORMAL_HINTS')
-    print('>>>>', repr(text))
-    print(text)
     for line in text.splitlines():
         line = line.strip()
         if line.startswith('_NET_FRAME_EXTENTS(CARDINAL) = '):

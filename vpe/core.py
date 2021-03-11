@@ -246,28 +246,19 @@ def get_display_buffer(
     else:
         buf_name = f'/[[{name}]]'
     b = _known_special_buffers.get(buf_name, None)
-    with vpe.temp_log('/tmp/paul.log'):
-        if b is not None and b.valid:
-            return b
-        print("Need new buffer", name, b)
+    if b is not None and b.valid:
+        return b
 
-        for b in wrappers.vim.buffers:
-            if b.name == buf_name:
-                break
-        else:
-            print("Wraping new", name)
-            print("N buffers", len(wrappers.vim.buffers))
-            for b in wrappers.vim.buffers:
-                print("    ", b.number, b.name)
-            wrappers.commands.new()
-            print("Created new buffer")
-            b = wrappers.vim.current.buffer
-            print("New buffer is", b)
-            wrappers.commands.wincmd('c')
-            print("Closed split")
+    for b in wrappers.vim.buffers:
+        if b.name == buf_name:
+            break
+    else:
+        wrappers.commands.new()
+        b = wrappers.vim.current.buffer
+        wrappers.commands.wincmd('c')
 
-        b = buf_class(buf_name, b, name)
-        _known_special_buffers[buf_name] = b
+    b = buf_class(buf_name, b, name)
+    _known_special_buffers[buf_name] = b
     return b
 
 

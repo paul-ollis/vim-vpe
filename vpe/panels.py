@@ -16,7 +16,7 @@ panels.::
     :                                                                   :
 
 The contents of each panel is managed by a `Panel` subclass. The panels are
-managed by a `PanelView`.
+managed by a `PanelViewBuffer`.
 """
 
 import weakref
@@ -96,7 +96,7 @@ class Panel:
         This may be over-ridden in subclasses that need specialised syntax
         highlighting.
 
-        This is only called when the panel's `start_idx` is correctly set.
+        This is only called when the panel's `start_lidx` is correctly set.
         Previous panel specific syntax must be deleted by this method.
         """
 
@@ -108,12 +108,12 @@ class Panel:
         formatted contents changing then the parent view's
         `notify_content_change` method is invoked.
 
-        This invokes the `_format_contents` method, which is responsible for
+        This invokes the `on_format_contents` method, which is responsible for
         filling the `content` list.
         """
         old_slice = self.buf_slice
         old_content, self.content = self.content, []
-        self._format_contents()
+        self.on_format_contents()
         size_changed = len(old_content) != len(self.content)
         if size_changed:
             self.view.notify_size_change()
@@ -135,7 +135,7 @@ class Panel:
         self.start_lidx = idx
         return idx + len(self.content)
 
-    def _format_contents(self) -> None:
+    def on_format_contents(self) -> None:
         """Format the content of this panel.
 
         The content is stored as a sequence of lines in the `content` property.
