@@ -135,6 +135,23 @@ class ScratchBuffer(wrappers.Buffer):
         super().__init__(buffer)
         self.__dict__['_base_name'] = name
         self.__dict__['simple_name'] = _clean_ident(simple_name or name)
+        self.set_ext_name('')
+        with AutoCmdGroup(self.auto_grp_name) as grp:
+            grp.add('BufWinEnter', self.on_first_showing, pat=self, once=True)
+
+        # Setting the buffer options here can fail. Arrange to do it later when
+        # Vim has a 'spare moment'.
+        vpe.call_soon(self.init_options)
+
+    def init_options(self):
+        """Initialise the scratch buffer specific options.
+
+        This gets invoked via call_soon because option setting can otherwise
+        silently fail.
+
+        Subclasses may want to extend this, but it is not intended to invoked
+        directly.
+        """
         options = self.options
         options.buftype = 'nofile'
         options.swapfile = False
@@ -143,9 +160,6 @@ class ScratchBuffer(wrappers.Buffer):
         options.modifiable = False
         options.bufhidden = 'hide'
         options.buflisted = True
-        self.set_ext_name('')
-        with AutoCmdGroup(self.auto_grp_name) as grp:
-            grp.add('BufWinEnter', self.on_first_showing, pat=self, once=True)
 
     @property
     def syntax_prefix(self):
@@ -238,8 +252,8 @@ def get_display_buffer(
     The actual buffer name will be of the form '/[[name]]'. The buffer is
     created if it does not already exist.
 
-    :name:     An identifying name for this buffer. This becomes the
-               `ScratchBuffer.simple_name` attribute.
+    :name: An identifying name for this buffer. This becomes the
+           `ScratchBuffer.simple_name` attribute.
     """
     # pylint: disable=unsubscriptable-object
     if platform.system() == 'Windows': # pragma: no cover windows
@@ -254,9 +268,8 @@ def get_display_buffer(
         if b.name == buf_name:
             break
     else:
-        wrappers.commands.new()
-        b = wrappers.vim.current.buffer
-        wrappers.commands.wincmd('c')
+        n = wrappers.vim.bufnr(buf_name, True)
+        b = wrappers.vim.buffers[n]
 
     b = buf_class(buf_name, b, name)
     _known_special_buffers[buf_name] = b
