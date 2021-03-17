@@ -201,6 +201,7 @@ class ScratchBuffer(wrappers.Buffer):
         :return:     True if the window is successfully shown.
         """
         win = wrappers.vim.current.window
+        windows = wrappers.vim.windows
         w_number = win.number
         if splitlines:
             w_height = win.height
@@ -209,12 +210,14 @@ class ScratchBuffer(wrappers.Buffer):
                 return False
 
             wrappers.commands.wincmd('s')
-            lower_win = wrappers.vim.windows[w_number]
             split_size = min(abs(splitlines), w_height - 2)
+            rem_size = w_height - split_size - 1
             if splitlines > 0:
-                lower_win.height = split_size
+                windows[w_number - 1].height = rem_size
+                windows[w_number].height = split_size
             else:
-                lower_win.height = w_height - split_size - 1
+                windows[w_number - 1].height = split_size
+                windows[w_number].height =rem_size
 
         elif splitcols:
             w_width = win.width
@@ -225,10 +228,13 @@ class ScratchBuffer(wrappers.Buffer):
             wrappers.commands.wincmd('v')
             right_win = wrappers.vim.windows[w_number]
             split_size = min(abs(splitcols), w_width - 2)
+            rem_size = w_width - split_size - 1
             if splitcols > 0:
-                right_win.width = split_size
+                windows[w_number - 1].width = rem_size
+                windows[w_number].width = split_size
             else:
-                right_win.width = w_width - split_size - 1
+                windows[w_number - 1].width = split_size
+                windows[w_number].width =rem_size
 
         wrappers.commands.buffer(self.number, bang=True)
         return True
