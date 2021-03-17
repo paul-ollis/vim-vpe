@@ -97,16 +97,17 @@ _vim.command(_VIM_FUNC_DEFS)
 
 
 def _clean_ident(s):
-    """Clean up a string so it is a valid Vim identifier."""
-    valid_chars = set(string.ascii_letters + string.digits + '_')
+    """Clean up a string so it is a valid Vim identifier.
+
+    The returned value can be used in group names.
+    """
+    valid_chars = set(string.ascii_letters + string.digits)
     def fold_to_ident_char(c):
         if c not in valid_chars:
-            return '_'                                       # pragma: no cover
+            return 'x'                                       # pragma: no cover
         return c
     ident = ''.join(fold_to_ident_char(c) for c in s)
     if ident != s:
-        while '__' in ident:
-            ident = ident.replace('__', '_')
         return ident
     return s                                                 # pragma: no cover
 
@@ -128,7 +129,7 @@ class ScratchBuffer(wrappers.Buffer):
         `syntax_prefix` and `auto_grp_name` property values. If this is not set
         then is is the same a the *name* parameter. If this is not a valid
         identifier then it is converted to one by replacing invalid characters
-        to underscores and then eliminitating sequence of multiple underscores.
+        with 'x'.
     """
     def __init__(self, name, buffer, simple_name=None, *args):
         super().__init__(buffer)
