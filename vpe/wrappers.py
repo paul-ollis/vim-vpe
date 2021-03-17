@@ -1092,6 +1092,8 @@ class GlobalOptions(Options):
             if common.vim_simple_eval(f'exists({oname_form!r})') == '0':
                 raise AttributeError(
                     f'{oname} object has no attribute {name!r}')
+        if v is not None:
+            return v
         return self._wrap_or_decode(common.vim_eval(f'&g:{name}'), name)
 
     def __setattr__(self, name, value):
