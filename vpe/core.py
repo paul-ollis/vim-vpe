@@ -1438,16 +1438,22 @@ def highlight(
     return ret
 
 
+def _name_to_number(name):
+    if isinstance(name, int):
+        return name
+    return colors.to_256_num(colors.well_defined_name(name))
+
+
 def _convert_colour_names(kwargs):
     _cterm_argnames = set(('ctermfg', 'ctermbg', 'ctermul'))
     _gui_argnames = set(('guifg', 'guibg', 'guisp'))
     for key, name in kwargs.items():
-        if name in _std_vim_colours:
+        if name in _std_vim_colours or not isinstance(name, str):
             continue
         if key in _cterm_argnames:
-            kwargs[key] = colors.name_to_number.get(name.lower(), name)
+            kwargs[key] = _name_to_number(name)
         elif key in _gui_argnames:
-            kwargs[key] = colors.name_to_hex.get(name.lower(), name)
+            kwargs[key] = colors.well_defined_name(name)
 
 
 def _echo_msg(*args, hl='None'):
@@ -1466,7 +1472,7 @@ def _invoke_now_or_soon(soon, func, *args, **kwargs):
              from Vim's execution loop.
     :func:   The function.
     :args:   The functions arguments.
-    :kwargs: The function's keywor arguments.
+    :kwargs: The function's keyword arguments.
     """
     if soon:
         call_soon(partial(func, *args, **kwargs))

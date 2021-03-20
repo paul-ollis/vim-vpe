@@ -1,3 +1,15 @@
+Version 0.5.2
+
+- Big change to colors.py. Should not affect the existing API.
+
+- Better window size behaviour when displaying ScratchBuffers.
+
+- Fix invalid characters in generated autogrp names.
+
+- Add support for VPE plugin help files.
+
+- Better preserve types for option access.
+
 Version 0.5.1
 
 - Added a load of missing API documentation that I foolishly forgot about.
