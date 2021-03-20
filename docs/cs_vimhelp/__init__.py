@@ -7,6 +7,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import urllib.parse
 
 from docutils import nodes
 from docutils.parsers.rst import Directive
@@ -63,9 +64,10 @@ class VimRefWalker(visitor.Visitor):
 
         for n in node.attributes:
             node.attributes[n] = ''
+        url_text = urllib.parse.quote(text)
         ref = nodes.reference(
             text=text, name=text,
-            refuri=f'{vimhelp_org}/{helpfile}.html#{text}')
+            refuri=f'{vimhelp_org}/{helpfile}.html#{url_text}')
         node.replace_self(ref)
 
 

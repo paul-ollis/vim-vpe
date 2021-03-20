@@ -1274,7 +1274,6 @@ class HighlightSpec:
         """
         args = {}
         vim = wrappers.vim
-        print("OK", vim.has('gui_running'))
         if vim.has('gui_running') or vim.options.termguicolors:
             if self.fg is not None:
                 args['guifg'] = self.fg

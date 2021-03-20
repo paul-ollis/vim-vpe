@@ -1,6 +1,6 @@
-======================
-VPE plug-in extensions
-======================
+=====================
+VPE plug-in mechanism
+=====================
 
 Vim's default plug-in mechanism
 ===============================
