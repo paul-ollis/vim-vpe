@@ -769,8 +769,6 @@ class Buffers(ImmutableSequenceProxy):
 
     User code should not directly instantiate this class. VPE creates and
     manages instances of this class as required.
-
-    This is a proxy that extends the vim.Buffer behaviour in various ways.
     """
     # pylint: disable=too-few-public-methods
     @property
@@ -861,7 +859,6 @@ class Windows(ImmutableSequenceProxy):
     :obj: A :vim:`python-windows` object.
     """
     # pylint: disable=too-few-public-methods
-    pass  # pylint: disable=unnecessary-pass
 
 
 class _DeadWin:
@@ -1586,7 +1583,7 @@ class _BufferDesc:
         # pyre-ignore[7]:
         """Time (in seconds) when buffer was last used.
 
-        This is a time in seconds a returned by :vim:`localtime()`.
+        This is a time in seconds as returned by :vim:`localtime()`.
         """
 
     @property
@@ -1615,7 +1612,7 @@ class _BufferDesc:
     #     """
 
     @property
-    def variables(self) -> int:
+    def variables(self) -> 'Variables':
         # pyre-ignore[7]:
         """The same as the `vars` attribute.
 
@@ -1624,17 +1621,17 @@ class _BufferDesc:
         """
 
     @property
-    def windows(self) -> int:
+    def windows(self) -> List[int]:
         # pyre-ignore[7]:
-        """A list of windows displaying this buffer.
+        """A list of window IDs for windows that are displaying this buffer.
 
         Each entry is a :vim:`window-ID`.
         """
 
     @property
-    def popups(self) -> int:
+    def popups(self) -> List[int]:
         # pyre-ignore[7]:
-        """A list windows displaying this buffer.
+        """A list of window IDs for popups that are displaying this buffer.
 
         Each entry is a :vim:`window-ID`.
         """

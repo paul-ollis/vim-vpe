@@ -149,8 +149,8 @@ class ScratchBuffer(wrappers.Buffer):
         This gets invoked via call_soon because option setting can otherwise
         silently fail.
 
-        Subclasses may want to extend this, but it is not intended to invoked
-        directly.
+        Subclasses may want to extend this, but it is not intended to be
+        invoked directly.
         """
         options = self.options
         options.buftype = 'nofile'
@@ -184,7 +184,7 @@ class ScratchBuffer(wrappers.Buffer):
         else:
             self.name = self._base_name
 
-    def show(self, splitlines: int = 0, splitcols: int = 0) -> bool:
+    def show(self, *, splitlines: int = 0, splitcols: int = 0) -> bool:
         """Make this buffer visible.
 
         Without a *splitlines* or *splitcols* argument, this will use the

@@ -8,7 +8,7 @@ module. It is intended that a Vim instance can be uses as a replacement for the
     # Now use 'vim' as an extended version of the *vim* module.
     # ...
 
-This is compatible for versions of Vim from 8.0. It also needs Python 3.6 or
+This is compatible with versions of Vim from 8.0. It also needs Python 3.6 or
 newer.
 
 @vim:
@@ -63,8 +63,9 @@ from .wrappers import Vim, vim
 from . import channels, mapping, syntax
 from .mapping import MapCallback
 from .wrappers import (
-    Buffer, Buffers, Current, GlobalOptions, Range, Registers, Struct, TabPage,
-    TabPages, VIM_DEFAULT, VI_DEFAULT, Variables, Window, Windows, commands)
+    Buffer, Buffers, Current, GlobalOptions, Options, Range, Registers, Struct,
+    TabPage, TabPages, VIM_DEFAULT, VI_DEFAULT, Variables, Window, Windows,
+    commands)
 
 __api__ = [
     'AutoCmdGroup', 'Timer', 'Popup', 'PopupAtCursor', 'PopupBeval',
@@ -73,14 +74,14 @@ __api__ = [
     'vim', 'log', 'saved_winview', 'highlight', 'pedit', 'popup_clear',
     'timer_stopall', 'find_buffer_by_name', 'script_py_path',
     'get_display_buffer', 'version', 'dot_vim_dir', 'temp_active_window',
-    'define_command', 'CommandInfo',
+    'define_command', 'CommandInfo', 'saved_current_window',
 
     'core', 'commands', 'mapping', 'syntax', 'wrappers', 'panels',
     'ui', 'config', 'channels', 'windows', 'app_ui_support',
 
     # Types and functions that should not be directly invoked.
     'Variables', 'Window', 'TabPage', 'Windows', 'TabPages', 'Buffers',
-    'Current', 'GlobalOptions', 'Function', 'Buffer',
+    'Current', 'GlobalOptions', 'Function', 'Buffer', 'Options',
     'Range', 'Struct', 'ScratchBuffer', 'VI_DEFAULT', 'VIM_DEFAULT',
     'CommandHandler', 'EventHandler', 'BufEventHandler',
 ]

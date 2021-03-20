@@ -32,16 +32,12 @@ ensure_dir_is_in_sys_path(src_path)
 ensure_dir_is_in_sys_path(src_path / 'stub')
 ensure_dir_is_in_sys_path(doc_path)
 
-import doculate
-doculate.gen_api_tree(root_path=src_path, mod_name='vpe')
-
 import cs_theme
 from cs_theme import cs_theme_path
 
 # Use the mym sphinx support add-ons.
 from mym_addons import sphinx
 
-# Edit the following lines to suite your needs.
 projectName = "Vim Python Extensions"
 
 sphinxConfig = sphinx.Config(project=projectName)
@@ -73,14 +69,11 @@ path = EnvironPath("PATH")
 
 srcFiles = ["api/api.vpe.rst"]
 
-Command("html/index.html", srcFiles,
-    Cmd = "sphinx-build -NaE -b html . html",
-          AutoDep=sphinx.scanSphinx,
-          Local=1)
-
 Command("vimhelp/vpe-help.txt", srcFiles,
-    Cmd = "sphinx-build -NaE -b vimhelp . vimhelp",
+    Cmd = "sphinx-build -j5 -NaE -b vimhelp . vimhelp",
           AutoDep=sphinx.scanSphinx,
           Local=1)
 
 InstallFile("../start/vpe/doc/vpe-help.txt", "vimhelp/index.txt")
+
+Include(dirs='guide')
