@@ -47,7 +47,7 @@ projectName = "Vim Python Extensions"
 sphinxConfig = sphinx.Config(project=projectName)
 sphinxConfig.add_to_syspath('os.path.abspath(".")', literal=True)
 sphinxConfig.add_extension("cs_vimhelp")
-sphinxConfig.conf["exclude_patterns"] = []
+sphinxConfig.conf["exclude_patterns"] = ['guide']
 sphinxConfig.conf["html_theme_path"] = ['.']
 sphinxConfig.conf["html_theme"] = "sphinx_rtd_theme"
 sphinxConfig.conf["html_theme_options"] = {}

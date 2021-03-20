@@ -1058,7 +1058,7 @@ ScratchBuffer
             `syntax_prefix` and `auto_grp_name` property values. If this is not set
             then is is the same a the *name* parameter. If this is not a valid
             identifier then it is converted to one by replacing invalid characters
-            to underscores and then eliminitating sequence of multiple underscores.
+            with 'x'.
 
     **Attributes**
 
@@ -1068,7 +1068,7 @@ ScratchBuffer
             `syntax_prefix` and `auto_grp_name` property values. If this is not set
             then is is the same a the *name* parameter. If this is not a valid
             identifier then it is converted to one by replacing invalid characters
-            to underscores and then eliminitating sequence of multiple underscores.
+            with 'x'.
 
     **Properties**
 
@@ -1083,6 +1083,16 @@ ScratchBuffer
             A suitable prefix for syntax items in this buffer.
 
     **Methods**
+
+        .. py:method:: vpe.ScratchBuffer.init_options()
+
+            Initialise the scratch buffer specific options.
+
+            This gets invoked via call_soon because option setting can otherwise
+            silently fail.
+
+            Subclasses may want to extend this, but it is not intended to invoked
+            directly.
 
         .. py:method:: vpe.ScratchBuffer.modifiable() -> TemporaryOptions
 

@@ -892,7 +892,7 @@ class AutoCmdGroup(support.CommandsBase):
         :<vim>:
 
             set cpoptions&vim
-            augroup test_autocmds
+            augroup testxxautocmds
             autocmd BufReadPre * call VPE_Call("100", "callback")
             augroup END
         """
@@ -914,7 +914,7 @@ class AutoCmdGroup(support.CommandsBase):
         :<vim>:
 
             set cpoptions&vim
-            augroup test_autocmds
+            augroup testxxautocmds
             autocmd!
             autocmd BufReadPre * call VPE_Call("100", "callback")
             augroup END
@@ -943,7 +943,7 @@ class AutoCmdGroup(support.CommandsBase):
         """
         class EH_Test(vpe.EventHandler):
             def __init__(self):
-                self.auto_define_event_handlers('+_')
+                self.auto_define_event_handlers('')
 
             @vpe.EventHandler.handle('BufReadPre')
             def callback(self):
@@ -988,8 +988,8 @@ class Miscellaneous(support.CommandsBase):
             keepalt highlight clear
             keepalt highlight clear test
             keepalt highlight test NONE
-            keepalt highlight test default guifg=Blue guibg=#1874cd
-            keepalt highlight test gui=bold ctermfg=16
+            keepalt highlight test default guifg=Blue guibg=DodgerBlue3
+            keepalt highlight test gui=bold ctermfg=17
             keepalt highlight link PythonFunction Function
         """
         vpe.highlight(clear=True)

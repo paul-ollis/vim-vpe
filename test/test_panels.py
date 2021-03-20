@@ -132,9 +132,9 @@ class PanelViewBuffer(support.Base):
         failUnlessEqual(['Top', 'Middle', 'Bottom'], res.content)
         failUnlessEqual(3, res.change_count)
         failUnlessEqual(3, res.reindex_count)
-        failUnlessEqual('Syn_test_panels_0_', res.prefixes[0])
-        failUnlessEqual('Syn_test_panels_1_', res.prefixes[1])
-        failUnlessEqual('Syn_test_panels_2_', res.prefixes[2])
+        failUnlessEqual('Syn_testxpanels_0_', res.prefixes[0])
+        failUnlessEqual('Syn_testxpanels_1_', res.prefixes[1])
+        failUnlessEqual('Syn_testxpanels_2_', res.prefixes[2])
 
     @test(testID='pview-insert-panel-at-start')
     def insert_panel_at_start(self):
@@ -376,7 +376,7 @@ class ConfigPanel(support.Base):
             panel = buf.panels[0]
             res.indices = [buf.data.field_idx]
             buf.show()
-            vpe.feedkeys(r'\<Tab>')
+            vpe.feedkeys(r'\<C-\>\<C-N>\<Tab>')
         """
         self.setup_test_config_view()
         res = self.run_self()
@@ -417,16 +417,16 @@ class ConfigPanel(support.Base):
 
         :<py>:
 
+            # from functools import partial
             res = Struct()
 
             buf.show()
-            vpe.feedkeys(r'\<Space>')
         """
         self.setup_test_config_view()
         res = self.run_self()
 
         self.vs.execute(support.clean_code_block('''
-            vpe.feedkeys(r'\<Tab>\<Space>')
+            vpe.feedkeys(r'\<C-\>\<C-N>\<Tab>\<Space>')
         '''))
         self.vs.execute(support.clean_code_block('''
             vpe.feedkeys(r'\<Tab>\<Space>')
@@ -436,6 +436,9 @@ class ConfigPanel(support.Base):
         '''))
         self.vs.execute(support.clean_code_block('''
             vpe.feedkeys(r'\<Tab>\<Space>\<Space>\<Space>\<Space>')
+        '''))
+        self.vs.execute(support.clean_code_block('''
+            vpe.feedkeys(r'\<Tab>\<Space>')
         '''))
         self.vs.execute(support.clean_code_block('''
             res.lines = list(buf)
@@ -458,11 +461,14 @@ class ConfigPanel(support.Base):
             res = Struct()
 
             buf.show()
-            vpe.feedkeys(r'\<Space>')
+            vpe.commands.redraw()
         """
         self.setup_test_config_view()
         res = self.run_self()
 
+        self.vs.execute(support.clean_code_block('''
+            vpe.feedkeys(r'\<Tab>\<S-Space>')
+        '''))
         self.vs.execute(support.clean_code_block('''
             vpe.feedkeys(r'\<Tab>\<S-Space>')
         '''))
@@ -528,7 +534,7 @@ class ConfigPanel(support.Base):
             res = Struct()
 
             buf.show()
-            vpe.feedkeys(r'\<Tab>\<Tab>\<Enter>')
+            vpe.feedkeys(r'\<C-\>\<C-N>\<Tab>\<Tab>\<Enter>')
         """
         self.setup_test_config_view()
         res = self.run_self()
@@ -557,7 +563,7 @@ class ConfigPanel(support.Base):
             res = Struct()
 
             buf.show()
-            vpe.feedkeys(r'\<Tab>\<Tab>\<Enter>')
+            vpe.feedkeys(r'\<C-\>\<C-N>\<Tab>\<Tab>\<Enter>')
         """
         self.setup_test_config_view()
         res = self.run_self()
