@@ -187,6 +187,9 @@ def _load_plugins():
         p for p in possible_plugins if not p.name.startswith('_')]
     for p in sorted(possible_plugins):
         _import_possible_plugin(p)
+    plugin_doc_dir = plugin_dir / 'doc'
+    if plugin_doc_dir.exists():
+        vim.options.runtimepath += str(plugin_dir)
 
 
 def _init_vpe_plugins():
