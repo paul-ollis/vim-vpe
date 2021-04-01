@@ -1,0 +1,17 @@
+::
+
+                _    ______  ______
+               | |  / / __ \/ ____/
+               | | / / /_/ / __/
+               | |/ / ____/ /___     The Vim Python Extensions
+               |___/_/   /_____/
+
+VPE adds to Vim's built-in support for Python scripting with the following
+aims.
+
+- Ability to write more Pythonic code.
+
+- Provide a toolkit of additional classes and functions to support complex
+  plug-ins.
+
+- Be extremely compatible with existing Vim Python scripts.

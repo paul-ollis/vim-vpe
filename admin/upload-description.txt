@@ -1,13 +1,13 @@
 News
 
+  I have started updating the documentation to provide more of a user guide.
+  The current version is at https://vim-vpe.readthedocs.io/en/userguide/.
+  This is vey much a work in progress. It will definitely contain spelling
+  errors and other mistakes, and I expect it to change quite a lot in the near
+  future.
+
   A lot has been added since version 0.4, most significantly in areas that
   make writing and maintaining non-trivial plug-ins easier.
-
-  The new features have API documentation, but I plan to produce more of a
-  user guide in the near future (before release 0.6).
-
-  This will be made available at https://vim-vpe.readthedocs.io/. So keep
-  a lookout for changes there.
 
 Requirements
 
