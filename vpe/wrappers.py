@@ -720,7 +720,7 @@ class Buffer(MutableSequenceProxy):
         return list(windows.values())
 
     def find_best_active_window(self, all_tabpages=False) -> Optional['Window']:
-        """Find tehe best choice for a window where this buffer is active.
+        """Find the best choice for a window where this buffer is active.
 
         This returns the first entry found by `find_active_windows`.
 

@@ -91,7 +91,12 @@ class CodeSource:
             import vpe
 
             # Redirect logging and use largish buffer for ease of debugging.
-            vpe.log.redirect()
+            log_mode = os.environ.get('VPE_LOGGING', '')
+            if log_mode == '':
+                vpe.log.redirect()
+            elif log_mode != 'tty':
+                f = open(log_mode, 'at', buffering=1)
+                sys.stdout = sys.stderr = f
             vpe.log.set_maxlen(3000)
 
             # Give the initial buffer a suitable name.

@@ -388,7 +388,7 @@ class Timers(support.Base):
 
         :<py>:
             res.paused = timer.paused
-            res.num_timers = len(vpe.Timer._one_shot_timers)
+            res.num_timers = vpe.Timer.num_instances()
             res.dead = timer.dead
             res.fire_count = timer.fire_count
             dump(res)
@@ -399,7 +399,7 @@ class Timers(support.Base):
        """Contine executions to dead/unreachable timers to expire.
 
         :<py>:
-            res.num_timers = len(vpe.Timer._one_shot_timers)
+            res.num_timers = vpe.Timer.num_instances()
             dump(res)
        """
        return self.run_continue()
@@ -431,7 +431,7 @@ class Timers(support.Base):
         failUnlessEqual(10, res.init_time)
         failUnless(res.dead)
         failUnlessEqual(1, res.fire_count)
-        failUnlessEqual('Timer(on_expire)', res.repr)
+        failUnlessEqual('<Timer:on_expire>', res.repr)
 
     @test(testID='timer-repeat')
     def create_repeating(self):
@@ -481,7 +481,7 @@ class Timers(support.Base):
     #       and the test is unrealiable (at least on Windows).
     @test(testID='timer-control')
     def control_timer(self):
-        """The pause,resume and stop functions control an active timer.
+        """The pause, resume and stop functions control an active timer.
 
         :<py>:
 
@@ -1022,7 +1022,7 @@ class Miscellaneous(support.CommandsBase):
         """
         res = self.run_self()
         failUnlessEqual(([1, 2], {'a': 1, 'b': 2}, 'hello'), res.args)
-        failUnlessEqual('Callback(callback)', res.repr)
+        failUnlessEqual('<Callback:callback>', res.repr)
 
     @test(testID='misc-callback_failure')
     def callback_failure_handling(self):
@@ -1072,8 +1072,8 @@ class Miscellaneous(support.CommandsBase):
         failUnlessEqual(1, res.method_count)
         failIf(res.impossible)
 
-        failUnlessEqual('Callback(<Dead callable>)', res.repr_deleted)
-        failUnlessEqual('Callback(BadClass.fail)', res.repr_method)
+        failUnlessEqual('<DeadCallback:callback_deleted>', res.repr_deleted)
+        failUnlessEqual('<Callback:BadClass.fail>', res.repr_method)
 
     @test(testID='misc-build-dict-arg')
     def build_dict_arg(self):
@@ -1178,7 +1178,6 @@ class Miscellaneous(support.CommandsBase):
 
         # Perform a sanity check on the output.
         text = '\n'.join(res.lines)
-        failUnless('Timer._one_shot_timers =' in  text)
         failUnless('Popup._popups =' in  text)
         failUnless('Callback.callbacks =' in  text)
 

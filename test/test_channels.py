@@ -335,14 +335,24 @@ class JsonChannel(Channel):
         res = self.do_connect()
         failUnless(res.ch_id >= 0)
 
-    @test(testID='channel-del')
-    def channel_del(self):
-        """When a channel is deleted, is is automatically closed.
+    def create_channel(self):
+        """Create a channel.
 
         :<py>:
+
+            import gc, sys
+            ch = MyChannel('localhost:8887')
+        """
+        self.run_self()
+
+    @test(testID='channel-del')
+    def channel_del(self):
+        """When a channel is deleted, it is automatically closed.
+
+        :<py>:
+
             res = Struct()
 
-            ch = MyChannel('localhost:8887')
             vch = ch.vch
             res.info = ch.vch.info
             ref_name = 'g:ch_ref'
@@ -357,6 +367,7 @@ class JsonChannel(Channel):
             dump(res)
         """
         self.server.start()
+        self.create_channel()
         res = self.run_self()
         failUnlessEqual('open', res.init_status)
         failUnlessEqual('closed', res.del_status)

@@ -4,6 +4,7 @@ from typing import Any, Optional, Tuple, Dict, ClassVar, Union, List
 from functools import partial
 import weakref
 
+import vpe
 from . import common
 from . import core
 from . import wrappers
@@ -205,7 +206,7 @@ class Channel:
         my_ref = weakref.ref(self, partial(self._on_del, self.vch.chid))
         self.channels[self.vch.chid] = my_ref
         self.vim_channels[self.vch.chid] = self.vch
-        self.on_connect()
+        vpe.call_soon(self.on_connect)
 
     @property
     def is_open(self) -> bool:

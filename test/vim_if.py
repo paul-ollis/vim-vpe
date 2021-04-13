@@ -138,6 +138,7 @@ class VimSession:
 
             # I find it helpful if the Vim window's position and size is always
             # the same.
+            self.execute_vim('let &guifont = "Monospace 8"')
             self.execute_vim('set columns=100')
             self.execute_vim('set lines=60')
             self.execute_vim('winpos 0 0')
