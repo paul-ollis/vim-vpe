@@ -26,5 +26,6 @@ User guide
     buffers
     windows
     scratch-buffers
+    timers
     plugins
     api/api.vpe

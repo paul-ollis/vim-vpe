@@ -16,6 +16,7 @@ sphinxConfig.conf["exclude_patterns"] = []
 sphinxConfig.conf["html_theme_path"] = ['.']
 sphinxConfig.conf["html_theme"] = "sphinx_rtd_theme"
 sphinxConfig.conf["html_theme_options"] = {}
+sphinxConfig.conf["html_css_files"] = ['css/custom.css']
 sphinxConfig.conf["pygments_style"] = "manni"
 sphinxConfig.conf["default_role"] = "any"
 sphinxConfig.conf['autodoc_typehints'] = "none"

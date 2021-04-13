@@ -175,5 +175,4 @@ depends on the buffer being current, such as defning syntax highlighting.
             with syntax.Syntax(self.syntax_prefix) as syn:
                 ...
 
-
     man_buf = vpe.get_display_buffer('manpage', buf_class=ManPageBuffer)

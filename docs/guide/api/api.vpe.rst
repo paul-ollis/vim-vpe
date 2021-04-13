@@ -147,7 +147,8 @@ BufEventHandler
 
     Mix-in to support mapping events to methods for buffers.
 
-    This differs from EventHandler by use ``self`` as the default pattern.
+    This differs from EventHandler by the use of ``self`` as the default
+    pattern.
 
 Buffer
 ------
@@ -336,7 +337,7 @@ Buffer
 
         .. py:method:: vpe.Buffer.find_best_active_window(all_tabpages=False) -> Optional[ForwardRef('Window')]
 
-            Find tehe best choice for a window where this buffer is active.
+            Find the best choice for a window where this buffer is active.
 
             This returns the first entry found by `find_active_windows`.
 
@@ -1629,7 +1630,7 @@ temp_active_window
 call_soon
 ---------
 
-.. py:function:: vpe.call_soon(func)
+.. py:function:: vpe.call_soon(func,*args,**kwargs)
 
     Arrange to call a function 'soon'.
 
@@ -1637,12 +1638,18 @@ call_soon
     This means that currently executing Python code will complete *before*
     the function is invoked.
 
+    The function is invoked as:
+
+    .. code-block:: py
+
+        func(*args, **kwargs)
+
     **Parameters**
 
     .. container:: parameters itemdetails
 
         *func*
-            The function to be invoked. It takes no arguments.
+            The function to be invoked.
 
 define_command
 --------------

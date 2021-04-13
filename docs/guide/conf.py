@@ -18,6 +18,7 @@ html_static_path = ['_static']
 htmlhelp_basename = 'Vim Python Extensionsdoc'
 html_theme_path = ['.']
 html_theme_options = {}
+html_css_files = ['css/custom.css']
 default_role = 'any'
 autodoc_typehints = 'none'
 vim_link_map = {'vim': 'vpe.vim', 'Vim': 'vpe.Vim'}
