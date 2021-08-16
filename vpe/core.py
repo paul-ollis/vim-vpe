@@ -1346,8 +1346,7 @@ class AutoCmdCallback(common.Callback):
 class AutoCmdGroup:
     """A Pythonic way to define auto commands.
 
-    This is a context manager that supports definition of autocommands
-    that:
+    This is a context manager that supports definition of autocommands that:
 
     - Are always in a given group.
     - Invoke Python code when triggered.
@@ -1390,7 +1389,9 @@ class AutoCmdGroup:
         common.vim_command('autocmd!')
 
     @staticmethod
-    def add(event, func, *, pat='<buffer>', once=False, nested=False):
+    def add(
+            event, func, *, pat='<buffer>', once=False, nested=False,
+            **kwargs):
         """Add a new auto command to the group.
 
         :event:  The name of the event.
@@ -1401,6 +1402,7 @@ class AutoCmdGroup:
                  the special pattern '<buffer=N> is used.
         :once:   The standard ':autocmd' options.
         :nested: The standard ':autocmd' options.
+        :kwargs: Additional keyword arguments to be passed the *func*`.
         """
         if isinstance(pat, wrappers.Buffer):
             pat = f'<buffer={pat.number}>'
@@ -1413,7 +1415,9 @@ class AutoCmdGroup:
                 cmd_seq.append('++nested')
             else:
                 cmd_seq.append('nested')
-        cmd_seq.append(Callback(func, once=once).as_call())
+        kwargs = kwargs or None
+        callback = AutoCmdCallback(func, once=once, py_kwargs=kwargs)
+        cmd_seq.append(callback.as_call())
         common.vim_command(' '.join(cmd_seq))
         callback.debug_meta = event, pat
 
