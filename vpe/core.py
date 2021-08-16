@@ -21,7 +21,8 @@ import time
 import traceback
 import weakref
 from functools import partial
-from typing import Any, Callable, ClassVar, Dict, Optional, Tuple, Type, Union
+from typing import (
+    Any, Callable, ClassVar, Dict, List, Optional, Tuple, Type, Union)
 
 import vim as _vim
 
@@ -1701,6 +1702,7 @@ def define_command(
         bang: bool = False, bar: bool = False, register: bool = False,
         buffer: bool = False, replace: bool = True, pass_info: bool = True,
         args=(), kwargs: Optional[dict] = None):
+        # pylint: disable=too-many-locals,redefined-builtin
     """Create a user defined command that invokes a Python function.
 
     When the command is executed, the function is invoked as:<py>:
@@ -1742,7 +1744,7 @@ def define_command(
     :args:      Additional arguments to pass to the mapped function.
     :kwargs:    Additional keyword arguments to pass to the mapped function.
     """
-    cmd_args = [
+    cmd_args: List[Union[expr_arg, int]] = [
         expr_arg('<line1>'), expr_arg('<line2>'), expr_arg('<range>'),
         expr_arg('<count>'), expr_arg('<q-bang>'), expr_arg('<q-mods>'),
         expr_arg('<q-reg>'), expr_arg('<f-args>')]
@@ -1757,19 +1759,22 @@ def define_command(
     if complete:
         cmd.append(f'-complete={complete}')
     if range:
-        cmd.append(f'-range={range}')
+        if range is True:
+            cmd.append('-range')
+        else:
+            cmd.append(f'-range={range}')
     if count:
         cmd.append(f'-count={count}')
     if addr:
         cmd.append(f'-addr={addr}')
     if bang:
-        cmd.append(f'-bang')
+        cmd.append('-bang')
     if bar:
-        cmd.append(f'-bar')
+        cmd.append('-bar')
     if register:
-        cmd.append(f'-register')
+        cmd.append('-register')
     if buffer:
-        cmd.append(f'-buffer')
+        cmd.append('-buffer')
     cmd.append(name)
     cmd.append(cb.as_call())
     wrappers.vim.command(' '.join(cmd))
