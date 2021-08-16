@@ -59,7 +59,13 @@ _std_vim_colours = set((
 #: Dictionary to track any special buffers that get created.
 _known_special_buffers: dict = {}
 
-_special_keymap: dict = {}
+#: Dictionary mapping from byte sequences to symbolic names for keys.
+#:
+#: Most entries are automatically generated, but some need to be entered
+#: manually.
+_special_keymap: dict = {
+    b'\x80\xfdd': '<Mouse>',
+}
 
 _VIM_FUNC_DEFS = """
 function! VPE_Call(uid, func_name, ...)
@@ -492,7 +498,7 @@ class Popup:
     popup_menu.
 
     The windows options (line, col, pos, *etc*.) are made avaiable as
-    properties of the same name. For example, to change the first displated
+    properties of the same name. For example, to change the first displayed
     line:<py>:
 
         p = vpe.Popup(my_text)
@@ -504,7 +510,7 @@ class Popup:
 
     :content:   The content for the window.
     :p_options: Nearly all the standard popup_create options (line, col, pos
-                *etc*. can be provided as keyword arguments. The exceptions
+                *etc*.) can be provided as keyword arguments. The exceptions
                 are filter and callback. Over ride the `on_key` and `on_close`
                 methods instead.
     """
@@ -592,14 +598,20 @@ class Popup:
 
         The default implementation does nothing, it is intended that this be
         over-ridden in subclasses. The keystream is preprocessed before this
-        is method is invoked as follows:
+        method is invoked as follows:
 
         - Merged key sequences are split, so that this is always invoked
           with the sequence for just a single key.
-        - Special key sequences are converted to the standard Vim symbolic
-          names such as <Up>, <LeftMouse>, <F11>, <S-F3>, <C-P>, *etc*.
         - Anything that does not convert to a special name is decoded to a
           Python string, if possible.
+        - Special key sequences are converted to the standard Vim symbolic
+          names such as <Up>, <LeftMouse>, <F11>, *etc*. Modifiers are also
+          handled where possible - the modified symbolic names known to be
+          available are:
+
+          - <S-Up> <S-Down> <S-Left> <S-Right> <S-Home> <S-End> <S-Insert>
+          - <C-F1> <C-F2>, *etc*.
+          - <C-A> <M-A> <S-M-A> <C-M-A>, <C-B> ... <C-M-Z>
 
         :key:      The pressed key. This is typically a single character
                    such as 'a' or a symbolic Vim keyname, such as '<F1>'.
@@ -616,6 +628,7 @@ class Popup:
         self._popups.pop(self._id, None)
 
     def _on_key(self, _, key_bytes: bytes) -> bool:
+        ret = False
         for byte_seq in self._split_key_sequences(key_bytes):
             k = _special_keymap.get(byte_seq, byte_seq)
             if isinstance(k, bytes):
@@ -682,9 +695,9 @@ class Popup:
     scrollbarhighlight = _PopupRWOption('scrollbarhighlight')
     scrollbar = _PopupROPos('scrollbar')
     tabpage = _PopupROOption('tabpage')
-    textprop = _PopupROOption('textprop')
-    textpropid = _PopupROOption('textpropid')
-    textpropwin = _PopupROOption('textpropwin')
+    textprop = _PopupRWPos('textprop')
+    textpropid = _PopupRWPos('textpropid')
+    textpropwin = _PopupRWPos('textpropwin')
     thumbhighlight = _PopupRWOption('thumbhighlight')
     time = _PopupWOOption('time')
     title = _PopupWOOption('title')
@@ -1871,25 +1884,29 @@ def _setup_keys():
         'LeftDrag', 'LeftRelease', 'MiddleMouse', 'MiddleDrag',
         'MiddleRelease', 'RightMouse', 'RightDrag', 'RightRelease', 'X1Mouse',
         'X1Drag', 'X1Release', 'X2Mouse', 'X2Drag', 'X2Release',
-        'ScrollWheelUp', 'ScrollWheelDown',
+        'ScrollWheelUp', 'ScrollWheelDown', 'Mouse',
     )
 
-    def register_key(name, unmodified=True, modifiers='SCMA'):
+    def register_key(name, unmodified=True, modifiers='SCM'):
         if unmodified:
             key_name = f'<{name}>'
             common.vim_command(rf'let g:_vpe_temp_ = "\{key_name}"')
             _special_keymap[wrappers.vim.vars['_vpe_temp_']] = key_name
         for m in modifiers:
-            key_name = f'<{m}-{name}>'
+            sym_name = key_name = f'<{m}-{name}>'
+            if len(name) == 1:
+                sym_name = f'<{m}-{name.upper()}>'
             common.vim_command(rf'let g:_vpe_temp_ = "\{key_name}"')
-            _special_keymap[wrappers.vim.vars['_vpe_temp_']] = key_name
+            _special_keymap[wrappers.vim.vars['_vpe_temp_']] = sym_name
 
     for k in _special_key_names:
         register_key(k)
     for n in range(12):
         register_key(f'F{n + 1}')
-    for c in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ':
-        register_key(c, unmodified=False, modifiers='CMA')
+    letters = 'abcdefghijklmnopqrstuvwxyz'
+    modifiers = ('C', 'M', 'C-M', 'S-M')
+    for c in letters:
+        register_key(c, unmodified=False, modifiers=modifiers)
 
 
 log: Log = Log('VPE-log')
