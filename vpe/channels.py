@@ -15,12 +15,26 @@ _VIM_FUNC_DEFS = """
 function! VPEReadCallback(channel, message)
     let g:VPE_read_channel_info = ch_info(a:channel)
     let g:VPE_read_message = a:message
-    call py3eval('vpe.channels.Channel._on_message()')
+    try
+        call py3eval('vpe.channels.Channel._on_message()')
+    catch
+        py3 << trim EOF
+            import vim as _vim
+            print(f'VPEReadCallback failed: {_vim.vvars["exception"]}')
+        EOF
+    endtry
 endfunction
 
 function! VPECloseCallback(channel)
     let g:VPE_read_channel_info = ch_info(a:channel)
-    call py3eval('vpe.channels.Channel._on_close()')
+    try
+        call py3eval('vpe.channels.Channel._on_close()')
+    catch
+        py3 << trim EOF
+            import vim as _vim
+            print(f'VPECloseCallback failed: {_vim.vvars["exception"]}')
+        EOF
+    endtry
 endfunction
 """
 
@@ -83,7 +97,7 @@ class VimChannel:
     @property
     def closed(self):
         """True of the channel could not be opened or has been closed."""
-        return self.info.get('status') != 'open'
+        return self.varname == '' or self.info.get('status') != 'open'
 
 
 def literal_string(pystr: str) -> str:
@@ -157,7 +171,7 @@ class Channel:
 
     :net_address: A network address of the form hostname:port.
     :drop:        When to drop messages. Must be 'auto' or 'never'.
-    :noblock:     Set to true to prevent blockon on write operations.
+    :noblock:     Set to true to prevent blocking on on write operations.
     :waittime:    Time to wait for a connection to succeed.
     :timeout_ms:  Time to wait for blocking request.
 
@@ -228,7 +242,11 @@ class Channel:
         """Handler for all messages from all channels."""
         ch = cls._get_active_channel()
         if ch is not None:
-            ch.on_message(core.coerce_arg(wrappers.vim.vars.VPE_read_message))
+            data = wrappers.vim.vars.VPE_read_message
+            data = core.coerce_arg(data)
+            vpe.call_soon(ch.on_message, data)
+
+        return 0
 
     @classmethod
     def _on_close(cls):
@@ -237,6 +255,7 @@ class Channel:
         if ch is not None:
             ch.on_close()
             ch.close()
+        return 0
 
     @classmethod
     def _get_active_channel(cls) -> Optional["Channel"]:
@@ -250,7 +269,7 @@ class Channel:
         May be over-ridden in a subclass.
         """
 
-    def on_message(self, message: Any):
+    def on_message(self, message: str):
         """Handler for messages not explicitly handled by read methods.
 
         Needs to be over-ridden in a subclass.
@@ -260,7 +279,10 @@ class Channel:
         stream has been received. It is up to the application code to buffer
         and decode the stream's contents.
 
-        :message: The received message.
+        :message:
+            The received message. This is always a string, event for raw
+            channels. Vim replaces any NUL chracters with newlines, so pure
+            binary messages cannot be handled using on_message.
         """
 
     def on_close(self):
@@ -287,7 +309,7 @@ class Channel:
         ch_close_in(self.vch)
 
     def getbufnr(self, what: str) -> int:
-        """Get the number of the buffer for use defined by *what*.
+        """Get the number of the buffer thas is being used for *what*.
 
         Related vim function = :vim:`ch_getbufnr`.
 
@@ -308,14 +330,22 @@ class Channel:
                 info[name] = int(info[name])
         return info
 
-    def send(self, message: Any) -> None:
+    def send(self, message: Union[str, bytes]) -> None:
         """Send a message to the server.
 
         Related vim function = :vim:`ch_sendraw`.
 
-        :message: The message to send to the server.
+        :message: The message to send to the server. A bytes value is converted
+                  to a Latin-1 string before sending.
         """
+        if isinstance(message, bytes):
+            message = message.decode('latin-1', errors='ignore')
         ch_sendraw(self.vch, message)
+
+    def read(self, timeout_ms: Optional[int] = None):
+        """Read any available input."""
+        options = self._build_options(('timeout', timeout_ms),)
+        return ch_read(self.vch, options)
 
     def settimeout(self, timeout_ms: Optional[int] = None):
         """Set the default teimout for the channel.
@@ -387,7 +417,7 @@ class SyncChannel(Channel):
         except common.VimError as e:                         # pragma: no cover
             # This is just in case. It should not be possible for this to
             # occur.
-            core.log(e)
+            core.log(f'SyncChannel.sendexpr fail: {e}')
 
 
 class RawChannel(Channel):
@@ -415,16 +445,18 @@ def ch_close(vch: VimChannel):
 
     :vch: The VimChannel wrapper of the underlying Vim channel object.
     """
-    try:
-        vim_ch_close(vch)
-    except common.VimError as e:
-        core.log(e)
+    if not vch.closed:
+        try:
+            vim_ch_close(vch)
+        except common.VimError as e:
+            if e.code != 906:  # Ignore an already closed channel.
+                core.log(f'ch_close fail: {e}')
     vch.close()
 
 
 # Create the wrapped channel functions.
 #
-# Note that ch_canread, ch_read, ch_readraw, ch_readblob, ch_open and
+# Note that ch_canread, ch_readraw, ch_readblob, ch_open and
 # ch_logfile are not part of this set.
 ch_evalexpr = ChannelFunction('ch_evalexpr')
 vim_ch_close = ChannelFunction('ch_close')
@@ -438,3 +470,4 @@ ch_sendraw = ChannelFunction('ch_sendraw')
 ch_setoptions = ChannelFunction('ch_setoptions')
 ch_status = ChannelFunction('ch_status')
 ch_log = ChannelFunction('ch_log')
+ch_read = ChannelFunction('ch_read')
