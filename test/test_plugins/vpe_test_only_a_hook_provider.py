@@ -18,8 +18,8 @@ def my_bad_test_hook():
     vim.vars.vpe_plugin_hook_ok += 1
 
 
-vpe.add_post_plugin_hook('load_ok', my_test_hook)
-vpe.add_post_plugin_hook('load_ok', my_bad_test_hook)
-vpe.add_post_plugin_hook('no_such_plugin', my_test_hook)
+vpe.add_post_plugin_hook('vpe_test_only_load_ok', my_test_hook)
+vpe.add_post_plugin_hook('vpe_test_only_load_ok', my_bad_test_hook)
+vpe.add_post_plugin_hook('vpe_test_only_no_such_plugin', my_test_hook)
 
 vim.vars.vpe_plugin_hook_loaded = 1

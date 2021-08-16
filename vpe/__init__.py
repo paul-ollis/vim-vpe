@@ -36,10 +36,10 @@ _vpe_args_
     This is a dictionary that is used by a Vim function to pass information to
     Python callback functions. Predefined entries are:
 
-        'uid'
-            The unique ID for the callback function to be invoked.
-        'args'
-            A sequence of any unnamed arguments passed to the Vim function.
+    'uid'
+        The unique ID for the callback function to be invoked.
+    'args'
+        A sequence of any unnamed arguments passed to the Vim function.
 """
 # pylint: disable=too-many-lines
 
@@ -147,7 +147,7 @@ def _is_plugin(path):
 def _import_possible_plugin(path):
     """Import a possible plugin.
 
-    :path: The Path for the plugin. This may be a pyton file or a package
+    :path: The Path for the plugin. This may be a python file or a package
            directory.
     """
     if path.is_dir():
@@ -159,6 +159,12 @@ def _import_possible_plugin(path):
     else:
         if not _is_plugin(path):
             return
+
+    if os.environ.get('VPE_TEST_MODE', None):
+        # We are running tests and only want to install test specific plugins.
+        if not path.name.startswith('vpe_test_only_'):
+            return
+
     try:
         exec(f'import {PLUGIN_SUBDIR}.{path.stem}')
     except Finish as exc:
@@ -219,8 +225,8 @@ def _init_vpe_plugins():
     if vim.vvars.vim_did_enter:
         _load_plugins()
     else:                                                    # pragma: no cover
-         with AutoCmdGroup('VPECore') as au:
-             au.add('VimEnter', _load_plugins, nested=True)
+        with AutoCmdGroup('VPECore') as au:
+            au.add('VimEnter', _load_plugins, pat='*', nested=True)
 
 
 class temp_log:                                              # pragma: no cover

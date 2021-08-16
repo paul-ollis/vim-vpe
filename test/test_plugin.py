@@ -55,6 +55,7 @@ class TestPlugin(support.Base):
             res.dot_vim_dir = vpe.dot_vim_dir()
             dump(res)
         """
+        super().suiteSetUp()
         res = self.run_suite_setup()
         self.stop_vim_session()
         self.init_py, *self.added_paths = install_test_plugins(res.dot_vim_dir)
