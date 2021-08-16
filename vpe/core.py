@@ -149,7 +149,7 @@ class ScratchBuffer(wrappers.Buffer):
         identifier then it is converted to one by replacing invalid characters
         with 'x'.
     """
-    def __init__(self, name, buffer, simple_name=None, *args):
+    def __init__(self, name, buffer, simple_name=None):
         super().__init__(buffer)
         self.__dict__['_base_name'] = name
         self.__dict__['simple_name'] = _clean_ident(simple_name or name)
@@ -244,7 +244,6 @@ class ScratchBuffer(wrappers.Buffer):
                 return False
 
             wrappers.commands.wincmd('v')
-            right_win = wrappers.vim.windows[w_number]
             split_size = min(abs(splitcols), w_width - 2)
             rem_size = w_width - split_size - 1
             if splitcols > 0:
