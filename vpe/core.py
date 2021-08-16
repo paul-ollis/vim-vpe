@@ -74,6 +74,11 @@ function! VPE_Call(uid, func_name, ...)
     let g:_vpe_args_['args'] = a:000
     try
         return py3eval('vpe.Callback.invoke()')
+    catch
+        py3 << trim EOF
+            import vim as _vim
+            print(f'VPE_Call failed: {_vim.vvars["exception"]}')
+        EOF
     finally
         " Without this a circular reference seem to 'escape', which can
         " cause Vim to accumulate memory while it is inactive and timers are
@@ -96,7 +101,14 @@ function! VPE_CmdCall(uid, func_name, line1, line2, range, count, bang, mods, re
     let g:_vpe_args_['mods'] = a:mods
     let g:_vpe_args_['reg'] = a:reg
     let g:_vpe_args_['args'] = a:000
-    return py3eval('vpe.Callback.invoke()')
+    try
+        return py3eval('vpe.Callback.invoke()')
+    catch
+        py3 << trim EOF
+            import vim as _vim
+            print(f'VPE_CmdCall failed: {_vim.vvars["exception"]}')
+        EOF
+    endtry
 endfunction
 """
 _vim.command(_VIM_FUNC_DEFS)
@@ -1289,6 +1301,23 @@ def build_dict_arg(*pairs: Tuple[str, Any]) -> Dict[str, Any]:
     return {name: value for name, value in pairs if value is not None}
 
 
+# TODO: This could probably be a more generic mechanism baked into Callback.
+class AutoCmdCallback(common.Callback):
+    """Thin `Callback` wrapper to support debugging."""
+    # pylint: disable=too-few-public-methods
+
+    def x__call__(self, *args, **kwargs):
+        """Useful for some debugging."""
+        name, pat = self.debug_meta
+        print(
+            f'Invoke autocmd: {name} pat={pat} state={wrappers.vim.state()}'
+            f' mode={wrappers.vim.mode()}'
+            f' inst={self.ref_inst}'
+            f' method={self.method}'
+        )
+        return super().__call__(*args, **kwargs)
+
+
 class AutoCmdGroup:
     """A Pythonic way to define auto commands.
 
@@ -1361,6 +1390,7 @@ class AutoCmdGroup:
                 cmd_seq.append('nested')
         cmd_seq.append(Callback(func, once=once).as_call())
         common.vim_command(' '.join(cmd_seq))
+        callback.debug_meta = event, pat
 
 
 class EventHandler:
