@@ -544,9 +544,17 @@ class Popup:
         return self._id
 
     @property
-    def buffer(self) -> wrappers.Buffer:
-        """The buffer holding the window's content."""
-        return wrappers.vim.buffers[wrappers.vim.winbufnr(self._id)]
+    def buffer(self) -> Optional[wrappers.Buffer]:
+        """The buffer holding the window's content.
+
+        :return:
+            A `Buffer` or ``None``.
+        """
+        n = wrappers.vim.winbufnr(self._id)
+        if n >= 0:
+            return wrappers.vim.buffers[n]
+
+        return None
 
     @classmethod
     def _on_del(cls, _, _win_id=None):
@@ -563,6 +571,24 @@ class Popup:
     def settext(self, content) -> None:
         """Set the text of the popup."""
         wrappers.vim.popup_settext(self._id, content)
+
+    def setoptions(self, **p_options) -> None:
+        """Set a number of options at once.
+
+        This is useful to set certain groups of options that cannot be
+        separately set. For example 'textpropid' cannot be set unless
+        'textprop' is set in the same popup_setoptions call.
+        """
+        wrappers.vim.popup_setoptions(self._id, p_options)
+
+    def move(self, **p_options) -> None:
+        """Set a number of move options at once.
+
+        This is useful to set certain groups of options that cannot be
+        separately set. For example 'textpropid' cannot be set unless
+        'textprop' is set in the same popup_setoptions call.
+        """
+        wrappers.vim.popup_move(self._id, p_options)
 
     def close(self, result: int = 0) -> None:
         """Close the popup.
