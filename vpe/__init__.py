@@ -44,12 +44,13 @@ _vpe_args_
 # pylint: disable=too-many-lines
 
 import importlib
-import importlib.util
 import importlib.machinery
+import importlib.util
+import os
 import sys
 import traceback
 from pathlib import Path
-from typing import Any, Callable, Tuple, Union
+from typing import Any, Callable, Dict, List, Tuple, Union
 
 import vim as _vim
 
@@ -71,6 +72,7 @@ __api__ = [
     'AutoCmdGroup', 'Timer', 'Popup', 'PopupAtCursor', 'PopupBeval',
     'PopupNotification', 'PopupDialog', 'PopupMenu', 'VimError', 'Vim',
     'Registers', 'Log', 'echo_msg', 'error_msg', 'warning_msg', 'call_soon',
+    'call_soon_once', 'BufListener',
     'vim', 'log', 'saved_winview', 'highlight', 'pedit', 'popup_clear',
     'timer_stopall', 'find_buffer_by_name', 'script_py_path',
     'get_display_buffer', 'version', 'dot_vim_dir', 'temp_active_window',
@@ -88,7 +90,7 @@ __api__ = [
 
 PLUGIN_SUBDIR = 'vpe_plugins'
 
-_plugin_hooks = {}
+_plugin_hooks: Dict[str, List[Callable[[], None]]] = {}
 
 
 class Finish(Exception):
@@ -166,12 +168,13 @@ def _import_possible_plugin(path):
             return
 
     try:
+        # pylint: disable=exec-used
         exec(f'import {PLUGIN_SUBDIR}.{path.stem}')
     except Finish as exc:
         print('Could not initialise VPE plug-in {path}')
-        print('   {exc}')
+        print(f'   {exc}')
         return
-    except Exception as exc:
+    except Exception:                            # pylint: disable=broad-except
         traceback.print_exc()
         print(f'Error loading VPE plug-in {path}')
         return
@@ -181,8 +184,8 @@ def _import_possible_plugin(path):
     for func in funcs:
         try:
             func()
-        except Exception as e:
-            core.error_msg(f'Error in post-plugin hook {func}, {e}', soon=True)
+        except Exception as e:                   # pylint: disable=broad-except
+            error_msg(f'Error in post-plugin hook {func}, {e}', soon=True)
 
 
 def _load_plugins():

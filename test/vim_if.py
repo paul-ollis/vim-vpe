@@ -117,6 +117,29 @@ class VimSession:
         return cls.version
 
     def ensure_vim_session(self):
+        """Ensure that the required Vim session is running.
+
+        If the session is not already running then a new one is started with
+        the following characteristics.
+
+        - Its servermname is 'TEST'.
+        - The environment variable VPE_TEST_MODE is set to '1'.
+        - The session is run without plugins.
+        - The '-f' option is used to prevent Vim from daemonising.
+        - The GUI version of vim is executed.
+        - Errors are rdeirected to /dev/null or its equivalent.
+        - The :vim:`directory` option is set to './test-swap//' so that
+          swap files can be easily cleaned up.
+
+        This method waits until the new Vim session appears to be responsive,
+        using the `vim_eval` method.
+
+        For consistency, the font, window position and size are set to fixed
+        values.
+
+        If the EDIVIM environment variable is set, this method will attempt to
+        switch keyboard and mouse focus back to the $EDVIM Vim session.
+        """
         ret = self.eval_vim('0')
         if ret != '0':
             os.environ['VPE_TEST_MODE'] = '1'
@@ -125,26 +148,26 @@ class VimSession:
                 'gdb', '-ex', 'run', '--args',
                 '/home/paul/develop/tracking/vim/vim/src/vim', '-g',
                 '-f', '--noplugin',
-                '--servername', 'TEST']
+                '--servername', SESSION]
             cmd = [
                 '/home/paul/develop/tracking/vim/vim/src/vim', '-g',
-                '--noplugin', '--servername', 'TEST']
-            cmd = ['gvim', '--noplugin', '--servername', 'TEST']
+                '--noplugin', '--servername', SESSION]
+            cmd = ['gvim', '--noplugin', '--servername', SESSION]
             self.proc = subprocess.Popen(cmd, stderr=subprocess.DEVNULL)
 
             # Make sure Vim is running and responsive.
             while self.eval_vim('1') != '1':
                 time.sleep(0.1)
 
-            # I find it helpful if the Vim window's position and size is always
-            # the same.
+            # Set tge window to a fixed size and position. Ensure swap files
+            # are neatly tucked away.
             self.execute_vim('let &guifont = "Monospace 8"')
             self.execute_vim('set columns=100')
             self.execute_vim('set lines=60')
             self.execute_vim('winpos 0 0')
             self.execute_vim('set directory=./test-swap//')
 
-            # Switch back to the nominated editor window, if defined.
+            # Switch back to the nominated Vim window, if defined.
             edvim = os.environ.get('EDVIM', '')
             if edvim:
                 subprocess.run(

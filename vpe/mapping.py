@@ -9,7 +9,7 @@ from functools import partial
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 import vpe
-from . import core
+from . import common
 from .wrappers import vim
 
 mode_to_map_command = {
@@ -25,7 +25,7 @@ mode_to_map_command = {
 }
 
 
-class MapCallback(core.Callback):
+class MapCallback(common.Callback):
     """Wrapper for a function to be invoked by a key mapping.
 
     This extends the core `Callback` to provide a `MappingInfo` as the first

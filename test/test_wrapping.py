@@ -78,7 +78,7 @@ class DictWrapping(support.Base):
         """
         res = self.run_self()
         failUnlessEqual(['a', 'b'], res.keys)
-        failUnless(res.type is vpe.wrappers.MutableMappingProxy)
+        failUnless(res.type is vpe.common.MutableMappingProxy)
 
     @test(testID='dict-get-wraps')
     def dict_get(self):
@@ -97,7 +97,7 @@ class DictWrapping(support.Base):
             dump(res)
         """
         res = self.run_self()
-        failUnless(isinstance(res.b_list, vpe.wrappers.MutableSequenceProxy))
+        failUnless(isinstance(res.b_list, vpe.common.MutableSequenceProxy))
         failUnlessEqual('None', res.def_none)
         failUnlessEqual(123, res.def_num)
         failUnlessEqual('hi', res.def_str)
@@ -167,7 +167,7 @@ class DictWrapping(support.Base):
             dump(res)
         """
         res = self.run_self()
-        failUnless(isinstance(res.b_list, vpe.wrappers.MutableSequenceProxy))
+        failUnless(isinstance(res.b_list, vpe.common.MutableSequenceProxy))
         failUnlessEqual('None', res.def_none)
         failUnlessEqual(123, res.def_num)
 
@@ -184,7 +184,7 @@ class DictWrapping(support.Base):
         """
         res = self.run_self()
         failUnless(isinstance(res.item[0], str))
-        failUnless(isinstance(res.item[1], vpe.wrappers.MutableSequenceProxy))
+        failUnless(isinstance(res.item[1], vpe.common.MutableSequenceProxy))
 
     @test(testID='dict-del')
     def dict_del(self):

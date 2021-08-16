@@ -13,16 +13,13 @@ module. It is intended that a Vim instance can be uses as a replacement for the
 import collections
 import inspect
 import io
-import itertools
 import platform
 import string
 import sys
 import time
-import traceback
 import weakref
 from functools import partial
-from typing import (
-    Any, Callable, ClassVar, Dict, List, Optional, Tuple, Type, Union)
+from typing import Callable, Optional, Type, Union, List
 
 import vim as _vim
 
@@ -30,23 +27,22 @@ import vpe
 from . import colors, common, wrappers
 
 __api__ = [
-    'expr_arg', 'Callback',
+    'expr_arg',
 ]
 __shadow_api__ = [
     '_VimDesc',
 ]
 __all__ = [
-    'AutoCmdGroup', 'Timer', 'Popup', 'PopupAtCursor', 'PopupBeval',
+    'AutoCmdGroup', 'Popup', 'PopupAtCursor', 'PopupBeval',
     'PopupNotification', 'PopupDialog', 'PopupMenu', 'ScratchBuffer',
-    'Log', 'error_msg', 'warning_msg', 'echo_msg', 'call_soon', 'log',
+    'Log', 'error_msg', 'warning_msg', 'echo_msg', 'log',
     'saved_winview', 'highlight', 'pedit', 'popup_clear',
     'timer_stopall', 'find_buffer_by_name', 'feedkeys', 'get_display_buffer',
-    'define_command', 'CommandInfo', 'temp_active_window', 'CommandHandler',
+    'define_command', 'temp_active_window', 'CommandHandler',
     'EventHandler', 'BufEventHandler', 'temp_active_buffer',
     'saved_current_window',
-    'expr_arg', 'Callback',
+    'expr_arg',
 ]
-id_source = itertools.count()
 
 _std_vim_colours = set((
     "Black", "DarkBlue", "DarkGreen", "DarkCyan",
@@ -530,8 +526,8 @@ class Popup:
     _create_func = 'popup_create'
 
     def __init__(self, content, **p_options):
-        close_cb = Callback(self._on_close)
-        filter_cb = Callback(self._on_key, pass_bytes=True)
+        close_cb = common.Callback(self._on_close)
+        filter_cb = common.Callback(self._on_key, pass_bytes=True)
         p_options['callback'] = close_cb.as_vim_function()
         p_options['filter'] = filter_cb.as_vim_function()
         self._id = getattr(wrappers.vim, self._create_func)(content, p_options)
@@ -796,465 +792,6 @@ class PopupMenu(Popup):
         return wrappers.vim.popup_filter_menu(self.id, byte_seq)
 
 
-class CallableRef:
-    """A weak, callable reference to a function or method.
-
-    :func: The function or bound method.
-    """
-    def __init__(self, func):
-        try:
-            self._repr_name = f'{func.__qualname__}'
-        except:                                              # pragma: no cover
-            self._repr_name = f'{func!r}'
-        self.method = None
-        try:
-            ref_inst = func.__self__
-        except AttributeError:
-            ref_inst = func
-        else:
-            self.method = weakref.ref(func.__func__)
-        self.ref_inst = weakref.ref(ref_inst, partial(self.on_del))
-
-    def on_del(self, _):
-        """"Handle deletion of weak reference to method's instance.
-
-        Over-ridden in subclasses.
-        """
-
-    def __repr__(self):
-        inst, method = self._get_inst_and_method()
-        cname = self.__class__.__name__
-        state = 'Dead' if inst is None else ''
-        return f'<{state}{cname}:{self._repr_name}>'
-
-    def __call__(self, *args, **kwargs):
-        inst, method = self._get_inst_and_method()
-        if inst is None:
-            return 0
-
-        if method is not None:
-            return method(inst, *args, **kwargs)
-
-        return inst(*args, **kwargs)
-
-    def _get_inst_and_method(self):
-        """Get the instance and method for this callback.
-
-        :return:
-            A tuple of (instance, method). The method may be ``None`` in which
-            case the instance is the callable. If the method is not ``None``
-            then it is the callable. If the instance is None then the wrapped
-            function or method is no longer usable.
-        """
-        method = None
-        instance = self.ref_inst()
-        if instance is not None:
-            method = self.method and self.method()
-        return instance, method
-
-
-class Callback(CallableRef):
-    """Wrapper for a function to be called from Vim.
-
-    This encapsulates the mechanism used to arrange for a Python function to
-    be invoked in response to an event in the 'Vim World'. A Callback stores
-    the Python function together with an ID that is uniquely associated with
-    the function (the UID). If, for example this wraps function 'spam' giving
-    it UID=42 then the Vim script code:
-    ::
-
-        :call VPE_Call(42, 'hello', 123)
-
-    will result in the Python function 'spam' being invoked as:<py>:
-
-        spam('hello', 123)
-
-    The way this works is that the VPE_Call function first stores the UID
-    and arguments in the global Vim variable _vpe_args_ in a dictionary
-    as:<py>:
-
-        {
-            'uid': 42,
-            'args': ['hello', 123]
-        }
-
-    Then it calls this class's `invoke` method::
-
-        return py3eval('vpe.Callback.invoke()')
-
-    The `invoke` class method extracts the UID and uses it to find the
-    Callback instance.
-
-    :func:       The Python function or method to be called back.
-    :py_args:    Addition positional arguments to be passed to *func*.
-    :py_kwargs:  Additional keyword arguments to be passed to *func*.
-    :vim_exprs:  Expressions used as positional arguments for the VPE_Call
-                 helper function.
-    :pass_bytes: If true then vim byte-strings will not be decoded to Python
-                 strings.
-    :once:       If True then the callback will only ever be invoked once.
-    :kwargs:     Additional info to store with the callback. This is used
-                 by subclasses - see 'MapCallback' for an example.
-
-    @uid:        The unique ID for this wrapping. It is the string form of an
-                 integer.
-    @call_count: The number of times the wrapped function or method has been
-                 invoked.
-    @callbacks   A class level mapping from `uid` to `Callback` instance. This
-                 is used to lookup the correct function during the execution of
-                 VPE_Call.
-    """
-    # pylint: disable=too-many-instance-attributes
-    vim_func = 'VPE_Call'
-    callbacks: ClassVar[Dict[str, 'Callback']] = {}
-
-    def __init__(
-            self, func, *, py_args=(), py_kwargs=None, vim_exprs=(),
-            pass_bytes=False, once=False, **kwargs):
-        super().__init__(func)
-        uid = self.uid = str(next(id_source))
-        self.callbacks[uid] = self
-        self.vim_exprs = vim_exprs
-        self.py_args = py_args
-        self.py_kwargs = {} if py_kwargs is None else py_kwargs.copy()
-        self.extra_kwargs = kwargs
-        self.pass_bytes = pass_bytes
-        self.once = once
-        self.call_count = 0
-        try:
-            self.func_name = func.__name__
-        except AttributeError:                               # pragma: no cover
-            self.func_name = str(func)
-
-    def get_call_args(self, _vpe_args: Dict[str, Any]):
-        """Get the Python positional and keyword arguments.
-
-        This may be over-ridden by subclasses.
-
-        :_vpe_args: The dictionary passed from the Vim domain.
-        """
-        return self.py_args, self.py_kwargs
-
-    def invoke_self(self, vpe_args):
-        if self.once and self.call_count > 0:
-            return 0
-
-        # Get the arguments supplied from the 'Vim World' plus the python
-        # positional and keyword arguments. The invoke the wrapped function or
-        # method.
-        coerce = partial(coerce_arg, keep_bytes=self.pass_bytes)
-        vim_args = [coerce(arg) for arg in vpe_args.pop('args')]
-        args, kwargs = self.get_call_args(vpe_args)
-        ret = self(*args, *vim_args, **kwargs)
-        self.call_count += 1
-
-        # Make some attempt to avoid returning unconvertable values back to the
-        # 'Vim World'. This reduces the display of annoying messages.
-        if ret is None:
-            ret = 0
-        return ret
-
-    @classmethod
-    def _do_invoke(cls):
-        # Use the UID to find the actual instance. This may fail if no
-        # reference to the instance exists, in which case we just log the
-        # fact.
-        vpe_args = {
-            n: v for n, v in wrappers.vim.vars['_vpe_args_'].items()}
-        uid = vpe_args.pop('uid')
-        cb = cls.callbacks.get(uid, None)
-        if cb is None:
-            log(f'uid={uid} is dead!')
-            return None, 0
-
-        return cb, cb.invoke_self(vpe_args)
-
-    @classmethod
-    def invoke(cls):
-        """Invoke a particular callback function instance.
-
-        This is invoked from the 'Vim World' by VPE_Call. The global Vim
-        dictionary variable _vpe_args_ will have been set up to contain 'uid'
-        and 'args' entries. The 'uid' is used to find the actual `Callback`
-        instance and the 'args' is a sequence of Vim values, which are passed
-        to the callback as positional arguments.
-        """
-        cb = None
-        try:
-            cb, ret = cls._do_invoke()
-            return ret
-
-        except Exception as e:                   # pylint: disable=broad-except
-            # Log any exception, but do not allow it to disrupt normal Vim
-            # behaviour.
-            log(f'{e.__class__.__name__} invocation failed: {e}')
-            if cb is not None:
-                log(cb.format_call_fail_message())
-            traceback.print_exc(file=log)
-
-        return -1
-
-    def as_invocation(self):
-        """Format a command of the form 'VPE_xxx(...)'
-
-        The result is a valid Vim script expression.
-        """
-        vim_exprs = [quoted_string(self.uid), quoted_string(self.func_name)]
-        for a in self.vim_exprs:
-            if isinstance(a, str):
-                vim_exprs.append(quoted_string(a))
-            else:
-                vim_exprs.append(str(a))
-        return f'{self.vim_func}({", ".join(vim_exprs)})'
-
-    def as_call(self):
-        """Format a command of the form 'call VPE_xxx(...)'
-
-        The result can be used as a colon prompt command.
-        """
-        return f'call {self.as_invocation()}'
-
-    # TODO: This form ignores the vim_exprs.
-    def as_vim_function(self):
-        """Create a vim.Function that will route to this callback."""
-        return _vim.Function(self.vim_func, args=[self.uid, self.func_name])
-
-    def format_call_fail_message(self):
-        """Generate a message to give details of a failed callback invocation.
-
-        This is used when the `Callback` instance exists, but the call raised
-        an exception.
-        """
-        inst, method = self.func_ref.get_inst_and_method()
-        s = []
-        try:
-            if method:
-                s.append(
-                    f'Method: "{inst.__class__.__name__}.{method.__name__}"')
-            else:
-                s.append(f'Function "{inst.__name__}"')
-        except AttributeError:                               # pragma: no cover
-            s.append(f'Instance={inst}, method={method}')
-        s.append(f'    vim_exprs={self.vim_exprs}')
-        s.append(f'    py_args={self.py_args}')
-        s.append(f'    py_kwargs={self.py_kwargs}')
-        return '\n'.join(s)
-
-    def on_del(self, ref):
-        """"Handle deletion of weak reference to method's instance."""
-        super().on_del(ref)
-        self.callbacks.pop(self.uid, None)
-
-
-class CommandCallback(Callback):
-    """Wrapper for a function to be invoked by a user defined command.
-
-    This extends the core `Callback` to provide a `CommandInfo` as the first
-    positional argument.
-
-    @pass_info: If True, provide a MappingInfo object as the first argument to
-    """
-    vim_func = 'VPE_CmdCall'
-
-    def __init__(self, *args, **kwargs):
-        self.pass_info = kwargs.pop('pass_info', False)
-        super().__init__(*args, **kwargs)
-
-    def get_call_args(self, vpe_args: Dict[str, Any]):
-        """Get the Python positional and keyword arguments.
-
-        This makes the first positional argument a `CommandInfo` instance,
-        unless the `pass_info` has been set false.
-        """
-        vpe_args['bang'] = bool(vpe_args['bang'])
-        if self.pass_info:
-            py_args = CommandInfo(**vpe_args), *self.py_args
-        else:
-            py_args = self.py_args
-        return py_args, self.py_kwargs
-
-
-class Timer(Callback):
-    """Pythonic way to use Vim's timers.
-
-    This can be used as a replacement for the vim functions: timer_start,
-    timer_info, timer_pause, timer_stop.
-
-    An example of usage:<py>:
-
-        def handle_expire(t):
-            print(f'Remaining repeats = {t.repeat}')
-
-        # This will cause handle_expire to be called twice. The output will be:
-        #     t.repeat=2
-        #     t.repeat=1
-        t = Timer(ms=100, handle_expire, repeat=2)
-
-    The status of a timer can be queried using the properties `time`, `repeat`,
-    `remaining` and `paused`. The methods `pause`, `stop` and `resume` allow
-    an active timer to be controlled.
-
-    A timer with ms == 0 is a special case, used to schedule an action to occur
-    as soon as possible once Vim is waiting for user input. Consequently the
-    repeat argument is forced to be 1 and the pass_timer argument is forced to
-    be ``False``.
-
-    If the created timer instamce has a repeat count of 1, then
-    a hard reference to the function is stored. This means that the code that
-    creates the timer does not need to keep a reference, allowing single-shot
-    timers to be 'set-and-forget'. The *no_hard_ref* argument can be used to
-    prevent this.
-
-    :ms:          The timer's interval in milliseconds.
-    :func:        The function to be invoked when the timer fires. This is
-                  called with the firing `Timer` instance as the only
-                  parameter.
-    :repeat:      How many times to fire.
-    :pass_timer:  Set this false to prevent the timer being passed to func.
-    :no_hard_ref: Set ``True`` to prevent a hard reference to the *func* being
-                  held by this timer.
-    :@args:       Optional positional arguments to pass to func.
-    :@kwargs:     Optional keyword arguments to pass to func.
-
-    @fire_count:  This increases by one each time the timer's callback is
-                  invoked.
-    @dead:        This is set true when the timer is no longer active because
-                  all repeats have occurred or because the callback function is
-                  no longer available.
-    """
-    def __init__(
-            self, ms, func, repeat=None, pass_timer=True, no_hard_ref=False,
-            args=(), kwargs=None):
-        super().__init__(func, py_args=args, py_kwargs=kwargs)
-        repeat = 1 if repeat is None else repeat
-        if ms == 0:
-            repeat = 1
-            pass_timer = False
-        self.func = None
-        if repeat == 1 and not no_hard_ref:
-            self.func = func
-        if pass_timer:
-            self.py_args = (self,) + self.py_args
-        vopts = {'repeat': repeat}
-        self._id = wrappers.vim.timer_start(ms, self.as_vim_function(), vopts)
-        self.fire_count = 0
-        self.dead = False
-
-    @property
-    def id(self) -> int:
-        """The ID of the underlying vim timer."""
-        return self._id
-
-    @property
-    def time(self) -> int:
-        """The time value used to create the timer."""
-        return self._get_info('time')
-
-    @property
-    def repeat(self) -> int:
-        """The number of times the timer will still fire.
-
-        Note that this is 1, during the final callback - not zero.
-        """
-        return self._get_info('repeat')
-
-    @property
-    def remaining(self) -> int:
-        """The time remaining (ms) until the timer will next fire."""
-        return self._get_info('remaining')
-
-    @property
-    def paused(self) -> bool:
-        """True if the timer is currently paused."""
-        return bool(self._get_info('paused'))
-
-    def _get_info(self, name):
-        info = wrappers.vim.timer_info(self.id)
-        return info[0][name] if info else None
-
-    def stop(self):
-        """Stop the timer.
-
-        This invokes vim's timer_stop function.
-        """
-        wrappers.vim.timer_stop(self.id)
-        self._finish()
-
-    def pause(self):
-        """Pause the timer.
-
-        This invokes vim's timer_pause function.
-        """
-        wrappers.vim.timer_pause(self.id, True)
-
-    def resume(self):
-        """Resume the timer, if paused.
-
-        This invokes vim's timer_pause function.
-        """
-        wrappers.vim.timer_pause(self.id, False)
-
-    def invoke_self(self, vpe_args):
-        vpe_args['args'] = vpe_args['args'][1:]     # Drop the unused timer ID.
-        self.fire_count += 1
-        try:
-            super().invoke_self(vpe_args)
-        finally:
-            if self.repeat == 1:
-                self._finish()
-
-    def _finish(self):
-        self.dead = True
-        self.func = None
-        t = self.callbacks.pop(self.uid, None)
-
-    def on_del(self, ref):
-        """"Handle deletion of weak reference to method's instance."""
-        super().on_del(ref)
-        self.dead = True
-
-    @classmethod
-    def stop_all(cls):
-        """Stop all timers and clean up.
-
-        Use this in preference to vim.timer_stopall, to ensure that VPE cleans
-        up its underlying administrative structures.
-        """
-        wrappers.vim.timer_stopall()
-        for uid, cb in list(cls.callbacks.items()):
-            if isinstance(cb, cls):
-                cb._finish()
-
-    @classmethod
-    def num_instances(cls):
-        return len(list(
-            cb for cb in cls.callbacks.values() if isinstance(cb, cls)))
-
-
-class CommandInfo:
-    """Information passed to a user command callback handler.
-
-    @line1: The start line of the command range.
-    @line2: The end line of the command range.
-    @range: The number of items in the command range: 0, 1 or 2 Requires at
-            least vim 8.0.1089; for earlier versions this is fixed as -1.
-    @count: Any count value supplied (see :vim:`command-count`).
-    @bang:  True if the command was invoked with a '!'.
-    @mods:  The command modifiers (see :vim:`:command-modifiers`).
-    @reg:   The optional register, if provided.
-    """
-    def __init__(
-            self, *, line1: int, line2: int, range: int, count: int,
-            bang: bool, mods: str, reg: str):
-        self.line1 = line1
-        self.line2 = line2
-        self.range = range
-        self.count = count
-        self.bang = bang
-        self.mods = mods
-        self.reg = reg
-
-
 class expr_arg:
     """Wrapper for a Vim argument that is an expression.
 
@@ -1269,62 +806,6 @@ class expr_arg:
 
     def __str__(self):
         return self.arg
-
-
-def quoted_string(s: str) -> str:
-    """Wrap a Vim argument in double quotation marks.
-
-    :s:      The string to be wrapped.
-    :return: The string inside double quotes.
-    """
-    return f'"{s}"'
-
-
-def coerce_arg(value: Any, keep_bytes=False) -> Any:
-    """Coerce a Vim value to a more natural Python value.
-
-    :value:      The value to coerce.
-    :keep_bytes: If true then a bytes value is not decoded to a string.
-    :return:
-        type == bytes
-            Unless keep_bytes is set this is decoded to a Python string, if
-            possible. If decoding fails, the bytes value is returned.
-        type == vim list
-            All items in the list are (recursively) coerced.
-        type == vim dictionary
-            All keys are decoded and all values are (recursively) coerced.
-            Failre to decode a key will raise UnicodeError.
-    :raise UnicodeError:
-        If a dictionay key cannot be decoded.
-    """
-    # TODO: It seems that this block is never executed any more. Investigate
-    #       why rather than simply mark as uncovered.
-    if isinstance(value, bytes) and not keep_bytes:          # pragma: no cover
-        try:
-            return value.decode()
-        except UnicodeError:
-            return value
-    try:
-        value = value._proxied  # pylint: disable=protected-access
-    except AttributeError:
-        pass
-    if isinstance(value, _vim.List):
-        return [coerce_arg(el) for el in value]
-    if isinstance(value, (_vim.Dictionary, wrappers.MutableMappingProxy)):
-        return {k.decode(): coerce_arg(v) for k, v in value.items()}
-    return value
-
-
-def build_dict_arg(*pairs: Tuple[str, Any]) -> Dict[str, Any]:
-    """Build a dictionary argument for a Vim function.
-
-    This takes a list of name, value pairs and builds a corresponding
-    dictionary. Entries with a value of ``None`` are not added to the
-    dictionary.
-
-    :pairs: The list if name, value pairs.
-    """
-    return {name: value for name, value in pairs if value is not None}
 
 
 # TODO: This could probably be a more generic mechanism baked into Callback.
@@ -1430,7 +911,7 @@ class EventHandler:
     The default pattern (see :vim:`autocmd-patterns`) is '*' unless explicitly
     set by the `handle` decorator.
     """
-    _default_event_pattern = '*'
+    _default_event_pattern: Optional[str] = '*'
 
     def auto_define_event_handlers(self, group_name: str, delete_all=False):
         """Set up mappings for event handling methods.
@@ -1483,7 +964,8 @@ class EventHandler:
 class BufEventHandler(EventHandler):
     """Mix-in to support mapping events to methods for buffers.
 
-    This differs from EventHandler by use ``self`` as the default pattern.
+    This differs from EventHandler by the use of ``self`` as the default
+    pattern.
     """
     _default_event_pattern = None
 
@@ -1588,7 +1070,7 @@ def _invoke_now_or_soon(soon, func, *args, **kwargs):
     :kwargs: The function's keyword arguments.
     """
     if soon:
-        call_soon(partial(func, *args, **kwargs))
+        common.call_soon(partial(func, *args, **kwargs))
     else:
         func(*args, **kwargs)
 
@@ -1680,22 +1162,6 @@ def _double_quote(expr):
     return f'"{expr}"'
 
 
-def call_soon(func, *args, **kwargs):
-    """Arrange to call a function 'soon'.
-
-    This uses a Vim timer with a delay of 0ms to schedule the function call.
-    This means that currently executing Python code will complete *before*
-    the function is invoked.
-
-    The function is invoked as:<py>:
-
-        func(*args, **kwargs)
-
-    :func:   The function to be invoked.
-    """
-    Timer(0, func, pass_timer=False, args=args, kwargs=kwargs)
-
-
 def define_command(
         name: str, func: Callable, *, nargs: Union[int, str] = 0,
         complete: str = '', range: str = '', count: str = '', addr: str = '',
@@ -1750,7 +1216,7 @@ def define_command(
         expr_arg('<q-reg>'), expr_arg('<f-args>')]
     if not wrappers.vim.has('patch-8.0.1089'):
         cmd_args[2] = -1                                     # pragma: no cover
-    cb = CommandCallback(
+    cb = common.CommandCallback(
         func, name=name, py_args=args, py_kwargs=kwargs or {},
         vim_exprs=tuple(cmd_args), pass_info=pass_info)
     cmd = ['command' + '!' if replace else '']
@@ -1816,7 +1282,7 @@ class CommandHandler:
 
 def timer_stopall():
     """Convenience function that invokes `Timer.stop_all`."""
-    Timer.stop_all()
+    common.Timer.stop_all()
 
 
 def popup_clear(force=False):
@@ -1866,6 +1332,8 @@ class temp_active_window(saved_current_window):
 
     :win: The `Window` to switch to.
     """
+    # pylint: disable=too-few-public-methods
+
     def __init__(self, win: wrappers.Window):
         self.win = win
 
@@ -1937,7 +1405,7 @@ def log_status():
     """
     # pylint: disable=protected-access
     log(f'Popup._popups = {len(Popup._popups)}')
-    log(f'Callback.callbacks = {len(Callback.callbacks)}')
+    log(f'Callback.callbacks = {len(common.Callback.callbacks)}')
 
 
 def _setup_keys():

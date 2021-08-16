@@ -145,7 +145,7 @@ class ChannelFunction:
 
     def __call__(self, *args, **kwargs):
         call_and_assign(common.RET_VAR, self.name, *args)
-        return core.coerce_arg(wrappers.vim.eval(common.RET_VAR))
+        return common.coerce_arg(wrappers.vim.eval(common.RET_VAR))
 
 
 def call_and_assign(varname: str, funcname: str, *args: Any) -> None:
@@ -243,7 +243,7 @@ class Channel:
         ch = cls._get_active_channel()
         if ch is not None:
             data = wrappers.vim.vars.VPE_read_message
-            data = core.coerce_arg(data)
+            data = common.coerce_arg(data)
             vpe.call_soon(ch.on_message, data)
 
         return 0

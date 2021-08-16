@@ -22,7 +22,7 @@ class DirView:
         self.files = []
         with vpe.AutoCmdGroup('explorer') as grp:
             grp.delete_all()
-            grp.add('CursorMoved', func=self.on_move)
+            # grp.add('CursorMoved', func=self.on_move)
             mapping.nmap('<return>', self.on_open)
         self.mark_current()
 

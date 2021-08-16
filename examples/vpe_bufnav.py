@@ -329,7 +329,7 @@ class BufView:
         """Set up handling of interesting events."""
         with vpe.AutoCmdGroup('VpeBufNav') as grp:
             grp.delete_all()
-            grp.add('CursorMoved', self.buf_list.handle_cursor_moved)
+            # grp.add('CursorMoved', self.buf_list.handle_cursor_moved)
 
         for key in ('<CR>', 'q'):
             mapping.nmap(key, func=self.handle_end_key)

@@ -7,13 +7,13 @@ import pathlib
 import pickle
 import platform
 
-from typing import ClassVar, Optional, Callable, Iterator, Tuple
+from typing import Callable, ClassVar, Iterator, Optional
 
 # pylint: disable=unused-wildcard-import,wildcard-import
 from cleversheep3.Test.Tester import *
 
 # Some explicit imports to make mypy happy.
-from cleversheep3.Test.Tester import fail, Suite
+from cleversheep3.Test.Tester import Suite, fail
 
 import vim_if
 
@@ -68,7 +68,11 @@ class CodeSource:
         self.init()
 
     def init(self):
-        r"""called to set up the suite.
+        r"""Called to set up the suite.
+
+        The first time this is invoked, it makes sure that the test Vim session
+        is started and initialised with the VPE library and any supporting
+        code.
 
         :<py>:
 
@@ -80,17 +84,16 @@ class CodeSource:
             from pathlib import Path
 
             here = Path.cwd().resolve()
-            sys.path.append(str(here.parent))
-            sys.path.append(str(here))
+            sys.path.append(str(here.parent))  # For import of vpe.
+            sys.path.append(str(here))         # For import of support code.
 
             import vim as _vim
 
+            import vpe
+            from vpe import vim
             from vpe.wrappers import Struct
 
-            from vpe import vim
-            import vpe
-
-            # Redirect logging and use largish buffer for ease of debugging.
+            # Redirect logging and use a largish buffer for ease of debugging.
             log_mode = os.environ.get('VPE_LOGGING', '')
             if log_mode == '':
                 vpe.log.redirect()
@@ -375,7 +378,7 @@ class Base(Suite, CodeSource):
 
 
 class CommandsBase(Base):
-    """Base for tests that anallyse capture command execution."""
+    """Base for tests that analyse captured command execution."""
     saved_id_source: Iterator[int]
 
     def suiteSetUp(self):
@@ -387,17 +390,17 @@ class CommandsBase(Base):
         """Suite clean up function."""
         super().suiteTearDown()
         vpe.vim.vim().register_command_callback(None)
-        vpe.core.id_source = self.saved_id_source
+        vpe.common.id_source = self.saved_id_source
 
     def setUp(self):
         """Per test init function."""
         self.commands = []
-        self.saved_id_source = vpe.core.id_source
-        vpe.core.id_source = itertools.count(100)
+        self.saved_id_source = vpe.common.id_source
+        vpe.common.id_source = itertools.count(100)
 
     def tearDown(self):
         """Per test clean up."""
-        vpe.core.id_source = self.saved_id_source
+        vpe.common.id_source = self.saved_id_source
 
     def on_command(self, cmd: str):
         """Callback for when vim.command is invoked.

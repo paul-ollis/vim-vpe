@@ -5,9 +5,9 @@ You should not normally need to import this module directly.
 # pylint: disable=too-many-lines
 
 import collections
-import functools
 import itertools
 import pathlib
+import pprint
 import weakref
 from typing import (
     Any, Callable, ClassVar, Dict, Iterator, List, Optional, Set, Tuple, Type,
@@ -22,8 +22,9 @@ __all__ = ('tabpages', 'TabPage', 'Vim', 'Registers', 'vim',
            'buffers', 'Buffer', 'Range', 'Struct', 'VI_DEFAULT', 'VI_DEFAULT')
 __api__ = ('Commands', 'Command')
 
-# A sentinel object used to indicate that a parameter was not provided.
-_NOT_PROVIDED = object()
+# Type aliases
+ListenerCallbackFunc = Callable[[int, int, int, int, List[Dict]], None]
+ListenerCallbackMethod = Callable[[int, int, int, List[Dict]], None]
 
 # Special values used to reset represent Vi or Vim default values. Currently
 # only use to set options.
@@ -178,208 +179,6 @@ class Struct:
         self.__dict__.update(state)
 
 
-def _decode_proxy(s):
-    name, _, value = s.partition(' ')
-    name = name[1:]
-    value = value[:-1]
-    if name in ('tabpage', 'vim.tabpage'):
-        return _vim.TabPage(value)
-    if name in ('window', 'vim.window'):
-        return _vim.Window(value)                            # pragma: no cover
-    if name in ('buffer', 'vim.buffer'):
-        return _vim.Buffer(value)                            # pragma: no cover
-    if name in ('vim.options',):
-        return _vim.options                                  # pragma: no cover
-    return None
-
-
-class Proxy:
-    """Base for proxy classes.
-
-    Subclasses must support the following protocol:
-
-        - The proxied object is avalable as an attribute or property called
-          '_proxied'.
-
-        - May provide a _resolve_item method. Typically this will undo any
-          proxy wrapping.
-
-        - May provide a _wrap_or_decode method. Typically this is used to wrap
-          the value in a proxy or convert bytes to strings.
-
-    IMPORTANT
-        This base class overrides __setattr__. Subclasses should use
-        self.__dict__ to explicitly set attributes (*e.g.* the _proxied
-        attribute).
-    """
-    _writeable: set = set()
-
-    def __init__(self, obj=None):
-        super().__init__()
-        if obj is not None:
-            self.__dict__['_proxied'] = self._resolve_item(obj)
-
-    def __getstate__(self):
-        """Trivial pickle support - just for testing."""
-        state = self.__dict__.copy()
-        if '_proxied' in state:
-            state['_proxied'] = repr(state['_proxied'])
-        return state
-
-    def __setstate__(self, state):
-        """Trivial pickle support - just for testing."""
-        if '_proxied' in state:
-            state['_proxied'] = _decode_proxy(state['_proxied'])
-        return self.__dict__.update(state)
-
-    def __getattr__(self, name):
-        return self._wrap_or_decode(getattr(self._proxied, name), name)
-
-    def __setattr__(self, name, value):
-        if name in self._writeable:
-            setattr(self._proxied, name, value)
-        elif name in self.__dict__:
-            self.__dict__[name] = value
-        else:
-            raise AttributeError(
-                f'can\'t set attribute {name} for {self.__class__.__name__}')
-
-    def _resolve_item(self, item: Any) -> Any:
-        """Resolve an item.
-
-        Recursivley drill down to the ultimate proxied object for the *item*.
-
-        :item: The item to resolve.
-        :return:
-            The proxied object or the *item* itself.
-        """
-        try:
-            return self._resolve_item(getattr(item, '._proxied'))
-        except AttributeError:
-            return item
-
-    @staticmethod
-    def _wrap_or_decode(value, _name=None):
-        """Optionally wrap an item.
-
-        This default implementation uses a common wrapping function.
-        """
-        return wrap_or_decode(value)
-
-
-class ContainerProxy(Proxy):
-    """Base for containers that support iteration and have a length.
-
-    This is not intended to be instantiated.
-    """
-    def __iter__(self):
-        for item in self._proxied:
-            yield self._wrap_or_decode(item)
-
-    def __len__(self):
-        return len(self._proxied)
-
-
-class ImmutableSequenceProxy(ContainerProxy):
-    """Base for sequence style proxy classes.
-
-    This wraps things like the window and tab page lists.
-    """
-    # pylint: disable=too-few-public-methods
-    def __getitem__(self, index: int) -> Any:
-        return self._wrap_or_decode(self._proxied[index])
-
-
-class MutableSequenceProxy(ImmutableSequenceProxy):
-    """A mutable squence proxy.
-
-    This wraps things like buffers and Vim lists.
-    """
-    def __setitem__(self, slice_or_index, value):
-        self._proxied.__setitem__(slice_or_index, value)
-
-    def __delitem__(self, slice_or_index):
-        self._proxied.__delitem__(slice_or_index)
-
-    def insert(self, index: int, value: Any):
-        """Insert a value as a given index.
-
-        :index: The index for the insertion.
-        :value: The value to insert.
-        """
-        self._proxied[index:index] = [value]
-
-
-class MutableMappingProxy(ContainerProxy):
-    """A mutable squence proxy.
-
-    This wraps things like Vim dictionaries and variables.
-    """
-    def __getitem__(self, key: str) -> Any:
-        return self._wrap_or_decode(self._proxied[key])
-
-    def __setitem__(self, key: str, value):
-        self._proxied[key] = value
-
-    def __delitem__(self, key: str):
-        del self._proxied[key]
-
-    def keys(self) -> List[str]:
-        """The maping's keys, each one decoded to a string."""
-        return [self._wrap_or_decode(k) for k in self._proxied.keys()]
-
-    # TODO: This does not wrap the returned values.
-    def values(self) -> List[Any]:
-        """The maping's values, each one wrapped or decoded."""
-        return [self._wrap_or_decode(v) for v in self._proxied.values()]
-
-    # TODO: This does not wrap the returned values.
-    def items(self):
-        """The maping's (key, value) pairs, each one wrapped or decoded."""
-        wrap = self._wrap_or_decode
-        return [(wrap(k), wrap(v)) for k, v in self._proxied.items()]
-
-    def get(self, key: str, default: Optional[Any] = None):
-        """Lookup a value from the mapping."""
-        return self._wrap_or_decode(self._proxied.get(key, default), key)
-
-    def pop(self, key, default=_NOT_PROVIDED):
-        """Remove en entry and return is value.
-
-        :key:    The key of the item to remove.
-        :return:
-            The removed item (if found) or the default (if provided). The
-            returned value may be decoded or wrapped.
-        :raise KeyError:
-            if key is not found and no default provided.
-        """
-        if default is _NOT_PROVIDED:
-            return self._wrap_or_decode(self._proxied.pop(key), key)
-        return self._wrap_or_decode(self._proxied.pop(key, default), key)
-
-    def popitem(self) -> Tuple[str, Any]:
-        """Pop a random (key, value pair) from the mapping."""
-        key, value = self._proxied.popitem()
-        return self._wrap_or_decode(key), self._wrap_or_decode(value, key)
-
-    def has_key(self, key: Any) -> bool:
-        """Test whether a key is present in the mapping.
-
-        :key: The key to look for.
-        """
-        return key in self._proxied
-
-    def __contains__(self, key):
-        return key in self._proxied
-
-    def __iter__(self):
-        """Correctly support 'for v in dict'.
-
-        This is really working around a bug in earlier versions of vim.
-        """
-        return iter(self.keys())
-
-
 class TemporaryOptions:
     """Context manager that allows options to be temporarily modified
 
@@ -471,13 +270,13 @@ class BufferListContext(list):
                 b[:] = self
 
 
-class Range(MutableSequenceProxy):
+class Range(common.MutableSequenceProxy):
     """Wrapper around the built-in vim.Range type.
 
     User code should not directly instantiate this class.
-
-
     """
+    # pylint: disable=too-few-public-methods
+
     def append(self, line_or_lines, nr=None):
         """Append one or more lines to the range.
 
@@ -492,7 +291,7 @@ class Range(MutableSequenceProxy):
             self._proxied.append(line_or_lines, nr)
 
 
-class Buffer(MutableSequenceProxy):
+class Buffer(common.MutableSequenceProxy):
     """Wrapper around a :vim:`python-buffer`.
 
     The official documentation is provided by _BufferDesc.
@@ -574,13 +373,13 @@ class Buffer(MutableSequenceProxy):
         return Variables(self._proxied.vars)
 
     @property
-    def type(buf) -> str:
+    def type(self) -> str:
         """The type name of this buffer.
 
         This is similar to the :vim:`'buftype'` option, but normal buffers
         have the type 'normal'.
         """
-        typename = buf.options.buftype
+        typename = self.options.buftype
         if typename:
             return typename
         return 'normal'
@@ -706,10 +505,10 @@ class Buffer(MutableSequenceProxy):
         """
         def add_win(win):
             k = win.tabpage.number, win.number
-            if win.buffer is self and k not in windows:
-                windows[k] = win
+            if win.buffer is self and k not in found:
+                found[k] = win
 
-        windows = {}
+        found: Dict[int, 'Window'] = {}
         add_win(vim.current.window)
         for win in vim.current.tabpage.windows:
             add_win(win)
@@ -717,9 +516,10 @@ class Buffer(MutableSequenceProxy):
             for page in itertools.chain([vim.current.tabpage], vim.tabpages):
                 for win in page.windows:
                     add_win(win)
-        return list(windows.values())
+        return list(found.values())
 
-    def find_best_active_window(self, all_tabpages=False) -> Optional['Window']:
+    def find_best_active_window(
+            self, all_tabpages=False) -> Optional['Window']:
         """Find the best choice for a window where this buffer is active.
 
         This returns the first entry found by `find_active_windows`.
@@ -728,8 +528,8 @@ class Buffer(MutableSequenceProxy):
                        Otherwise only the current tab page is searched.
         :return: The window or None.
         """
-        windows = self.find_active_windows(all_tabpages=all_tabpages)
-        return windows[0] if windows else None
+        all_windows = self.find_active_windows(all_tabpages=all_tabpages)
+        return all_windows[0] if all_windows else None
 
     def goto_active_window(self, all_tabpages=False) -> Optional['Window']:
         """Goto the best choice window where this buffer is active.
@@ -745,6 +545,37 @@ class Buffer(MutableSequenceProxy):
             window.goto()
         return window
 
+    def add_listener(
+            self,
+            func: Union[ListenerCallbackFunc, ListenerCallbackMethod]
+            ) -> common.BufListener:
+        """Add a callback for changes to this buffer.
+
+        This is implemented using :vim:`listener_add()`
+
+        :func:
+            The callback function which is invoked the following arguments:
+
+            :buf:     The buffer that was changed, unless `func` is a
+                      bound method of this instance.
+            :start:   Start of the range of modified lines (zero based).
+            :end:     End of the range of modified lines.
+            :added:   Number of lines added, negative if lines were deleted.
+            :changed: A List of items with details about the changes.
+        :return:
+            The unique ID for this callback, as provided by
+            :vim:`listener_add()`.
+        """
+        # TODO: Fix dependency tree.
+        inst = getattr(func, '__self__', None)
+        p_buf = weakref.proxy(self.buf)
+        if inst is self:
+            cb = common.BufListener(func, p_buf, is_method=True)
+        else:
+            cb = common.BufListener(func, p_buf, is_method=False)
+        cb.listen_id = vim.listener_add(cb.as_vim_function(), self.number)
+        return cb
+
     def __getattr__(self, name):
         """Make the values from getbufinfo() available as attributes.
 
@@ -757,14 +588,14 @@ class Buffer(MutableSequenceProxy):
             try:
                 return info[name]
             except KeyError:
-                raise e
+                raise e                    # pylint: disable=raise-missing-from
 
     @property
     def _proxied(self):
         return _vim.buffers[self.number]
 
 
-class Buffers(ImmutableSequenceProxy):
+class Buffers(common.ImmutableSequenceProxy):
     """Wrapper around the built-in vim.buffers.
 
     User code should not directly instantiate this class. VPE creates and
@@ -776,7 +607,7 @@ class Buffers(ImmutableSequenceProxy):
         return _vim.buffers
 
 
-class Window(Proxy):
+class Window(common.Proxy):
     """Wrapper around a :vim:`python-window`.
 
     User code should not directly instantiate this class. VPE creates and
@@ -850,7 +681,7 @@ class Window(Proxy):
         return _vim.tabpages[n_tab - 1].windows[n_win - 1]
 
 
-class Windows(ImmutableSequenceProxy):
+class Windows(common.ImmutableSequenceProxy):  # pylint: disable=too-few-public-methods
     """Wrapper around the built-in vim.windows.
 
     User code should not directly instantiate this class. VPE creates and
@@ -858,7 +689,6 @@ class Windows(ImmutableSequenceProxy):
 
     :obj: A :vim:`python-windows` object.
     """
-    # pylint: disable=too-few-public-methods
 
 
 class _DeadWin:
@@ -866,7 +696,7 @@ class _DeadWin:
     valid: ClassVar[bool] = False
 
 
-class TabPage(Proxy):
+class TabPage(common.Proxy):
     """Wrapper around a :vim:`python-tabpage`.
 
     User code should not directly instantiate this class. VPE creates and
@@ -883,7 +713,7 @@ class TabPage(Proxy):
         return Variables(self._proxied.vars)
 
 
-class TabPages(ImmutableSequenceProxy):
+class TabPages(common.ImmutableSequenceProxy):
     """Wrapper around the built-in vim.tabpages.
 
     User code should not directly instantiate this class. VPE creates and
@@ -917,7 +747,7 @@ class TabPages(ImmutableSequenceProxy):
         return vim.current.tabpage
 
 
-class Current(Proxy):
+class Current(common.Proxy):
     """Wrapper around the built-in vim.current attribute."""
     # pylint: disable=too-few-public-methods
     _writeable = set(('line', 'buffer', 'window', 'tabpage'))
@@ -927,7 +757,7 @@ class Current(Proxy):
         return _vim.current
 
 
-class ImmutableVariables(MutableMappingProxy):
+class ImmutableVariables(common.MutableMappingProxy):
     """Read-only base wrapper around the various vim variable dictionaries.
 
     This extends the behaviour so that the members appear as attributes. It is
@@ -1197,7 +1027,7 @@ class Command:
     def __init__(self, name):
         self.name = name
 
-    def __call__(
+    def __call__(                             # pylint: disable=too-many-locals
             self, *args, bang=False, lrange='', a='', b='', preview=False,
             keepalt=True, **kwargs):
         exclamation = '!' if bang else ''
@@ -1344,7 +1174,8 @@ class Vim:
         """The plain built-in Vim exception (:vim:`python-error`)."""
         return _vim.error
 
-    def iter_all_windows(self) -> Iterator[Tuple[TabPage, Window]]:
+    @staticmethod
+    def iter_all_windows() -> Iterator[Tuple[TabPage, Window]]:
         """Iterate over all the windows in all tabs.
 
         :yield: A tuple of TagPage and Window.
@@ -1377,7 +1208,7 @@ class Vim:
         except AttributeError:
             return self._get_vim_function(name)
         else:
-            return wrap_or_decode(attr)
+            return common.wrap_or_decode(attr)
 
     def __setattr__(self, name, value):
         raise AttributeError(
@@ -1398,34 +1229,31 @@ class Function(_vim.Function):
     """
     # pylint: disable=too-few-public-methods
     def __call__(self, *args, **kwargs):
-        v = super().__call__(*args, **kwargs)  # pylint: disable=no-member
+        # print(f'Function.__call__: {self.name}'
+        #       f' vim.state()={_vim.eval("state()")}')
+        try:
+            v = super().__call__(*args, **kwargs)  # pylint: disable=no-member
+        except Exception as e:
+            args_lines = pprint.pformat(args).splitlines()
+            kwargs_lines = pprint.pformat(kwargs).splitlines()
+            print(f'VPE: Function.__call__ failed: {e}')
+            print(f'    self.name={self.name}')
+            print(f'    self.args={self.args}')
+            print(f'    self.self={self.self}')
+            print(f'    args={args_lines[0]}')
+            for line in args_lines[1:]:
+                print(f'         {line}')
+            print(f'    kwargs={kwargs_lines}')
+            for line in kwargs_lines[1:]:
+                print(f'         {line}')
+            print(f'    vim.state()={_vim.eval("state()")}')
+            raise
         if isinstance(v, bytes):
             try:
                 return v.decode()
             except UnicodeError:                             # pragma: no cover
                 return v
-        return wrap_or_decode(v)
-
-
-def wrap_or_decode(item):
-    """Wrap a Vim item with an appropriate VPE wrapper class.
-
-    This is used to wrap vim.buffers, vim.current, *etc*.
-
-    :item: The Vim object to be wrapped.
-    :return: An object wrapping the item or, for simple types, the item itself.
-    """
-    wrapper = _wrappers.get(type(item), None)
-    if wrapper is not None:
-        return wrapper(item)
-    if isinstance(item, bytes):
-        try:
-            return item.decode()
-        except UnicodeError:                                 # pragma: no cover
-            return item
-    if callable(item):
-        return functools.partial(common.invoke_vim_function, item)
-    return item
+        return common.wrap_or_decode(v)
 
 
 def _get_wrapped_buffer(vim_buffer: _vim.Buffer) -> Buffer:
@@ -1441,16 +1269,15 @@ def _get_wrapped_buffer(vim_buffer: _vim.Buffer) -> Buffer:
     return b
 
 
-_wrappers: Dict[type, Union[type, Callable]] = {
-    type(_vim.options): Options,
-    type(_vim.windows): Windows,
-    _vim.Buffer: _get_wrapped_buffer,
-    _vim.Dictionary: MutableMappingProxy,
-    _vim.Range: Range,
-    _vim.TabPage: TabPage,
-    _vim.Window: Window,
-    _vim.List: MutableSequenceProxy,
-}
+common.register_wrapper(type(_vim.options), Options)
+common.register_wrapper(type(_vim.windows), Windows)
+common.register_wrapper(_vim.Buffer, _get_wrapped_buffer)
+common.register_wrapper(_vim.Dictionary, common.MutableMappingProxy)
+common.register_wrapper(_vim.Range, Range)
+common.register_wrapper(_vim.TabPage, TabPage)
+common.register_wrapper(_vim.Window, Window)
+common.register_wrapper(_vim.List, common.MutableSequenceProxy)
+
 options = GlobalOptions(_vim.options)
 vars = Variables(_vim.vars)                 # pylint: disable=redefined-builtin
 vvars = VimVariables(_vim.vvars)
@@ -1574,7 +1401,7 @@ class _BufferDesc:
         """Same as :vim:`changetick`."""
 
     @property
-    def changed(self) -> int:
+    def hidden(self) -> int:
         # pyre-ignore[7]:
         """Hidden flag; 0=buffer visible in a window, 1=buffer hidden."""
 

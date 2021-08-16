@@ -63,10 +63,10 @@ class VimSuite(support.Base):
         """
         failUnless(isinstance(
             self.eval('vim.getcharsearch()'),
-            vpe.wrappers.MutableMappingProxy))
+            vpe.common.MutableMappingProxy))
         print(type(self.eval('vim.timer_info(0)')))
         failUnless(isinstance(
-            self.eval('vim.timer_info(0)'), vpe.wrappers.MutableSequenceProxy))
+            self.eval('vim.timer_info(0)'), vpe.common.MutableSequenceProxy))
         failUnless(isinstance(self.eval('vim.string(0)'), str))
         failUnless(isinstance(self.eval('vim.abs(-1)'), int))
         failUnless(isinstance(self.eval('vim.ceil(1.5)'), float))

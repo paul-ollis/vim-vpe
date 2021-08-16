@@ -958,6 +958,16 @@ class Miscellaneous(support.CommandsBase):
 
     Things that do not really need their own suite.
     """
+    def suiteSetUp(self):
+        """Called to set up the suite.
+
+        :<py>:
+
+            from vpe import commands
+        """
+        super().suiteSetUp()
+        self.run_suite_setup()
+
     def setUp(self):
         """Per test set up.
 
@@ -1011,10 +1021,9 @@ class Miscellaneous(support.CommandsBase):
                 res.args = args
 
             res = Struct()
-            cb = vpe.core.Callback(callback, vim_exprs=(
+            cb = vpe.Callback(callback, vim_exprs=(
                 vpe.expr_arg('[1, 2]'), vpe.expr_arg('{"a": 1, "b": 2}'),
                 'hello'))
-            print(cb.as_invocation())
             res.ret = vim.eval(cb.as_invocation())
             res.repr = repr(cb)
 
@@ -1051,9 +1060,9 @@ class Miscellaneous(support.CommandsBase):
 
             res = Struct()
             inst = BadClass()
-            cb_fail = vpe.core.Callback(callback_fail)
-            cb_method_fail = vpe.core.Callback(inst.fail)
-            cb_deleted = vpe.core.Callback(callback_deleted)
+            cb_fail = vpe.Callback(callback_fail)
+            cb_method_fail = vpe.Callback(inst.fail)
+            cb_deleted = vpe.Callback(callback_deleted)
             del callback_deleted
 
             vim.command(cb_fail.as_call())
@@ -1085,7 +1094,7 @@ class Miscellaneous(support.CommandsBase):
         """
         failUnlessEqual(
             {'a': 1, 'c': 'hi'},
-            vpe.core.build_dict_arg(('a', 1), ('b', None), ('c', 'hi')))
+            vpe.build_dict_arg(('a', 1), ('b', None), ('c', 'hi')))
 
     @test(testID='misc-error-msg')
     def error_msg(self):
@@ -1094,7 +1103,7 @@ class Miscellaneous(support.CommandsBase):
         Unlike using 'vim.echoerr' this does not raise a vim.error.
         :<py>:
 
-            vpe.command('messages clear')
+            vim.command('messages clear')
         """
         self.run_self()
         v = self.vs.py_eval('vpe.error_msg("Oops!")')
@@ -1124,7 +1133,7 @@ class Miscellaneous(support.CommandsBase):
 
         :<py>:
 
-            vpe.command('messages clear')
+            vim.command('messages clear')
         """
         self.run_self()
         v = self.vs.py_eval('vpe.warning_msg("Careful!")')
@@ -1137,7 +1146,7 @@ class Miscellaneous(support.CommandsBase):
 
         :<py>:
 
-            vpe.command('messages clear')
+            vim.command('messages clear')
         """
         self.run_self()
         v = self.vs.py_eval('vpe.echo_msg("Hello")')

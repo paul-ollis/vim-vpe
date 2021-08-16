@@ -51,7 +51,8 @@ class PanelViewBuffer(support.Base):
         failUnless(isinstance(res.displays, list))
         failUnless(isinstance(res.display_x, int))
         failUnless(isinstance(res.decor_dims, tuple))
-        failUnless(98 <= res.columns <= 104)
+        if res.columns is not None:
+            failUnless(98 <= res.columns <= 104)
 
 
 if __name__ == '__main__':
