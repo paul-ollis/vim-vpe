@@ -157,19 +157,6 @@ class ScratchBuffer(wrappers.Buffer):
         with AutoCmdGroup(self.auto_grp_name) as grp:
             grp.add('BufWinEnter', self.on_first_showing, pat=self, once=True)
 
-        # Setting the buffer options here can fail. Arrange to do it later when
-        # Vim has a 'spare moment'.
-        vpe.call_soon(self.init_options)
-
-    def init_options(self):
-        """Initialise the scratch buffer specific options.
-
-        This gets invoked via call_soon because option setting can otherwise
-        silently fail.
-
-        Subclasses may want to extend this, but it is not intended to be
-        invoked directly.
-        """
         options = self.options
         options.buftype = 'nofile'
         options.swapfile = False
@@ -178,6 +165,19 @@ class ScratchBuffer(wrappers.Buffer):
         options.modifiable = False
         options.bufhidden = 'hide'
         options.buflisted = True
+
+        # Allow subclasses a chance to set addidtional option or over-ride the
+        # above settings.
+        common.call_soon(self.init_options)
+
+    def init_options(self):
+        """Initialise the scratch buffer specific options.
+
+        This gets invoked via call_soon because option setting can otherwise
+        silently fail for subclasses.
+
+        Subclasses may over-ride this.
+        """
 
     @property
     def syntax_prefix(self):
