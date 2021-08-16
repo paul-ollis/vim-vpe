@@ -58,6 +58,6 @@ def VPE_run_this_as_py():
 _init_vpe_()
 del _init_vpe_
 
-# Import the vpe module to initialise it and als make it globally available.
+# Import the vpe module to initialise it and also make it globally available.
 import vpe
 EOF

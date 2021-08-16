@@ -78,12 +78,14 @@ class AppWin:
         self.cell_size = cell_size
 
     @property
-    def columns(self):
+    def columns(self) -> Optional[int]:
         """The calculated number of columns for this window.
 
         This should be the same as the columns option value.
         """
-        return self.dims_pixels[0] // self.cell_size[0]
+        if self.cell_size[0] != 0:
+            return self.dims_pixels[0] // self.cell_size[0]
+        return None
 
     @property
     def decor_dims(self) -> Tuple[int, int]:
@@ -166,7 +168,7 @@ def get_app_win_info() -> Optional[AppWin]:
         return None                                          # pragma: no cover
 
     _, text = _system(f'xwininfo -id {wid}')
-    print(text)
+    w_pixels = None
     for line in text.splitlines():
         line = line.strip()
         if line.startswith('Width'):
@@ -181,6 +183,8 @@ def get_app_win_info() -> Optional[AppWin]:
 
     _, text = _system(
         f'xprop -id {wid} _NET_FRAME_EXTENTS WM_NORMAL_HINTS')
+    borders = 0, 0
+    cell_size = 0, 0
     for line in text.splitlines():
         line = line.strip()
         if line.startswith('_NET_FRAME_EXTENTS(CARDINAL) = '):
@@ -194,8 +198,9 @@ def get_app_win_info() -> Optional[AppWin]:
         return AppWin((
             w_pixels, h_pixels), dims_cells, corners, borders,
             cell_size)
-    except NameError:                                        # pragma: no cover
+    except NameError as e:                                   # pragma: no cover
         # Likely one of the commands was not available.
+        print("Could not create allication window info", e)
         return None
 
 
