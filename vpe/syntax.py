@@ -447,10 +447,10 @@ class Syntax(SyntaxBase):
 
     def __init__(self, group_prefix, clear: bool = True):
         self.prefix = group_prefix
-        self.groups = {}
-        self.std_groups = {}
-        self.clusters = {}
-        self.simple_includes = []
+        self.groups: Dict[str, Group] = {}
+        self.std_groups: Dict[str, Group] = {}
+        self.clusters: Dict[str, Cluster] = {}
+        self.simple_includes: List[str] = []
         self.clear_prev_syntax = clear
 
     def std_group(self, name):

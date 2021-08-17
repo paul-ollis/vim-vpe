@@ -25,7 +25,8 @@ mode_to_map_command = {
 }
 
 
-class MapCallback(common.Callback):
+# TODO: Should not need this Pyint suppression. Pylint bug?
+class MapCallback(common.Callback):    # pylint: disable=too-few-public-methods
     """Wrapper for a function to be invoked by a key mapping.
 
     This extends the core `Callback` to provide a `MappingInfo` as the first

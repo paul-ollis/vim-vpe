@@ -556,8 +556,8 @@ class Buffer(common.MutableSequenceProxy):
         :func:
             The callback function which is invoked the following arguments:
 
-            :buf:     The buffer that was changed, unless `func` is a
-                      bound method of this instance.
+            :buf:     The buffer that was changed. Only present if *func* is
+                      not a bound method of this instance.
             :start:   Start of the range of modified lines (zero based).
             :end:     End of the range of modified lines.
             :added:   Number of lines added, negative if lines were deleted.
@@ -800,7 +800,7 @@ class VimVariables(ImmutableVariables):
 
 
 class ListOption(str):
-    """Extended string used for optiona that represent a list of value.
+    """Extended string used for options that represent a list of value.
 
     This is the base class for `CommaListOption` and `CharListOption`.
     """
@@ -1324,7 +1324,7 @@ class _VimDesc:
         # pyre-ignore[7]:
         """Convenient access to currently active objects.
 
-        Note: Does not support assigment to window, buffer or tabpage.
+        Note: Does not support assignment to window, buffer or tabpage.
         """
 
     @property

@@ -21,7 +21,6 @@ managed by a `PanelViewBuffer`.
 
 import weakref
 from functools import wraps
-from typing import Generator, Optional
 
 import vpe
 
@@ -151,7 +150,7 @@ def can_cause_changes(method):
         try:
             return method(self, *args, **kwargs)
         finally:
-            self._make_changes_manifest()
+            self._make_changes_manifest()    # pylint: disable=protected-access
 
     return wrapper
 
@@ -193,7 +192,8 @@ class PanelViewBuffer(vpe.ScratchBuffer):
     @vpe.BufEventHandler.handle('BufWinEnter')
     def _apply_pending_window_operations(self):
         """Do any operations that were blocked while the buffer was hidden."""
-        for func, args in self.data.pending_window_ops.values():  # pragma: no cover
+        for func, args in self.data.pending_window_ops.values():
+            # pragma: no cover
             func(*args)
 
     def schedule_win_op(self, key, func, *args):
@@ -237,7 +237,7 @@ class PanelViewBuffer(vpe.ScratchBuffer):
         self.data.need_reindex = True
 
     @can_cause_changes
-    def format_panel(self, panel: Panel):
+    def format_panel(self, panel: Panel):         # pylint: disable=no-self-use
         """Make a panel refresh itself."""
         panel.format_contents()
 
@@ -295,7 +295,7 @@ class PanelViewBuffer(vpe.ScratchBuffer):
         considered to be invalid.
         """
         with vpe.temp_active_buffer(self):
-            with vpe.syntax.Syntax(self.syntax_prefix) as syn:
+            with vpe.syntax.Syntax(self.syntax_prefix):
                 pass  # Causes syntax to be cleared.
             for panel in self.panels:
                 panel.apply_syntax()

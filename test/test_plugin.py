@@ -2,18 +2,16 @@
 # pylint: disable=deprecated-method
 
 import os
-import platform
 import shutil
 import time
 from pathlib import Path
+from typing import List
 
 # pylint: disable=unused-wildcard-import,wildcard-import
 from cleversheep3.Test.Tester import *
 from cleversheep3.Test.Tester import runModule, test
 
 import support
-
-import vpe
 
 _run_after = ['test_vim.py', 'test_mapping_x.py']
 
@@ -46,6 +44,8 @@ def install_test_plugins(dot_vim_dir: str):
 
 class TestPlugin(support.Base):
     """Core VPE plug-in behaviour."""
+    added_paths: List[str]
+    init_py: str
 
     def suiteSetUp(self):
         """Make sure Vim gets restarted with test plug-ins in place.
@@ -100,7 +100,7 @@ class TestPlugin(support.Base):
 
     @test(testID='plugin-load-abort')
     def load_abort(self):
-        """A plug-in can abort loading using th Finish exception.
+        """A plug-in can abort loading using the Finish exception.
 
         :<py>:
             res = Struct()
@@ -135,7 +135,7 @@ class TestPlugin(support.Base):
             res.plugin_err = vim.vars.vpe_plugin_load_fail_err
             dump(res)
         """
-        res = self.run_self()
+        self.run_self()
         failUnless(time.time() - self.init_py.stat().st_mtime < 10.0)
 
     @test(testID='plugin-load-hook')

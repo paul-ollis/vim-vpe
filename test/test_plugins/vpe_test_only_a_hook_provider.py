@@ -10,10 +10,12 @@ vim.vars.vpe_plugin_hook_ok = 0
 
 
 def my_test_hook():
+    """Simple text hook."""
     vim.vars.vpe_plugin_hook_ok += 1
 
 
 def my_bad_test_hook():
+    """Simple text hook."""
     assert False, 'Oops'
     vim.vars.vpe_plugin_hook_ok += 1
 

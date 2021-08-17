@@ -6,7 +6,7 @@ This is still being developed. The API and behaviour is likely to change.
 from typing import Any, Iterator, List, Tuple
 
 import vpe
-from vpe import config, mapping, panels, syntax, vim
+from vpe import mapping, panels, syntax, vim
 
 SEL_HL = 'MatchParen'
 SUFFIX_HL = 'Comment'
@@ -35,12 +35,14 @@ def format_str(s: str, width: int) -> str:
 class CurPrev(int):                                          # pragma: no cover
     """An value that knows its previous value."""
     def __init__(self, value):
+        super().__init__(value)
         self._value = value
         self._prev = None
         self._changed = True
 
     @property
     def value(self):
+        """The current value."""
         return self._value
 
     @value.setter
@@ -49,10 +51,12 @@ class CurPrev(int):                                          # pragma: no cover
         self._value = value
 
     @property
-    def changed(self):
+    def changed(self) -> bool:
+        """Whether this value has been changed."""
         return self._prev != self._value
 
     def restore_prev(self):
+        """Restore this to its previous value.."""
         self._value = self._prev
         return self._value
 
@@ -70,7 +74,7 @@ class FieldVar:
     def value(self):
         """"The current value for this variable."""
 
-    def set(self, value: Any) -> str:
+    def set(self, _value: Any) -> str:            # pylint: disable=no-self-use
         """Try to set this option's value.
 
         :return: A string describing why the attempt failed. An empty string
@@ -79,7 +83,7 @@ class FieldVar:
         """
         return ''                                            # pragma: no cover
 
-    def values(self) -> List[Any]:
+    def values(self) -> List[Any]:                # pylint: disable=no-self-use
         """Return a set of the valid values for this field.
 
         :return: A list of the valid values. An empty list means that this
@@ -275,13 +279,14 @@ class IntField(Field):
 
 
 # TODO: This is a bit messy and I am not sure whether supporting not using
-# opt_var is a good idea.
+#       opt_var is a good idea. Currentlym the _value argument is not used
+#       so the opt_var is effectively mandatory.
 class ChoiceField(Field):
     """A field holding one of a list of choices.
 
-    :@values:       A sequence of permitted values for the field.
+    ::values: A sequence of permitted values for the field. This is ignored.
     """
-    def __init__(self, values=(), opt_var=None, **kwargs):
+    def __init__(self, _values=(), opt_var=None, **kwargs):
         super().__init__(opt_var=opt_var, **kwargs)
         self._values = opt_var.values()
         self._value_index = self._value.index()

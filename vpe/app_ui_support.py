@@ -3,6 +3,7 @@
 Currently this only works on X.Org based desktops.
 """
 
+import dataclasses
 import re
 import subprocess
 from typing import Optional, Tuple
@@ -12,24 +13,36 @@ from vpe import vim
 R_COORD = re.compile(r'([+-]-?\d+)([+-]-?\d+)')
 R_GEOM = re.compile(r'(\d+)x(\d+)([+-]-?\d+)([+-]-?\d+)')
 R_DIMS = re.compile(r'(\d+)x(\d+)')
-_my_id = None
+
+
+def attach_vars(**kwargs):
+    """Decorator to attach variables to a function.
+
+    :kwargs: The names and initial values of the variables to add.
+    """
+    def decor(func):
+        for name, value in kwargs.items():
+            setattr(func, name, value)
+        return func
+
+    return decor
 
 
 def _system(cmd):
     """Simple wrapper of subprocess to provide."""
     proc = subprocess.run(
-        cmd.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        cmd.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+        check=False)
     return proc.returncode, proc.stdout.decode(errors='ignore')
 
 
-# VimRegistry(STRING) = "1a00003 GVIM1", "2800003 GVIM2", "4800003 GVIM", "4400003 TEST"
-
+@attach_vars(xid=None)
 def _my_xwin_id():
-    global _my_id
-    if _my_id is not None:
-        return _my_id
+    myself = _my_xwin_id
+    if myself.xid is not None:
+        return myself.xid
 
-    _my_id = ''
+    myself.xid = ''
     exitcode, text = _system('xprop -root VimRegistry')
     if exitcode != 0:
         return ''                                            # pragma: no cover
@@ -41,16 +54,16 @@ def _my_xwin_id():
         except ValueError:                                   # pragma: no cover
             continue
         if name == my_servername:
-            _my_id = f'0x{wid}'
-            return _my_id
+            myself.xid = f'0x{wid}'
+            return myself.xid
     return ''                                                # pragma: no cover
 
 
+@dataclasses.dataclass
 class _Coord:
-    """A simple X/ Y coordinate."""
-    def __init__(self, x, y):
-        self.x = x
-        self.y = y
+    """A simple X, Y coordinate."""
+    x: int
+    y: int
 
 
 class AppWin:
@@ -69,7 +82,7 @@ class AppWin:
                     order, left, right, top, bottom.
     :@cell_size:    The size of a character cell, in pixels.
     """
-    def __init__(
+    def __init__(                          # pylint: disable=too-many-arguments
             self, dims_pixels, dims_cells, corners, borders, cell_size):
         self.dims_pixels = dims_pixels
         self.dims_cells = dims_cells
@@ -95,6 +108,7 @@ class AppWin:
         return w + a + b, h + c + d
 
 
+@dataclasses.dataclass
 class Display:
     """Information about a single display (physical screen).
 
@@ -103,11 +117,13 @@ class Display:
     :@x: The X coordinate, in pixels, of the top left corner.
     :@y: The Y coordinate, in pixels, of the top left corner.
     """
-    def __init__(self, w, h, x, y):
-        self.x, self.y = x, y
-        self.w, self.h = w, h
+    w: int
+    h: int
+    x: int
+    y: int
 
-    def contains_window(self, w):
+    def contains_window(self, w) -> bool:
+        """Test whether a window is fully contained by this display."""
         c = w.corners[0]
         if not self.x <= c.x < self.x + self.w:
             return False                                     # pragma: no cover

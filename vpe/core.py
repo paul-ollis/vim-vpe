@@ -19,7 +19,7 @@ import sys
 import time
 import weakref
 from functools import partial
-from typing import Callable, Optional, Type, Union, List
+from typing import Callable, List, Optional, Tuple, Type, Union
 
 import vim as _vim
 
@@ -813,6 +813,10 @@ class AutoCmdCallback(common.Callback):
     """Thin `Callback` wrapper to support debugging."""
     # pylint: disable=too-few-public-methods
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.debug_meta: Optional[Tuple[str, str]] = None
+
     def x__call__(self, *args, **kwargs):
         """Useful for some debugging."""
         name, pat = self.debug_meta
@@ -849,21 +853,21 @@ class AutoCmdGroup:
 
     :name: The name of the group.
     """
-    options_context: wrappers.TemporaryOptions
+    _options_context: wrappers.TemporaryOptions
 
     def __init__(self, name):
         self.name = name
 
     def __enter__(self):
-        self.options_context = wrappers.vim.temp_options(
+        self._options_context = wrappers.vim.temp_options(
             cpoptions=vpe.VIM_DEFAULT)
-        self.options_context.activate()
+        self._options_context.activate()
         common.vim_command(f'augroup {self.name}')
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         common.vim_command('augroup END')
-        self.options_context.restore()
+        self._options_context.restore()
 
     @staticmethod
     def delete_all():
@@ -884,7 +888,7 @@ class AutoCmdGroup:
                  the special pattern '<buffer=N> is used.
         :once:   The standard ':autocmd' options.
         :nested: The standard ':autocmd' options.
-        :kwargs: Additional keyword arguments to be passed the *func*`.
+        :kwargs: Additional keyword arguments to be passed the *func*.
         """
         if isinstance(pat, wrappers.Buffer):
             pat = f'<buffer={pat.number}>'

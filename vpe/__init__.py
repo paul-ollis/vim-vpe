@@ -22,11 +22,12 @@ newer.
     This is an instance of the `Log` class.
 
 @commands:
-    An object providing Vim commands a methods.
+    An object providing Vim commands as methods.
 
-    This is in instance of the `Commands` class.
+    This is an instance of the `Commands` class.
 
 @VI_DEFAULT:  Special value representing default Vi value for an option.
+
 @VIM_DEFAULT: Special value representing default Vim value for an option.
 
 The VPE module uses certain global Vim variables for its own internal purposes.
@@ -72,11 +73,12 @@ __api__ = [
     'AutoCmdGroup', 'Timer', 'Popup', 'PopupAtCursor', 'PopupBeval',
     'PopupNotification', 'PopupDialog', 'PopupMenu', 'VimError', 'Vim',
     'Registers', 'Log', 'echo_msg', 'error_msg', 'warning_msg', 'call_soon',
-    'call_soon_once', 'BufListener',
+    'call_soon_once', 'BufListener', 'Callback',
     'vim', 'log', 'saved_winview', 'highlight', 'pedit', 'popup_clear',
     'timer_stopall', 'find_buffer_by_name', 'script_py_path',
     'get_display_buffer', 'version', 'dot_vim_dir', 'temp_active_window',
     'define_command', 'CommandInfo', 'saved_current_window',
+    'Finish',
 
     'core', 'commands', 'mapping', 'syntax', 'wrappers', 'panels',
     'ui', 'config', 'channels', 'windows', 'app_ui_support',
@@ -96,9 +98,14 @@ _plugin_hooks: Dict[str, List[Callable[[], None]]] = {}
 class Finish(Exception):
     """Used by plugin's to abort installation.
 
-    This is intended to play the same role as the :vim:`:finish` command as
+    This is intended to play a similar role to the :vim:`:finish` command, as
     used in plug-ins that may not be able to complete initialisation.
+
+    :reason: A string providing the reason for aborting.
     """
+    def __init__(self, reason: str):
+        # pylint: disable=useless-super-delegation
+        super().__init__(reason)
 
 
 def version() -> Tuple[int, int, int]:
@@ -128,6 +135,8 @@ def script_py_path() -> str:
 
 def add_post_plugin_hook(name: str, func: Callable):
     """Add a function to be called after a VPE plugin has been installed.
+
+    This is currently intended for internal use.
 
     :name: The name of the VPE plugin.
     :func: The function to be invoked.

@@ -430,8 +430,8 @@ class Callback(CallableRef):
     def invoke_self(self, vpe_args):
         """Invoke this Callback.
 
-        This is invoked on the `Callback` instance found by `_do_invoke`. The
-        callback is invoked with as:
+        This is invoked on the `Callback` instance found by `do_invoke`. The
+        callback is invoked with as:<py>:
 
             self(*args, *vim_args, **kwargs)
 
@@ -466,7 +466,7 @@ class Callback(CallableRef):
         return ret
 
     @classmethod
-    def _do_invoke(cls):
+    def do_invoke(cls):
         """Find the Callback instance bing invoked and invoke its function.
 
         The details are store in the Vim global variable ``_vpe_args_``, which
@@ -504,7 +504,7 @@ class Callback(CallableRef):
         """
         cb = None
         try:
-            cb, ret = cls._do_invoke()
+            cb, ret = cls.do_invoke()
             return ret
 
         except Exception as e:                   # pylint: disable=broad-except
@@ -620,7 +620,7 @@ class CommandCallback(Callback):
 
 
 class BufListener(Callback):
-    """A Pythonic wrapping of Vim's listener_... functions.
+    """A Pythonic wrapping of Vim's listener... functions.
 
     One of these is created `Buffer.add_listener`. Direct instantiation of this
     class is not recommended or supported.
@@ -977,15 +977,20 @@ def call_soon_once(
 
 
 def _do_call_soon():
-    """Invoke any functions scheduled to be called soon."""
+    """Invoke any functions scheduled to be called soon.
+
+    Exceptions that occur during invocation are silently suppressed.
+    """
     invoked = set()
     try:
         for token, (func, args, kwargs) in _scheduled_soon_calls:
             if token is None or token not in invoked:
                 try:
                     func(*args, **kwargs)
-                except Exception:
-                    pass
+                except Exception:                # pylint: disable=broad-except
+                    traceback.print_exc()
+                    print('VPE: Exception occured in calback.')
+
                 invoked.add(token)
     finally:
         _scheduled_soon_calls[:] = []

@@ -10,7 +10,7 @@ window instance. Use the `type_name` class attribute when it is necessary to
 know the actual type.
 """
 
-from typing import Any, List
+from typing import List
 
 from vpe import commands, vim
 
@@ -24,6 +24,7 @@ class LayoutElement:
     """
     id = None
     type_name = ''
+    width = 0
 
     def __init__(self, elements: List):
         self.children = [
@@ -45,7 +46,6 @@ class LayoutElement:
         The description is intended to be user friendly. It is best not to rely
         on its format because it may change in future releases.
         """
-        pad = ' ' * level * 4
         s = [f'{self.type_name} = {self.width}']
         for child in self.children:
             for line in child.describe(level=level + 1):
@@ -53,6 +53,10 @@ class LayoutElement:
         return s
 
     def set_widths_from_layout(self, layout: 'LayoutElement'):
+        """Update the widths using another layour element.
+
+        :layout: The `LayoutElement` to copy from.
+        """
         widths = {win.id: win.width for win in layout.iter_windows()}
         for win in self.iter_windows():
             if win.id in widths:
@@ -88,6 +92,7 @@ class LayoutRow(LayoutElement):
 
     @property
     def width(self):
+        """The width of this row."""
         child_sum = sum(child.width for child in self.children)
         return child_sum + len(self.children) - 1
 
@@ -124,6 +129,7 @@ class LayoutColumn(LayoutElement):
 
     @property
     def width(self):
+        """The width of this column."""
         return max(child.width for child in self.children)
 
     def adjust_width(self, tot_width: int):
@@ -141,13 +147,15 @@ class LayoutWindow(LayoutElement):
     """
     type_name = 'Win'
 
-    def __init__(self, id: int):
-        self.id = id
-        self.number = vim.win_id2win(id)
-        self._width = vim.winwidth(id)
+    def __init__(self, win_id: int):
+        super().__init__([])
+        self.id = win_id
+        self.number = vim.win_id2win(win_id)
+        self._width = vim.winwidth(win_id)
 
     @property
     def width(self):
+        """The width of this window."""
         return self._width
 
     def adjust_width(self, tot_width: int):
@@ -156,7 +164,6 @@ class LayoutWindow(LayoutElement):
 
     def describe(self, level=0):
         """Generate a description as a sequence of lines."""
-        pad = ' ' * level * 4
         return [f'Win[{self.number}] = {self.width}']
 
     def __len__(self):

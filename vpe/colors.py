@@ -6,6 +6,7 @@ from typing import List
 
 from vpe import wrappers
 
+# Regular expressin to split a colour name into up to 5 words.
 _R_LUMPY = re.compile('''(?x)
     ([A-Za-z][a-z0-9]+)
     ([A-Z][a-z0-9]+)?
@@ -1204,7 +1205,7 @@ def alt_names(name: str) -> List[str]:
     words_3 = [w.replace('grey', 'gray') for w in words]
 
     alternatives = set()
-    for word in (words_1, words_2, words_3):
+    for words in (words_1, words_2, words_3):
         alternatives.add(' '.join(words))
         alternatives.add(''.join(w.capitalize() for w in words))
     return sorted(alternatives)
@@ -1232,7 +1233,7 @@ def to_256_num(name: str):
     :name: The color to convert. It should exist and be well defined.
     """
     if name not in _xterm_color_table:
-        _, name = extra_color_table.get(name, (None, name))
+        _, name = _extra_color_table.get(name, (None, name))
     if name not in _xterm_color_table:
         return 0
     return _xterm_color_table[name][1]
@@ -1249,7 +1250,7 @@ def _to_std_num(name: str):
     return _xterm_color_table[name][1]
 
 
-class HighlightSpec:
+class HighlightSpec:                   # pylint: disable=too-few-public-methods
     """A full specification for text highlighting.
 
     An experiment in handling highlight specifications for GUI and 256 color
