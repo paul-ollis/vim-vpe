@@ -73,7 +73,7 @@ Choice
 
                 A string describing why the attempt failed.
 
-        .. py:method:: vpe.config.Choice.values() -> List[typing.Any]
+        .. py:method:: vpe.config.Choice.values() -> List[Any]
 
             Get the list of choices.
 
@@ -100,7 +100,7 @@ Config
 
     **Attributes**
 
-        .. py:attribute:: vpe.config.Config.name
+        .. py:attribute:: name
 
             The name of this configuration. By convention, for a plug-in,
             this is typically the plug-in's name.
@@ -161,15 +161,13 @@ Int
 
 .. py:class:: vpe.config.Int(...)
 
-    .. parsed-literal::
+    .. code::
 
         Int(
-            name,
-            default_value=0,
-            \*,
-            minval=None,
-            maxval=None,
-            description='')
+                name,
+                default_value=0,
+                minval=None,
+                maxval=None,
 
     A `config.Option` that can take an integer value.
 
@@ -223,31 +221,31 @@ Option
 
     **Attributes**
 
-        .. py:attribute:: vpe.config.Option.default_value
+        .. py:attribute:: default_value
 
             A default value for the option.
 
-        .. py:attribute:: vpe.config.Option.description
+        .. py:attribute:: description
 
             A description for the value, used for help generation.
 
-        .. py:attribute:: vpe.config.Option.name
+        .. py:attribute:: name
 
             The name of the value.
 
     **Properties**
 
-        .. py:method:: vpe.config.Option.store_repr()
+        .. py:method:: store_repr()
             :property:
 
             "The representation of the `store_value`.
 
-        .. py:method:: vpe.config.Option.store_value()
+        .. py:method:: store_value()
             :property:
 
             "The value for this option that will be store in the config file.
 
-        .. py:method:: vpe.config.Option.value()
+        .. py:method:: value()
             :property:
 
             "The current value for this option.
@@ -270,13 +268,13 @@ Option
 
                 A string describing why the attempt failed.
 
-        .. py:method:: vpe.config.Option.simple_field_args() -> Dict[str, typing.Any]
+        .. py:method:: vpe.config.Option.simple_field_args() -> Dict[str, Any]
 
             Generate keyword arguments for a simple UI field.
 
             This may be extended in subclasses.
 
-        .. py:method:: vpe.config.Option.values() -> List[typing.Any]
+        .. py:method:: vpe.config.Option.values() -> List[Any]
 
             Get the list of choices.
 

@@ -10,14 +10,13 @@ JSChannel
 
 .. py:class:: vpe.channels.JSChannel(...)
 
-    .. parsed-literal::
+    .. code::
 
         JSChannel(
-            net_address: str,
-            drop: Optional[str] = None,
-            noblock: Optional[bool] = None,
-            waittime: Optional[int] = None,
-            timeout_ms: Optional[int] = None)
+                net_address: str,
+                drop: Optional[str] = None,
+                noblock: Optional[bool] = None,
+                waittime: Optional[int] = None,
 
     Pythonic wrapper around a Vim channel in javascript mode.
 
@@ -26,14 +25,13 @@ JsonChannel
 
 .. py:class:: vpe.channels.JsonChannel(...)
 
-    .. parsed-literal::
+    .. code::
 
         JsonChannel(
-            net_address: str,
-            drop: Optional[str] = None,
-            noblock: Optional[bool] = None,
-            waittime: Optional[int] = None,
-            timeout_ms: Optional[int] = None)
+                net_address: str,
+                drop: Optional[str] = None,
+                noblock: Optional[bool] = None,
+                waittime: Optional[int] = None,
 
     Pythonic wrapper around a Vim channel in json mode.
 
@@ -42,14 +40,13 @@ NLChannel
 
 .. py:class:: vpe.channels.NLChannel(...)
 
-    .. parsed-literal::
+    .. code::
 
         NLChannel(
-            net_address: str,
-            drop: Optional[str] = None,
-            noblock: Optional[bool] = None,
-            waittime: Optional[int] = None,
-            timeout_ms: Optional[int] = None)
+                net_address: str,
+                drop: Optional[str] = None,
+                noblock: Optional[bool] = None,
+                waittime: Optional[int] = None,
 
     Pythonic wrapper for a newline based channel.
 
@@ -58,14 +55,13 @@ RawChannel
 
 .. py:class:: vpe.channels.RawChannel(...)
 
-    .. parsed-literal::
+    .. code::
 
         RawChannel(
-            net_address: str,
-            drop: Optional[str] = None,
-            noblock: Optional[bool] = None,
-            waittime: Optional[int] = None,
-            timeout_ms: Optional[int] = None)
+                net_address: str,
+                drop: Optional[str] = None,
+                noblock: Optional[bool] = None,
+                waittime: Optional[int] = None,
 
     Pythonic wrapper for a raw channel.
 
@@ -90,24 +86,24 @@ VimChannel
 
     **Attributes**
 
-        .. py:attribute:: vpe.channels.VimChannel.varname
+        .. py:attribute:: varname
 
             The name of a Vim variable holding a reference to the underlying
             Vim channel object. This is provided for debugging purposes.
 
     **Properties**
 
-        .. py:method:: vpe.channels.VimChannel.chid()
+        .. py:method:: chid()
             :property:
 
             The ID for this channel.
 
-        .. py:method:: vpe.channels.VimChannel.closed()
+        .. py:method:: closed()
             :property:
 
             True of the channel could not be opened or has been closed.
 
-        .. py:method:: vpe.channels.VimChannel.info()
+        .. py:method:: info()
             :property:
 
             Get the information for a channel.

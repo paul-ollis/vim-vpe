@@ -47,12 +47,12 @@ Panel
 
     **Attributes**
 
-        .. py:attribute:: vpe.panels.Panel.content
+        .. py:attribute:: content
 
             The formatted content of this panel as a sequence of line.
             This should only be set by the `format_contents` method.
 
-        .. py:attribute:: vpe.panels.Panel.old_slice
+        .. py:attribute:: old_slice
 
             The buffer slice for previous content. This is set to ``None``
             by the ``apply_updates`` method.
@@ -60,23 +60,23 @@ Panel
             TODO: The reindex method must update this when it is not
             ``None``.
 
-        .. py:attribute:: vpe.panels.Panel.start_lidx
+        .. py:attribute:: start_lidx
 
             The index of this panel's first line within the buffer.
 
     **Properties**
 
-        .. py:method:: vpe.panels.Panel.buf_slice()
+        .. py:method:: buf_slice()
             :property:
 
             A slice object to select this panel's line range.
 
-        .. py:method:: vpe.panels.Panel.end_lidx()
+        .. py:method:: end_lidx()
             :property:
 
             The end index of the panel;s line range.
 
-        .. py:method:: vpe.panels.Panel.syntax_prefix()
+        .. py:method:: syntax_prefix()
             :property:
 
             A suitable prefix for syntax items in this panel.
@@ -177,12 +177,12 @@ PanelViewBuffer
 
     **Properties**
 
-        .. py:method:: vpe.panels.PanelViewBuffer.data()
+        .. py:method:: data()
             :property:
 
             The data store for this panel view.
 
-        .. py:method:: vpe.panels.PanelViewBuffer.panels()
+        .. py:method:: panels()
             :property:
 
             The sequence of panels for this display buffer.

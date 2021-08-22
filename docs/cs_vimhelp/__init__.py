@@ -1,6 +1,5 @@
 """A Sphinx builder to generate Vim help files."""
 
-from typing import Any
 import functools
 import os
 import subprocess
@@ -8,6 +7,7 @@ import sys
 import tempfile
 import time
 import urllib.parse
+from typing import Any
 
 from docutils import nodes
 from docutils.parsers.rst import Directive
@@ -133,7 +133,6 @@ def load_vim_tags():
     with open(out_path,mode='rt') as f:
         lines = [line.strip() for line in f.read().split('^@')]
     os.unlink(out_path)
-    print(lines)
 
     for path in lines:
         if '/share/' in path:

@@ -1,0 +1,28 @@
+The quickest way to start using VPE is to import the :attr:`vim` object:
+
+.. code:: python
+
+    from vpe import vim
+
+The :attr:`vim` object is an instance of the `vpe.Vim` class and is intended to
+be a drop in replacement for Vim's standard :vim:`python-vim` module, but with
+a number of enhancements.
+
+- Most of Vim's functions appear as members, for example:
+
+  .. code:: python
+
+      vim.cursor(4, 10)            # Position cursor at row 4, column 10.
+      m = vim.execute('messages')  # Get all the recent Vim messagse.
+
+- The attributes buffers, current, options, tabpages, vars, vvars and windows
+  provide enhanced access to the corresponding Vim objects. For example
+  vim.current.buffer provides a `Buffer` instance in place of Vim's standard
+  :vim:`python-buffer`.
+
+- The Vim registers are available using the `registers<Vim.registers>`
+  attribute.
+
+- When errors occur a `VimError` is raised, which provides a better breakdown
+  of the error. This is a subclass of vim.error (:vim:`python-error`) so
+  existing code that catches vim.error still works.

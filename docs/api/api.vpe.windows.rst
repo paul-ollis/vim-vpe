@@ -19,7 +19,7 @@ know the actual type.
 LayoutColumn
 ------------
 
-.. py:class:: vpe.windows.LayoutColumn(elements: typing.List)
+.. py:class:: vpe.windows.LayoutColumn(elements: List)
 
     Details of a column in a window layout.
 
@@ -31,6 +31,13 @@ LayoutColumn
         *row*
             A list of Vim row or leaf specs.
 
+    **Properties**
+
+        .. py:method:: width()
+            :property:
+
+            The width of this column.
+
     **Methods**
 
         .. py:method:: vpe.windows.LayoutColumn.adjust_width(tot_width: int)
@@ -40,7 +47,7 @@ LayoutColumn
 LayoutElement
 -------------
 
-.. py:class:: vpe.windows.LayoutElement(elements: typing.List)
+.. py:class:: vpe.windows.LayoutElement(elements: List)
 
     An element in a window layout.
 
@@ -48,7 +55,7 @@ LayoutElement
 
     **Attributes**
 
-        .. py:attribute:: vpe.windows.LayoutElement.type_name
+        .. py:attribute:: type_name
 
             A class attribute used to identify the type of element.
 
@@ -69,6 +76,18 @@ LayoutElement
 
             Iterate throught the leaf windows.
 
+        .. py:method:: vpe.windows.LayoutElement.set_widths_from_layout(layout: LayoutElement)
+
+            Update the widths using another layour element.
+
+
+            **Parameters**
+
+            .. container:: parameters itemdetails
+
+                *layout*: LayoutElement
+                    The `LayoutElement` to copy from.
+
     **Class methods**
 
         .. py:classmethod:: vpe.windows.LayoutElement.create_from_vim_layout(layout)
@@ -78,7 +97,7 @@ LayoutElement
 LayoutRow
 ---------
 
-.. py:class:: vpe.windows.LayoutRow(elements: typing.List)
+.. py:class:: vpe.windows.LayoutRow(elements: List)
 
     Details of a row in a window layout.
 
@@ -90,6 +109,13 @@ LayoutRow
         *row*
             A list of Vim column or leaf specs.
 
+    **Properties**
+
+        .. py:method:: width()
+            :property:
+
+            The width of this row.
+
     **Methods**
 
         .. py:method:: vpe.windows.LayoutRow.adjust_width(tot_width: int)
@@ -99,7 +125,7 @@ LayoutRow
 LayoutWindow
 ------------
 
-.. py:class:: vpe.windows.LayoutWindow(id: int)
+.. py:class:: vpe.windows.LayoutWindow(win_id: int)
 
     Details of a window in a window layout.
 
@@ -110,6 +136,13 @@ LayoutWindow
 
         *wid*
             The unique ID of the window.
+
+    **Properties**
+
+        .. py:method:: width()
+            :property:
+
+            The width of this window.
 
     **Methods**
 

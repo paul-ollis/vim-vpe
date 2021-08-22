@@ -989,7 +989,7 @@ def _do_call_soon():
                     func(*args, **kwargs)
                 except Exception:                # pylint: disable=broad-except
                     traceback.print_exc()
-                    print('VPE: Exception occured in calback.')
+                    print('VPE: Exception occurred in calback.')
 
                 invoked.add(token)
     finally:

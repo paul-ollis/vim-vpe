@@ -12,19 +12,17 @@ BoolField
 
 .. py:class:: vpe.ui.BoolField(...)
 
-    .. parsed-literal::
+    .. code::
 
         BoolField(
-            \*,
-            lidx,
-            cidx,
-            prefix='',
-            suffix='',
-            prefix_width=0,
-            suffix_width=0,
-            value_width=6,
-            opt_var=None,
-            \*\*kwargs)
+                lidx,
+                cidx,
+                prefix='',
+                suffix='',
+                prefix_width=0,
+                suffix_width=0,
+                value_width=6,
+                opt_var=None,
 
     A field displaying a boolean value.
 
@@ -37,23 +35,11 @@ BoolField
 ChoiceField
 -----------
 
-.. py:class:: vpe.ui.ChoiceField(values=(),opt_var=None,**kwargs)
+.. py:class:: vpe.ui.ChoiceField(_values=(),opt_var=None,**kwargs)
 
     A field holding one of a list of choices.
 
-
-    **Parameters**
-
-    .. container:: parameters itemdetails
-
-        *values*
-            A sequence of permitted values for the field.
-
-    **Attributes**
-
-        .. py:attribute:: vpe.ui.ChoiceField.values
-
-            A sequence of permitted values for the field.
+    ::values: A sequence of permitted values for the field. This is ignored.
 
     **Methods**
 
@@ -79,16 +65,16 @@ ConfigPanel
 
     **Attributes**
 
-        .. py:attribute:: vpe.ui.ConfigPanel.fields
+        .. py:attribute:: fields
 
             The fields within this panel. A mapping from name to `Field`.
 
 
-        .. py:attribute:: vpe.ui.ConfigPanel.first_field_idx
+        .. py:attribute:: first_field_idx
 
             The global index of the first field in this panel.
 
-        .. py:attribute:: vpe.ui.ConfigPanel.selectable_fields
+        .. py:attribute:: selectable_fields
 
             A mapping from global field index to `Field` instance.
 
@@ -194,24 +180,40 @@ CurPrev
 
     An value that knows its previous value.
 
+    **Properties**
+
+        .. py:method:: changed() -> bool
+            :property:
+
+            Whether this value has been changed.
+
+        .. py:method:: value()
+            :property:
+
+            The current value.
+
+    **Methods**
+
+        .. py:method:: vpe.ui.CurPrev.restore_prev()
+
+            Restore this to its previous value..
+
 Field
 -----
 
 .. py:class:: vpe.ui.Field(...)
 
-    .. parsed-literal::
+    .. code::
 
         Field(
-            \*,
-            lidx,
-            cidx,
-            prefix='',
-            suffix='',
-            prefix_width=0,
-            suffix_width=0,
-            value_width=6,
-            opt_var=None,
-            \*\*kwargs)
+                lidx,
+                cidx,
+                prefix='',
+                suffix='',
+                prefix_width=0,
+                suffix_width=0,
+                value_width=6,
+                opt_var=None,
 
     Base class for a field within a `ConfigPanel`.
 
@@ -259,78 +261,78 @@ Field
 
     **Attributes**
 
-        .. py:attribute:: vpe.ui.Field.cidx
+        .. py:attribute:: cidx
 
             The column index within the panel.
 
-        .. py:attribute:: vpe.ui.Field.lidx
+        .. py:attribute:: lidx
 
             The line index within the panel.
 
-        .. py:attribute:: vpe.ui.Field.prefix
+        .. py:attribute:: prefix
 
             The label displayed before the field.
 
-        .. py:attribute:: vpe.ui.Field.prefix_width
+        .. py:attribute:: prefix_width
 
             The width spec for the prefix. If not provided then this
             defaults to the width of the prefix + 1. If set to a
             negative number, the prefix is right justified.
 
-        .. py:attribute:: vpe.ui.Field.suffix
+        .. py:attribute:: suffix
 
             The label displayed after the field.
 
-        .. py:attribute:: vpe.ui.Field.suffix_width
+        .. py:attribute:: suffix_width
 
             The width spec for the prefix. It follows the same pattern
             as the prefix_width.
 
     **Properties**
 
-        .. py:method:: vpe.ui.Field.column_range() -> Tuple[int, int]
+        .. py:method:: column_range() -> Tuple[int, int]
             :property:
 
             The range of columns occupied by this field.
 
-        .. py:method:: vpe.ui.Field.full_width() -> int
+        .. py:method:: full_width() -> int
             :property:
 
             The full width occupied by this field.
 
-        .. py:method:: vpe.ui.Field.prefix_fmt_width() -> int
+        .. py:method:: prefix_fmt_width() -> int
             :property:
 
             The width of this field's formatted prefix.
 
-        .. py:method:: vpe.ui.Field.suffix_fmt_width() -> int
+        .. py:method:: suffix_fmt_width() -> int
             :property:
 
             The width of this field's formatted suffix.
 
-        .. py:method:: vpe.ui.Field.val_extent() -> Tuple[int, int]
+        .. py:method:: val_extent() -> Tuple[int, int]
             :property:
 
             The extent of this field's value.
 
             :return: A tuple of cnum, width.
 
-        .. py:method:: vpe.ui.Field.value() -> typing.Any
+        .. py:method:: value() -> Any
             :property:
 
             The field's current value.
 
-        .. py:method:: vpe.ui.Field.value_fmt_width() -> int
+        .. py:method:: value_fmt_width() -> int
             :property:
 
             The width of this field's formatted value.
 
-        .. py:method:: vpe.ui.Field.value_str()
+        .. py:method:: value_str()
             :property:
 
             Format the value as a string.
 
-        .. py:method:: vpe.ui.Field.value_width() -> int
+        .. py:method:: value_width() -> int
             :property:
 
             The width used to display the field's value.
@@ -379,7 +381,7 @@ FieldVar
 
     **Properties**
 
-        .. py:method:: vpe.ui.FieldVar.value()
+        .. py:method:: value()
             :property:
 
             "The current value for this variable.
@@ -390,7 +392,7 @@ FieldVar
 
             Initialisation.
 
-        .. py:method:: vpe.ui.FieldVar.set(value: typing.Any) -> str
+        .. py:method:: vpe.ui.FieldVar.set(_value: Any) -> str
 
             Try to set this option's value.
 
@@ -403,7 +405,7 @@ FieldVar
                 if the value was set. This basic wrapper always returns an
                 empty string.
 
-        .. py:method:: vpe.ui.FieldVar.values() -> List[typing.Any]
+        .. py:method:: vpe.ui.FieldVar.values() -> List[Any]
 
             Return a set of the valid values for this field.
 
@@ -420,19 +422,17 @@ IntField
 
 .. py:class:: vpe.ui.IntField(...)
 
-    .. parsed-literal::
+    .. code::
 
         IntField(
-            \*,
-            lidx,
-            cidx,
-            prefix='',
-            suffix='',
-            prefix_width=0,
-            suffix_width=0,
-            value_width=6,
-            opt_var=None,
-            \*\*kwargs)
+                lidx,
+                cidx,
+                prefix='',
+                suffix='',
+                prefix_width=0,
+                suffix_width=0,
+                value_width=6,
+                opt_var=None,
 
     A field displaying an integer value.
 

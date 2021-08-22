@@ -39,21 +39,21 @@ AppWin
 
     **Attributes**
 
-        .. py:attribute:: vpe.app_ui_support.AppWin.borders
+        .. py:attribute:: borders
 
             The pixel sizes of the window decoration borders in the
             order, left, right, top, bottom.
 
-        .. py:attribute:: vpe.app_ui_support.AppWin.cell_size
+        .. py:attribute:: cell_size
 
             The size of a character cell, in pixels.
 
-        .. py:attribute:: vpe.app_ui_support.AppWin.dims_cells
+        .. py:attribute:: dims_cells
 
             A sequence (w, h) giving the window's undecorated size in
             character cells.
 
-        .. py:attribute:: vpe.app_ui_support.AppWin.dims_corners
+        .. py:attribute:: dims_corners
 
             A sequence of pixel coordiates for the windows corners, in
             the order TL, TR, BR, BL. For TR and BR the X value is with
@@ -61,21 +61,21 @@ AppWin
             the Y value is with repect to the lower edge of the
             display.
 
-        .. py:attribute:: vpe.app_ui_support.AppWin.dims_pixels
+        .. py:attribute:: dims_pixels
 
             A sequence (w, h) giving the window's undecorated size in
             pixels.
 
     **Properties**
 
-        .. py:method:: vpe.app_ui_support.AppWin.columns()
+        .. py:method:: columns() -> Optional[int]
             :property:
 
             The calculated number of columns for this window.
 
             This should be the same as the columns option value.
 
-        .. py:method:: vpe.app_ui_support.AppWin.decor_dims() -> Tuple[int, int]
+        .. py:method:: decor_dims() -> Tuple[int, int]
             :property:
 
             The windows dimension in pixels including window decoration.
@@ -83,7 +83,7 @@ AppWin
 Display
 -------
 
-.. py:class:: vpe.app_ui_support.Display(w,h,x,y)
+.. py:class:: vpe.app_ui_support.Display(w: int,h: int,x: int,y: int) -> None
 
     Information about a single display (physical screen).
 
@@ -92,32 +92,42 @@ Display
 
     .. container:: parameters itemdetails
 
-        *w*
+        *w*: int
             The width in pixels.
-        *h*
+        *h*: int
             The height in pixels.
-        *x*
+        *x*: int
             The X coordinate, in pixels, of the top left corner.
-        *y*
+        *y*: int
             The Y coordinate, in pixels, of the top left corner.
 
     **Attributes**
 
-        .. py:attribute:: vpe.app_ui_support.Display.h
+        .. py:attribute:: h
+            :type: int:
 
             The height in pixels.
 
-        .. py:attribute:: vpe.app_ui_support.Display.w
+        .. py:attribute:: w
+            :type: int:
 
             The width in pixels.
 
-        .. py:attribute:: vpe.app_ui_support.Display.x
+        .. py:attribute:: x
+            :type: int:
 
             The X coordinate, in pixels, of the top left corner.
 
-        .. py:attribute:: vpe.app_ui_support.Display.y
+        .. py:attribute:: y
+            :type: int:
 
             The Y coordinate, in pixels, of the top left corner.
+
+    **Methods**
+
+        .. py:method:: vpe.app_ui_support.Display.contains_window(w) -> bool
+
+            Test whether a window is fully contained by this display.
 
 Displays
 --------
@@ -129,7 +139,7 @@ Displays
 
     **Attributes**
 
-        .. py:attribute:: vpe.app_ui_support.Displays.displays
+        .. py:attribute:: displays
 
             A sequence of `Display` instances.
 
@@ -152,6 +162,21 @@ Displays
 
                 *w*: AppWin
                     The window bein searched for.
+
+attach_vars
+-----------
+
+.. py:function:: vpe.app_ui_support.attach_vars(**kwargs)
+
+    Decorator to attach variables to a function.
+
+
+    **Parameters**
+
+    .. container:: parameters itemdetails
+
+        *kwargs*
+            The names and initial values of the variables to add.
 
 get_app_win_info
 ----------------

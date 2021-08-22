@@ -49,8 +49,8 @@ The `Window` class also provides a number of additional properties and methods, 
     - |visible_line_range()|
 
 The |temp_options()| context manager provides exactly the same function for a
-`Window` s does the `Buffer.temp_options` method. Read :ref:`temp_buf_options`
-to see how this is used.
+`Window` s does the `Buffer.temp_options` method. Read :ref:`temporary buffer
+options<temp_buf_options>` to see how this is used.
 
 The |id| is the unique window ID (not its number) that is required as the
 argument for a number of built-in Vim functions; such as :vim:`getwininfo()`.
@@ -73,7 +73,7 @@ might switch to another window.
         # context exits.
         split_window_if_required()
 
-If you need to temporarily swicth to a different window, use
+If you need to temporarily switch to a different window, use
 `temp_active_window`.
 
 .. code-block:: py
@@ -85,7 +85,7 @@ If you need to temporarily swicth to a different window, use
 
 Vim provides the functions :vim:`winsaveview()` and :vim:`winrestview()` as a
 mechanism to 'protect' the user from operations that jump around a buffer. The
-`saved_winview` context manager wraps these up more conventiently.
+`saved_winview` context manager wraps these up more conveniently.
 
 .. code-block:: py
 

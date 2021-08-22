@@ -26,11 +26,10 @@ Cluster
 
         .. py:method:: vpe.syntax.Cluster.add(...)
 
-            .. parsed-literal::
+            .. code::
 
                 add(
-                    group1: Union[vpe.syntax.Group, str],
-                    \*groups: Union[vpe.syntax.Group, str])
+                        group1: Union[vpe.syntax.Group, str],
 
             Add groups to the cluster.
 
@@ -133,7 +132,7 @@ Group
             If true then all matches, keywords and regions this creates
             automtically have the contained option set.
 
-    .. py:class:: vpe.syntax.Group.region_type(syn: Syntax,syn_cmd: typing.Callable,name: str,**options)
+    .. py:class:: vpe.syntax.Group.region_type(syn: Syntax,syn_cmd: Callable,name: str,**options)
 
         A context manager for adding a region  to a group.
 
@@ -228,15 +227,13 @@ Group
 
         .. py:method:: vpe.syntax.Group.add_match(...)
 
-            .. parsed-literal::
+            .. code::
 
                 add_match(
-                    pat: str,
-                    \*pats: str,
-                    \*,
-                    lidx: Optional[int] = None,
-                    lrange: Optional[Tuple[int, int]] = None,
-                    \*\*options)
+                        pat: str,
+                        *pats: str,
+                        lidx: Optional[int] = None,
+                        lrange: Optional[Tuple[int, int]] = None,
 
             Add a syntax match for this group.
 
@@ -375,17 +372,17 @@ NamedSyntaxItem
 
     **Properties**
 
-        .. py:method:: vpe.syntax.NamedSyntaxItem.arg_name() -> str
+        .. py:method:: arg_name() -> str
             :property:
 
             A suitable name when used as an argument.
 
-        .. py:method:: vpe.syntax.NamedSyntaxItem.name() -> str
+        .. py:method:: name() -> str
             :property:
 
             The base name of this item, without the Sytntax ojbect's prefix.
 
-        .. py:method:: vpe.syntax.NamedSyntaxItem.qual_name() -> str
+        .. py:method:: qual_name() -> str
             :property:
 
             The qualified name of this item.
@@ -447,7 +444,7 @@ Pattern
 Region
 ------
 
-.. py:class:: vpe.syntax.Region(syn: Syntax,syn_cmd: typing.Callable,name: str,**options)
+.. py:class:: vpe.syntax.Region(syn: Syntax,syn_cmd: Callable,name: str,**options)
 
     A context manager for adding a region  to a group.
 
@@ -564,7 +561,7 @@ StdCluster
 
     **Properties**
 
-        .. py:method:: vpe.syntax.StdCluster.arg_name()
+        .. py:method:: arg_name()
             :property:
 
             A suitable name when used as an argument.
@@ -623,7 +620,7 @@ Syntax
                 If true then all matches, keywords and regions this creates
                 automtically have the contained option set.
 
-        .. py:class:: vpe.syntax.Syntax.group_type.region_type(syn: Syntax,syn_cmd: typing.Callable,name: str,**options)
+        .. py:class:: vpe.syntax.Syntax.group_type.region_type(syn: Syntax,syn_cmd: Callable,name: str,**options)
 
             A context manager for adding a region  to a group.
 
@@ -718,15 +715,13 @@ Syntax
 
             .. py:method:: vpe.syntax.Syntax.group_type.add_match(...)
 
-                .. parsed-literal::
+                .. code::
 
                     add_match(
-                        pat: str,
-                        \*pats: str,
-                        \*,
-                        lidx: Optional[int] = None,
-                        lrange: Optional[Tuple[int, int]] = None,
-                        \*\*options)
+                            pat: str,
+                            *pats: str,
+                            lidx: Optional[int] = None,
+                            lrange: Optional[Tuple[int, int]] = None,
 
                 Add a syntax match for this group.
 
@@ -934,12 +929,11 @@ SyntaxBase
 
         .. py:staticmethod:: vpe.syntax.SyntaxBase.get_offsets(...)
 
-            .. parsed-literal::
+            .. code::
 
                 get_offsets(
-                    options: dict,
-                    offset_names: Iterable[str]
-                ) -> Tuple[str, dict]
+                        options: dict,
+                        offset_names: Iterable[str]
 
             Extract the offset arguments from keyword options.
 
@@ -1003,7 +997,7 @@ deliminate
 extract_keys
 ------------
 
-.. py:function:: vpe.syntax.extract_keys(source_dict: dict,*keys: typing.Any) -> dict
+.. py:function:: vpe.syntax.extract_keys(source_dict: dict,*keys: Any) -> dict
 
     Extract a set of named items from a dictionary.
 

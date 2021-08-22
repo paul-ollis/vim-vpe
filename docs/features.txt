@@ -1,0 +1,24 @@
+This is a brief list of VPE's features.
+
+- A `Vim` class that provides an enhanced, drop-in replacement for the standard
+  `python-vim <https://vimhelp.org/if_pyth.txt.html#python-vim>`_ module.
+
+- Classes `Window`, `Buffer`, `TabPage` are enhanced wrappers around the
+  standard `vim <https://vimhelp.org/if_pyth.txt.html#python-vim>`_ versions.
+
+- Support for cleanly invoking Python functions for keyboard `mappings
+  <https://vimhelp.org/map.txt.html#:nmap>`_.
+
+- Pythonic support for using `popup-windows
+  <https://vimhelp.org/popup.txt.html#popup-window>`_. (Requires Vim 8.2.)
+
+- Pythonic support for using
+  `timers <https://vimhelp.org/eval.txt.html#timers>`_.
+
+- Pythonic support for `autocommands
+  <https://vimhelp.org/autocmd.txt.html#autocommands>`_ that invoke Python
+  functions.
+
+- Python support for `channels <https://vimhelp.org/channel.txt.html>`_.
+
+- Logging to a buffer. Useful when developing and debugging plug-ins.

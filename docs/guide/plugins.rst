@@ -9,30 +9,30 @@ Using Vim's standard mechanism for VPE based plug-ins is a bit fiddly because:
 
 - You need a vim script file that then imports and initialises the actual
   Python code. Note that is it not a good idea to simply put all the code
-  within 'python3 <<EOF ... EOF' because that will pollute Vim's global Python
-  namespace.
+  within a ``python3 <<EOF ... EOF`` construct because that will pollute Vim's
+  Python namespace, making it difficult for plug-ins to coexist.
 
 - Such plug-ins depend on the VPE plug-in being loaded first.
 
-So the Vim Python Extensions (VPE) provides a framework that simplifies writing
-plug-ins in Python.
+So VPE provides its own framework that simplifies writing plug-ins in Python
+that rely on VPE.
 
 
 Plug-in structure
 =================
 
-A plug-in is basically Python module or package. In order to be recognised as a
-VPE plug-in that should automatically be loaded, the module or package's
+A plug-in is basically a Python module or package. In order to be recognised as
+a VPE plug-in that should automatically be loaded, the module or package's
 __init__.py must have docstring that starts with 'VPE-plugin: ' (note the space
 after the colon). For example:
 
 .. code-block:: py
 
-    """VPE-plugin: Spam file support from within Vim."""
+    """VPE-plugin: Spam support from within Vim."""
 
-Triple, double quotes must be used and the docstring must start on line 1. If a
-plug-in does not start like this then it is simply a library for other plug-in
-code.
+Triple, double quotes (""") must be used and the docstring must start on line
+one. If a module or package does not conform to these requirements then it
+simply acts as a library for other plug-in code.
 
 All VPE plug-ins are installed in::
 
@@ -46,17 +46,22 @@ Plug-in loading and initialisation
 Loading
 -------
 
-VPE plug-ins are loaded after other Vim startup (by using the :vim:`VimEnter`
-auto command). VPE scans the vpe_plugins directory for auto-loadable plug-in
-modules and packages during normal Vim start up.
+VPE plug-ins are loaded after Vim completes it normal starup an plug-in loading
+(by using the :vim:`VimEnter` auto command).
 
-Each one it finds is loaded by simply importing it as a sub-module or
-sub-pakage of the vpe_plugins package. For example if your plugin file is
-my_plugin.py then VPE will import it as:
+VPE scans the vpe_plugins directory for auto-loadable plug-in modules and
+packages. Each plug-in found is loaded by simply importing it as a sub-module
+or sub-pakage of the ``vpe_plugins`` namespace package. For example if your plugin
+file is my_plugin.py then VPE will effectively import it as:
 
 .. code-block:: py
 
     import vpe_plugins.my_plugin
+
+VPE imports plug-ins in ``sorted()`` order. This should be considered as an
+implementation detail, that can sometimes make debugging plug-ins easier. This
+feature should not be relied on by normal plug-in code. A future version of
+VPE may change to a different, but still consistent, import order.
 
 
 Initialisation
@@ -66,12 +71,27 @@ Since a plug-in is imported, its top level code performs any necessary
 initialisation. This will, of course, only be executed the first time it is
 imported
 
+If a plug-in is not able to load propely, for example because a required third
+party Python library is missing, then it can raise the `vpe.Finish` exception to
+abort loading and provide some details. For example::
+
+.. code-block:: py
+
+    import vpe
+
+    try:
+        import spam
+    except ImportError:
+        raise vpe.Finish('Could not import the required "spam" module.')
+
+The failure will be reported in the VPE log.
+
 
 Dependencies
 ------------
 
-A plug-in can use code from other plug-in by simply importing its code. For example
-my_plugin.py can use their_plugin.py by doing:
+A plug-in can use code from another plug-in by simply importing its code. For
+example my_plugin.py can use their_plugin.py by doing:
 
 .. code-block:: py
 

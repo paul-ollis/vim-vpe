@@ -26,7 +26,7 @@ create `ScratchBuffer` instances directly. This function takes care of:
 - actually creating the `ScratchBuffer` instance, if it does not already exist.
 
 The `get_display_buffer` function takes a name, which identifies the scratch
-buffer. The exact same `ScratchBuffer` instance is returned each time
+buffer. The same `ScratchBuffer` instance is returned each time
 `get_display_buffer` is called with the same name.
 
 .. code-block:: py
@@ -42,11 +42,11 @@ buffer. The exact same `ScratchBuffer` instance is returned each time
 Displaying and updating
 =======================
 
-The |show| method allows the buffer to be made visible either within the current
-window or after first splitting the current window. Calling *show(=* without
-arguments, simply switches to the scratch buffer. Open in a split use either the
-*splitlines* or *splitcols* argument. The scratch buffer is shown in the upper
-or left part of the split.
+The |show| method allows the buffer to be made visible either within the
+current window or after first splitting the current window. Calling *show()*
+without arguments, simply switches to the scratch buffer. To open in a split
+use either the *splitlines* or *splitcols* argument. The scratch buffer is
+shown in the upper or left part of the split.
 
 The way the *splitlines* and *splitcols* arguments work are shown below. ::
 
@@ -82,17 +82,17 @@ The way the *splitlines* and *splitcols* arguments work are shown below. ::
     | r |                   |                 |          r        |   |
     `-----------------------'                 `-----------------------'
 
-The |show| method tries to take care no to change the size of other windows as
+The |show| method tries to take care not to change the size of other windows as
 shown below. ::
 
     .--------------------.                          .--------------------.
     |                    |                          |                    |
     |                    |                          |   ScratchBuffer    |
-    |     Buffer  A      |                          |                    |
-    |                    |                          |--------------------|
+    |     Buffer  A      |   show(splitlines=-3)    |                    |
+    |                    | -----------------------> |--------------------|
     |                    |                          |    Buffer  A       |
-    |--------------------|   show(splitlines=-3)    |--------------------|
-    |                    | -----------------------> |                    |
+    |--------------------|                          |--------------------|
+    |                    |                          |                    |
     |                    |                          |                    |
     |     Buffer  B      |                          |    Buffer  B       |
     |                    |                          |                    |
@@ -100,9 +100,10 @@ shown below. ::
     |                    |                          |                    |
     `--------------------'                          `--------------------'
 
-A `ScratchBuffer` has its attributes set to prevent modification. The
-|modifiable| method provides a context manager that makes it easy to update the
-buffer contents. For example to add a line, just do:
+A `ScratchBuffer` has its attributes set to prevent direct user modification of
+the contents. The |modifiable| method provides a context manager that makes it
+easy to update the buffer contents programatically. For example to add a line,
+just do:
 
 .. code-block:: py
 
@@ -127,9 +128,9 @@ initially empty, but can me changed by |set_ext_name|.
     man_buf = vpe.get_display_buffer('manpage')
     ...
 
-    # Set the extended name, in preparation for display Vim's man page. The
-    # buffer's name will not be # /[[manpage]]/vim.
-    man.set_ext_name('vim')
+    # Set the extended name, in preparation for displaying Vim's man page. The
+    # buffer's name will now be /[[manpage]]/vim.
+    man_buf.set_ext_name('vim')
     ...
 
 
@@ -155,15 +156,16 @@ Subclassing ScratchBuffer
 =========================
 
 The `ScratchBuffer` classed may be sub-classed to meet your plug-in's needs.
-Youe should use `get_display_buffer` for creation. Just pass your subclass as
-the *buf_class* argument.
+You should still use `get_display_buffer` for creation. Just pass your subclass
+as the *buf_class* argument.
 
-A couple of the `ScratchBuffer` methods are specifically intended to be extended
-by subclasses - |init_options| and |on_first_showing|. The |init_options| method
-is the place to set any specia buffer specific option values. The
-|on_first_showing| method is invoked once, the first time the buffer becomes
-visible in a window. This is useful for performing any initialisation that
-depends on the buffer being current, such as defning syntax highlighting.
+A couple of the `ScratchBuffer` methods are specifically intended to be
+extended by subclasses - |init_options| and |on_first_showing|. The
+|init_options| method is the place to set any special buffer specific option
+values. The |on_first_showing| method is invoked once, the first time the
+buffer becomes visible in a window. This is useful for performing any
+initialisation that depends on the buffer being current, such as defning syntax
+highlighting.
 
 .. code-block:: py
 

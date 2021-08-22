@@ -40,7 +40,7 @@ that you always get the same `Buffer` object for a given Vim buffer.
     another_buffer = vim.buffers[0]
     a_buffer is another_buffer           # True
 
-    if vim.current.window.buffer is a_buffer:
+    if vim.current.buffer is a_buffer:
         # The 'a_buffer' is currently active.
         ...
 
@@ -102,7 +102,7 @@ this is used is:
         # The 'lines' variable is a sequence containing a copy of all the lines
         # in the buffer. Manipulate lines as required. The lines sequence will
         # replace the buffer contents when the context exits.
-        list[10:] = last_few_lines
+        line[10:] = last_few_lines
         ...
 
 The above code is roughly equivalent to:
@@ -111,13 +111,13 @@ The above code is roughly equivalent to:
 
     lines = buf[:]
     try:
-        list[10:] = last_few_lines
+        lines[10:] = last_few_lines
         ...
     finally:
         buf[:] = lines
 
 Although, on the face of it, this seems an inefficient way to modify a buffer,
-it can actually be much faster for non-trivial changes to a buffers contents.
+it can actually be much faster for non-trivial changes to a buffer's contents.
 Manipulation of Python lists is very efficient and many 'context switches'
 between Python and Vim can be avoided.
 
@@ -133,13 +133,13 @@ be more convenient: the |store()|. Each entry in the buffer's store is a
 
 .. code-block:: py
 
-    info = buf.store('info')          # Entry is created is it does not exist.
+    info = buf.store('info')          # Entry is created if it does not exist.
     info.author = 'Paul'              # Add or modify any arbitrary attributes.
     info.last_modified = time.time()
     ...
 
-One major advantage over buffer variables is the ability easily associate any
-type of Python value with a buffer.
+One major advantage over buffer variables is the ability to easily associate
+any type of Python value with a buffer.
 
 
 .. _temp_buf_options:
@@ -147,7 +147,7 @@ type of Python value with a buffer.
 Temp options
 ------------
 
-There are occisions when you need to temporarily modify one or more of a
+There are occasions when you need to temporarily modify one or more of a
 buffer's options. A common example is to allow programmatic modification of a
 read-only buffer's contents. One approach is:
 
@@ -173,8 +173,7 @@ and less error prone. The above can simplified to:
         # Make the changes to the buffer.
         ...
 
-You can also modify options within the context, which will be restored when the
-context ends.
+You can also temporarily modify options within the context.
 
 .. code-block:: py
 

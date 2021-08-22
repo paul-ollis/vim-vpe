@@ -25,6 +25,7 @@ User guide
     first-steps
     buffers
     windows
+    logging
     scratch-buffers
     timers
     plugins

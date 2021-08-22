@@ -5,8 +5,6 @@ import os
 import sys
 from glob import glob
 
-import doculate
-
 projectName = "Vim Python Extensions"
 
 sphinxConfig = sphinx.Config(project=projectName)
@@ -33,31 +31,12 @@ sphinxConfig.conf['vim_link_map'] = {
 confPath = sphinxConfig.create(MYMFILE)
 
 
-def make_api_files(node):
-    doculate.gen_api_tree(root_path=src_path, mod_name='vpe', dest='guide/api')
-
-
-api_files = '''
-    api/api.vpe.app_ui_support.rst
-    api/api.vpe.channels.rst
-    api/api.vpe.config.rst
-    api/api.vpe.core.rst
-    api/api.vpe.mapping.rst
-    api/api.vpe.panels.rst
-    api/api.vpe.rst
-    api/api.vpe.syntax.rst
-    api/api.vpe.ui.rst
-    api/api.vpe.windows.rst
-    api/api.vpe.wrappers.rst
-'''.split()
-
 rst_files = '''
     first-steps.rst
     index.rst
     plugins.rst
 '''.split()
-
-Command(api_files, glob('../../vpe/*.py'), Cmd=make_api_files)
+rst_files = [File(p) for p in rst_files]
 
 Command(
     target="html/index.html",

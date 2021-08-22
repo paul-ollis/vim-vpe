@@ -382,6 +382,7 @@ class VimWriter(writers.Writer):
         f = io.StringIO()
         with contextlib.redirect_stdout(f):
             nodes = node_walker(self.document)
+            cs_vimhelp.setLogPath('/tmp/vpe-help-gen.log')
             self.put_header()
             self.put_top_section(nodes)
             nums = [0]
@@ -403,10 +404,37 @@ class VimWriter(writers.Writer):
     def dispatch(self, nodes, this_level, node):
         name = node.tagname.lower().replace('#', '')
         handler = getattr(self, f'put_{name}', None)
+        self.log_enter(node, this_level)
         if handler:
             handler(nodes, this_level, node)
         elif name not in self._not_handled:
             self._not_handled.add(name)
+
+    def log_enter(self, node, level, prefix=""):
+        ignored = set(('enum_index',))
+        sel_keys = ('ids',)
+        text = ""
+        name = node.__class__.__name__
+        if name == "Text":
+            text = " " + repr(node.astext()[:80])
+        elif name in ("target", ):
+            text = ": %s" % node.attributes.get("refid", "")
+        elif name in ("index", 'definition_list_item', 'container'):
+            text = 'x: ' + ' '.join(
+                f'{n}={v!r}' for n, v in node.attributes.items()
+                if n not in ignored and (str(v) == '0' or v))
+        else:
+            text = ' '.join(
+                f'{n}={v!r}' for n, v in node.attributes.items()
+                if n not in ignored and (str(v) == '0' or v))
+            if 0:
+                non_empty = [n for n, v in node.attributes.items() if v]
+                text = ' '.join(
+                    f'{n}={node.attributes[n]!r}' for n in sel_keys
+                    if n in non_empty)
+        cs_vimhelp.log.write(
+            f'{prefix}DISP {level:<2}{" "*level} {node.__class__.__name__}'
+            f' {text}\n')
 
     def put_header(self):
         filename = "vpe.txt"
@@ -467,7 +495,7 @@ class VimWriter(writers.Writer):
 
     def put_block_quote(self, nodes, this_level, node):
         with Indent(2):
-            self.skip_blankline = True
+            # self.skip_blankline = True
             for level, node in iter_level(nodes, this_level):
                 self.dispatch(nodes, level, node)
 
@@ -604,10 +632,12 @@ class VimWriter(writers.Writer):
             elif node.tagname == 'title':
                 put()
                 put(node.astext().center(79), add_blank=True)
-            elif node.tagname == 'paragraph':
-                self.put_paragraph(nodes, level, node)
-            elif node.tagname == 'table':
-                self.put_table(nodes, level, node)
+            # elif node.tagname == 'paragraph':
+            #     self.put_paragraph(nodes, level, node)
+            # elif node.tagname == 'table':
+            #     self.put_table(nodes, level, node)
+            else:
+                self.dispatch(nodes, level, node)
 
 
 class Struct:

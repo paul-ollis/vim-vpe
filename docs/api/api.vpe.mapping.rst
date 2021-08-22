@@ -25,13 +25,12 @@ KeyHandler
 
         .. py:staticmethod:: vpe.mapping.KeyHandler.mapped(...)
 
-            .. parsed-literal::
+            .. code::
 
                 mapped(
-                    mode: str,
-                    keyseq: Union[str, typing.Iterable[str]],
-                    \*\*kwargs
-                ) -> Callable[[typing.Callable], typing.Callable]
+                        mode: str,
+                        keyseq: Union[str, Iterable[str]],
+                        **kwargs
 
             Decorator to make a keyboard mapping invoke a method.
 
@@ -55,8 +54,8 @@ MapCallback
 
     Wrapper for a function to be invoked by a key mapping.
 
-    This extends the core `Callback` to provide a `MappingInfo` as the first
-    positional argument.
+    This extends the core `Callback` to provide a `MappingInfo` as the
+    first positional argument.
 
     **Parameters**
 
@@ -68,7 +67,7 @@ MapCallback
 
     **Methods**
 
-        .. py:method:: vpe.mapping.MapCallback.get_call_args(_vpe_args: Dict[str, typing.Any])
+        .. py:method:: vpe.mapping.MapCallback.get_call_args(_vpe_args: Dict[str, Any])
 
             Get the Python positional and keyword arguments.
 
@@ -86,35 +85,35 @@ MappingInfo
 
     **Attributes**
 
-        .. py:attribute:: vpe.mapping.MappingInfo.end_cursor
+        .. py:attribute:: end_cursor
 
             When mode=="visual", a tuple (line, column) of the selection
             end. Both values are 1-based. Will be (-1, -1) when not
             applicable.
 
-        .. py:attribute:: vpe.mapping.MappingInfo.keys
+        .. py:attribute:: keys
 
             The sequence of keys that triggered the mapping.
 
-        .. py:attribute:: vpe.mapping.MappingInfo.mode
+        .. py:attribute:: mode
 
             The mode in which the mapping was triggered (normal, visual,
             op-pending or insert).
 
-        .. py:attribute:: vpe.mapping.MappingInfo.start_cursor
+        .. py:attribute:: start_cursor
 
             When mode=="visual", a tuple (line, column) of the selection
             start. Both values are 1-based. Will be (-1, -1) when not
             applicable.
 
-        .. py:attribute:: vpe.mapping.MappingInfo.vmode
+        .. py:attribute:: vmode
 
             The visual mode (character, line or block). Will be ``None``
             when not applicable.
 
     **Properties**
 
-        .. py:method:: vpe.mapping.MappingInfo.line_range() -> Optional[Tuple[int, int]]
+        .. py:method:: line_range() -> Optional[Tuple[int, int]]
             :property:
 
             The line range, if visual mode was active.
@@ -126,20 +125,18 @@ imap
 
 .. py:function:: vpe.mapping.imap(...)
 
-    .. parsed-literal::
+    .. code::
 
         imap(
-            keys: Union[str, typing.Iterable[str]],
-            func: Union[typing.Callable, str],
-            \*,
-            buffer: bool = True,
-            silent: bool = True,
-            unique: bool = False,
-            pass_info=True,
-            nowait: bool = False,
-            command: bool = False,
-            args=(),
-            kwargs: Optional[dict] = None)
+                keys: Union[str, Iterable[str]],
+                func: Union[Callable, str],
+                buffer: bool = True,
+                silent: bool = True,
+                unique: bool = False,
+                pass_info=True,
+                nowait: bool = False,
+                command: bool = False,
+                args=(),
 
     Set up an insert mapping that invokes a Python function.
 
@@ -150,22 +147,20 @@ map
 
 .. py:function:: vpe.mapping.map(...)
 
-    .. parsed-literal::
+    .. code::
 
         map(
-            mode: str,
-            keys: Union[str, typing.Iterable[str]],
-            func: Union[typing.Callable, str],
-            \*,
-            buffer: bool = True,
-            silent: bool = True,
-            unique: bool = False,
-            nowait: bool = False,
-            command: bool = False,
-            pass_info=True,
-            args=(),
-            kwargs: Optional[dict] = None,
-            vim_exprs: Tuple[str, ...] = ())
+                mode: str,
+                keys: Union[str, Iterable[str]],
+                func: Union[Callable, str],
+                buffer: bool = True,
+                silent: bool = True,
+                unique: bool = False,
+                nowait: bool = False,
+                command: bool = False,
+                pass_info=True,
+                args=(),
+                kwargs: Optional[dict] = None,
 
     Set up a key mapping that invokes a Python function.
 
@@ -233,19 +228,17 @@ nmap
 
 .. py:function:: vpe.mapping.nmap(...)
 
-    .. parsed-literal::
+    .. code::
 
         nmap(
-            keys: Union[str, typing.Iterable[str]],
-            func: Union[typing.Callable, str],
-            \*,
-            buffer: bool = True,
-            silent: bool = True,
-            unique: bool = False,
-            pass_info=True,
-            nowait: bool = False,
-            args=(),
-            kwargs: Optional[dict] = None)
+                keys: Union[str, Iterable[str]],
+                func: Union[Callable, str],
+                buffer: bool = True,
+                silent: bool = True,
+                unique: bool = False,
+                pass_info=True,
+                nowait: bool = False,
+                args=(),
 
     Set up a normal mode  mapping that invokes a Python function.
 
@@ -256,19 +249,17 @@ omap
 
 .. py:function:: vpe.mapping.omap(...)
 
-    .. parsed-literal::
+    .. code::
 
         omap(
-            keys: Union[str, typing.Iterable[str]],
-            func: Union[typing.Callable, str],
-            \*,
-            buffer: bool = True,
-            silent: bool = True,
-            unique: bool = False,
-            pass_info=True,
-            nowait: bool = False,
-            args=(),
-            kwargs: Optional[dict] = None)
+                keys: Union[str, Iterable[str]],
+                func: Union[Callable, str],
+                buffer: bool = True,
+                silent: bool = True,
+                unique: bool = False,
+                pass_info=True,
+                nowait: bool = False,
+                args=(),
 
     Set up an operator-pending mode mapping that invokes a Python function.
 
@@ -279,19 +270,17 @@ xmap
 
 .. py:function:: vpe.mapping.xmap(...)
 
-    .. parsed-literal::
+    .. code::
 
         xmap(
-            keys: Union[str, typing.Iterable[str]],
-            func: Union[typing.Callable, str],
-            \*,
-            buffer: bool = True,
-            silent: bool = True,
-            unique: bool = False,
-            pass_info=True,
-            nowait: bool = False,
-            args=(),
-            kwargs: Optional[dict] = None)
+                keys: Union[str, Iterable[str]],
+                func: Union[Callable, str],
+                buffer: bool = True,
+                silent: bool = True,
+                unique: bool = False,
+                pass_info=True,
+                nowait: bool = False,
+                args=(),
 
     Set up a visual mode mapping that invokes a Python function.
 
