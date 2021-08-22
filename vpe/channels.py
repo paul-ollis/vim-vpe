@@ -18,10 +18,10 @@ function! VPEReadCallback(channel, message)
     try
         call py3eval('vpe.channels.Channel._on_message()')
     catch
-        py3 << trim EOF
-            import vim as _vim
-            print(f'VPEReadCallback failed: {_vim.vvars["exception"]}')
-        EOF
+        py3 << EOF
+import vim as _vim
+print(f'VPEReadCallback failed: {_vim.vvars["exception"]}')
+EOF
     endtry
 endfunction
 
@@ -30,10 +30,10 @@ function! VPECloseCallback(channel)
     try
         call py3eval('vpe.channels.Channel._on_close()')
     catch
-        py3 << trim EOF
-            import vim as _vim
-            print(f'VPECloseCallback failed: {_vim.vvars["exception"]}')
-        EOF
+        py3 << EOF
+import vim as _vim
+print(f'VPECloseCallback failed: {_vim.vvars["exception"]}')
+EOF
     endtry
 endfunction
 """

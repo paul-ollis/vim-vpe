@@ -827,7 +827,6 @@ CommandInfo
                 count: int,
                 bang: bool,
                 mods: str,
-                reg: str
 
     Information passed to a user command callback handler.
 
@@ -835,38 +834,31 @@ CommandInfo
     **Attributes**
 
         .. py:attribute:: bang
-            :type: bool:
 
             True if the command was invoked with a '!'.
 
         .. py:attribute:: count
-            :type: int:
 
             Any count value supplied (see :vim:`command-count`).
 
         .. py:attribute:: line1
-            :type: int:
 
             The start line of the command range.
 
         .. py:attribute:: line2
-            :type: int:
 
             The end line of the command range.
 
         .. py:attribute:: mods
-            :type: str:
 
             The command modifiers (see :vim:`:command-modifiers`).
 
         .. py:attribute:: range
-            :type: int:
 
             The number of items in the command range: 0, 1 or 2 Requires at
             least vim 8.0.1089; for earlier versions this is fixed as -1.
 
         .. py:attribute:: reg
-            :type: str:
 
             The optional register, if provided.
 
@@ -922,7 +914,7 @@ Finish
 
     Used by plugin's to abort installation.
 
-    This is intended to play a similar role as the :vim:`:finish` command as
+    This is intended to play a similar role to the :vim:`:finish` command, as
     used in plug-ins that may not be able to complete initialisation.
 
     **Parameters**

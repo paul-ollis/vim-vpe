@@ -3,7 +3,6 @@
 Currently this only works on X.Org based desktops.
 """
 
-import dataclasses
 import re
 import subprocess
 from typing import Optional, Tuple
@@ -59,11 +58,11 @@ def _my_xwin_id():
     return ''                                                # pragma: no cover
 
 
-@dataclasses.dataclass
 class _Coord:
-    """A simple X, Y coordinate."""
-    x: int
-    y: int
+    """A simple X/ Y coordinate."""
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
 
 
 class AppWin:
@@ -108,7 +107,6 @@ class AppWin:
         return w + a + b, h + c + d
 
 
-@dataclasses.dataclass
 class Display:
     """Information about a single display (physical screen).
 
@@ -117,10 +115,9 @@ class Display:
     :@x: The X coordinate, in pixels, of the top left corner.
     :@y: The Y coordinate, in pixels, of the top left corner.
     """
-    w: int
-    h: int
-    x: int
-    y: int
+    def __init__(self, w, h, x, y):
+        self.x, self.y = x, y
+        self.w, self.h = w, h
 
     def contains_window(self, w) -> bool:
         """Test whether a window is fully contained by this display."""

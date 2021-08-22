@@ -909,7 +909,7 @@ class AutoCmdGroup(support.CommandsBase):
 
     @test(testID='autocmd-event_handler-del-all')
     def create_using_event_handler_mixin_del_all(self):
-        """The EventHandler mixin support optional group deletion.
+        """The EventHandler mixin supports optional group deletion.
 
         :<vim>:
 

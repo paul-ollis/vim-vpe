@@ -54,8 +54,8 @@ MapCallback
 
     Wrapper for a function to be invoked by a key mapping.
 
-    This extends the core `Callback` to provide a `MappingInfo` as the
-    first positional argument.
+    This extends the core `Callback` to provide a `MappingInfo` as the first
+    positional argument.
 
     **Parameters**
 

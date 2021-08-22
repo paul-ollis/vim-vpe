@@ -72,10 +72,10 @@ function! VPE_Call(uid, func_name, ...)
     try
         return py3eval('vpe.Callback.invoke()')
     catch
-        py3 << trim EOF
-            import vim as _vim
-            print(f'VPE_Call failed: {_vim.vvars["exception"]}')
-        EOF
+        py3 << EOF
+import vim as _vim
+print(f'VPE_Call failed: {_vim.vvars["exception"]}')
+EOF
     finally
         " Without this a circular reference seem to 'escape', which can
         " cause Vim to accumulate memory while it is inactive and timers are
@@ -101,10 +101,10 @@ function! VPE_CmdCall(uid, func_name, line1, line2, range, count, bang, mods, re
     try
         return py3eval('vpe.Callback.invoke()')
     catch
-        py3 << trim EOF
-            import vim as _vim
-            print(f'VPE_CmdCall failed: {_vim.vvars["exception"]}')
-        EOF
+        py3 << EOF
+import vim as _vim
+print(f'VPE_CmdCall failed: {_vim.vvars["exception"]}')
+EOF
     endtry
 endfunction
 """

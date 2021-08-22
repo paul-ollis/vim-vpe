@@ -68,7 +68,7 @@ class Dictionary(Base):
         self.__dict__[name] = value
 
 
-class List(Base):
+class List(Base):                      # pylint: disable=too-few-public-methods
     """Stub for a Vim List."""
 
     def __iter__(self):
@@ -231,8 +231,8 @@ class Options(Base):
 
 class Function(Base):
     """Stub type for documentation, type hinting and linting."""
-    # pylint: disable=too-few-public-methods
-    def __init__(self, name: str, args=Optional[ListType[Any]]):
+    # pylint: disable=too-few-public-methods,disable=unused-argument
+    def __init__(self, name: str, args: Optional[ListType[Any]] = None):
         self.name = name
 
     def __call__(self, *args):
@@ -321,6 +321,14 @@ def exists(expr):
     if expr.startswith('+'):
         # pylint: disable=protected-access
         return '1' if options._knows(expr[1:]) else '0'
+    if expr.startswith('*'):
+        name = expr[1:]
+        try:
+            value = builtins.eval(name)
+        except NameError:
+            return '0'
+        return '1' if callable(value) else '0'
+
     return '0'
 
 
@@ -346,7 +354,7 @@ def timer_start(_time, _callback, _options):
     """Set up a timer."""
 
 
-def has(spec):
+def has(_spec):
     """Test whether Vim has some function, variable, etc."""
     return True
 

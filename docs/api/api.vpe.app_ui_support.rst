@@ -83,7 +83,7 @@ AppWin
 Display
 -------
 
-.. py:class:: vpe.app_ui_support.Display(w: int,h: int,x: int,y: int) -> None
+.. py:class:: vpe.app_ui_support.Display(w,h,x,y)
 
     Information about a single display (physical screen).
 
@@ -92,34 +92,30 @@ Display
 
     .. container:: parameters itemdetails
 
-        *w*: int
+        *w*
             The width in pixels.
-        *h*: int
+        *h*
             The height in pixels.
-        *x*: int
+        *x*
             The X coordinate, in pixels, of the top left corner.
-        *y*: int
+        *y*
             The Y coordinate, in pixels, of the top left corner.
 
     **Attributes**
 
         .. py:attribute:: h
-            :type: int:
 
             The height in pixels.
 
         .. py:attribute:: w
-            :type: int:
 
             The width in pixels.
 
         .. py:attribute:: x
-            :type: int:
 
             The X coordinate, in pixels, of the top left corner.
 
         .. py:attribute:: y
-            :type: int:
 
             The Y coordinate, in pixels, of the top left corner.
 

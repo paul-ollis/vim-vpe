@@ -5,7 +5,6 @@ import re
 import sys
 import traceback
 import weakref
-from dataclasses import dataclass
 from functools import partial
 from typing import Any, Callable, ClassVar, Dict, List, Optional, Tuple, Union
 
@@ -22,13 +21,29 @@ __all__ = [
 _NOT_PROVIDED = object()
 RET_VAR = 'g:VPE_ret_value'
 _vim.vars[RET_VAR] = ''
-_listener_flush = _vim.Function('listener_flush')
-_timer_start = _vim.Function('timer_start')
-_timer_info = _vim.Function('timer_info')
-_timer_stop = _vim.Function('timer_stop')
-_timer_pause = _vim.Function('timer_pause')
-_timer_stopall = _vim.Function('timer_stopall')
 id_source = itertools.count()
+
+
+def _create_vim_function(name: str) -> Optional[_vim.Function]:
+    """Create a wrapped Vim function using _vim.Function.
+
+    :name: The Vim function name.
+    :return: The wrapped function or ``None`` if the function does not exist in
+             this version of Vim.
+    """
+    if int(_vim.eval(f'exists("*{name}")')):
+        return _vim.Function(name)
+
+    return None
+
+
+_listener_flush = _create_vim_function('listener_flush')
+_timer_start = _create_vim_function('timer_start')
+_timer_info = _create_vim_function('timer_info')
+_timer_stop = _create_vim_function('timer_stop')
+_timer_pause = _create_vim_function('timer_pause')
+_timer_stopall = _create_vim_function('timer_stopall')
+# del _create_vim_function
 
 
 def register_wrapper(vim_type, wrapper):
@@ -569,7 +584,6 @@ class Callback(CallableRef):
         self.callbacks.pop(self.uid, None)
 
 
-@dataclass
 class CommandInfo:
     """Information passed to a user command callback handler.
 
@@ -582,13 +596,16 @@ class CommandInfo:
     @mods:  The command modifiers (see :vim:`:command-modifiers`).
     @reg:   The optional register, if provided.
     """
-    line1: int
-    line2: int
-    range: int
-    count: int
-    bang: bool
-    mods: str
-    reg: str
+    def __init__(
+            self, line1: int, line2: int, range: int, count: int, bang: bool,
+            mods: str, reg: str):
+        self.line1 = line1
+        self.line2 = line2
+        self.range = range
+        self.count = count
+        self.bang = bang
+        self.mods = mods
+        self.reg = reg
 
 
 class CommandCallback(Callback):
