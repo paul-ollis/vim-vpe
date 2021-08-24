@@ -137,6 +137,7 @@ imap
                 nowait: bool = False,
                 command: bool = False,
                 args=(),
+                kwargs: Optional[dict] = None,
 
     Set up an insert mapping that invokes a Python function.
 
@@ -239,6 +240,7 @@ nmap
                 pass_info=True,
                 nowait: bool = False,
                 args=(),
+                kwargs: Optional[dict] = None,
 
     Set up a normal mode  mapping that invokes a Python function.
 
@@ -260,6 +262,7 @@ omap
                 pass_info=True,
                 nowait: bool = False,
                 args=(),
+                kwargs: Optional[dict] = None,
 
     Set up an operator-pending mode mapping that invokes a Python function.
 
@@ -281,6 +284,7 @@ xmap
                 pass_info=True,
                 nowait: bool = False,
                 args=(),
+                kwargs: Optional[dict] = None,
 
     Set up a visual mode mapping that invokes a Python function.
 

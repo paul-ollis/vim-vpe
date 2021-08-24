@@ -1,3 +1,5 @@
+.. _timers:
+
 ===========================
 Timers and deferred actions
 ===========================
@@ -52,6 +54,8 @@ class.
 Vim provides a :vim:`timer_stopall()` as a kind of emergency stop. VPE provides
 `vpe.timer_stopall` which will also perform VPE's timer housekeeping.
 
+
+.. _using_call_soon:
 
 Use of call_soon
 ----------------

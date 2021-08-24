@@ -9,7 +9,9 @@ from . import common
 from . import core
 from . import wrappers
 
-__all__ = ['RawChannel', 'JsonChannel', 'NLChannel', 'JSChannel', 'VimChannel']
+__all__ = [
+    'RawChannel', 'JsonChannel', 'NLChannel', 'JSChannel', 'VimChannel',
+    'Channel', 'SyncChannel']
 
 _VIM_FUNC_DEFS = """
 function! VPEReadCallback(channel, message)
@@ -280,7 +282,7 @@ class Channel:
         and decode the stream's contents.
 
         :message:
-            The received message. This is always a string, event for raw
+            The received message. This is always a string, even for raw
             channels. Vim replaces any NUL chracters with newlines, so pure
             binary messages cannot be handled using on_message.
         """
@@ -368,6 +370,7 @@ class Channel:
         options = self._build_options(('part', part))
         return ch_status(self.vch, options)
 
+    # TODO: Why is this implemented and not logfile?
     def log(self, msg: str) -> None:
         """Write a message to the channel log file (if open).
 

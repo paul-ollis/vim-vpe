@@ -904,8 +904,17 @@ EventHandler
 
             Decorator to make an event invoke a method.
 
-            name:   The name of the event (see :vim:`autocmd-events`.
-            kwargs: See `AutoCmdGroup.add` for the supported values.
+
+            **Parameters**
+
+            .. container:: parameters itemdetails
+
+                *name*: str
+                    The name of the event (see :vim:`autocmd-events`.
+                *kwargs*
+                    See `AutoCmdGroup.add` for the supported arguments.
+                    Note that the ``pat`` argument defaults to '*', not
+                    '<buffer>'.
 
 Finish
 ------
@@ -2105,22 +2114,22 @@ define_command
             :vim:`:command-count`, except that the N value may be an
             integer. Use count=0 to get the same behaviour as '-count'.
         *addr*: str
-            How range or count valuesa re interpreted
-            :vim:`:command-addr`).
+            How range or count values are interpreted
+            (see :vim:`:command-addr`).
         *bang*: bool
             If set then the '!' modifieer is supported (see
-            :vim:`@command-register`).
+            :vim:`:command-bang`).
         *bar*: bool
             If set then the command may be followed by a '|' (see
-            :vim:`@command-register`).
+            :vim:`:command-bar`).
         *register*: bool
             If set then an optional register is supported (see
-            :vim:`@command-register`).
+            :vim:`:command-register`).
         *buffer*: bool
             If set then the command is only for the current buffer (see
-            :vim:`@command-register`).
+            :vim:`:command-buffer`).
         *replace*: bool
-            If set (the detault) then 'command!' is used to replace an
+            If set (the default) then 'command!' is used to replace an
             existing command of the same name.
         *pass_info*: bool
             If set then the first argument passed to func is a MappingInfo

@@ -151,6 +151,7 @@ syntax, auto-commands, *etc.* specific to the buffer.
         au.delete_all()
         ...
 
+.. _subclassing_scratchbuffer:
 
 Subclassing ScratchBuffer
 =========================

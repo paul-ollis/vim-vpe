@@ -22,11 +22,12 @@ User guide
 .. toctree::
     :maxdepth: 2
 
-    first-steps
-    buffers
-    windows
-    logging
-    scratch-buffers
-    timers
-    plugins
-    api/api.vpe
+    first-steps.rst
+    buffers.rst
+    windows.rst
+    logging.rst
+    scratch-buffers.rst
+    reacting.rst
+    timers.rst
+    plugins.rst
+    api/api.vpe.rst

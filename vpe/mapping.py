@@ -25,7 +25,7 @@ mode_to_map_command = {
 }
 
 
-# TODO: Should not need this Pyint suppression. Pylint bug?
+# TODO: Should not need this Pylint suppression. Pylint bug?
 class MapCallback(common.Callback):    # pylint: disable=too-few-public-methods
     """Wrapper for a function to be invoked by a key mapping.
 
@@ -107,6 +107,7 @@ class MappingInfo:
         return f'{self.__class__.__name__}({self.mode},{self.keys})'
 
 
+# TODO: The vim_exprs argument is not behaving as I expect.
 # Special args to consider.
 #   script  - Probably not useful.
 #   expr    - Probably should have a different function.
@@ -201,49 +202,53 @@ def nmap(
         keys: Union[str, Iterable[str]], func: Union[Callable, str],
         *, buffer: bool = True, silent: bool = True, unique: bool = False,
         pass_info=True, nowait: bool = False, args=(),
-        kwargs: Optional[dict] = None):
+        kwargs: Optional[dict] = None, vim_exprs: Tuple[str, ...] = ()):
     """Set up a normal mode  mapping that invokes a Python function.
 
     See `map` for argument details.
     """
     map(
         'normal', keys, func, buffer=buffer, silent=silent, unique=unique,
-        nowait=nowait, args=args, kwargs=kwargs, pass_info=pass_info)
+        nowait=nowait, args=args, kwargs=kwargs, pass_info=pass_info,
+        vim_exprs=vim_exprs)
 
 
 def xmap(
         keys: Union[str, Iterable[str]], func: Union[Callable, str],
         *, buffer: bool = True, silent: bool = True, unique: bool = False,
         pass_info=True, nowait: bool = False, args=(),
-        kwargs: Optional[dict] = None):
+        kwargs: Optional[dict] = None, vim_exprs: Tuple[str, ...] = ()):
     """Set up a visual mode mapping that invokes a Python function.
 
     See `map` for argument details.
     """
     map(
         'visual', keys, func, buffer=buffer, silent=silent, unique=unique,
-        nowait=nowait, args=args, kwargs=kwargs, pass_info=pass_info)
+        nowait=nowait, args=args, kwargs=kwargs, pass_info=pass_info,
+        vim_exprs=vim_exprs)
 
 
 def omap(
         keys: Union[str, Iterable[str]], func: Union[Callable, str],
         *, buffer: bool = True, silent: bool = True, unique: bool = False,
         pass_info=True, nowait: bool = False, args=(),
-        kwargs: Optional[dict] = None):
+        kwargs: Optional[dict] = None, vim_exprs: Tuple[str, ...] = ()):
     """Set up an operator-pending mode mapping that invokes a Python function.
 
     See `map` for argument details.
     """
     map(
         'op-pending', keys, func, buffer=buffer, silent=silent, unique=unique,
-        nowait=nowait, args=args, kwargs=kwargs, pass_info=pass_info)
+        nowait=nowait, args=args, kwargs=kwargs, pass_info=pass_info,
+        vim_exprs=vim_exprs)
 
 
 def imap(
         keys: Union[str, Iterable[str]], func: Union[Callable, str],
         *, buffer: bool = True, silent: bool = True, unique: bool = False,
         pass_info=True, nowait: bool = False, command: bool = False,
-        args=(), kwargs: Optional[dict] = None):
+        args=(), kwargs: Optional[dict] = None,
+        vim_exprs: Tuple[str, ...] = ()):
     """Set up an insert mapping that invokes a Python function.
 
     See `map` for argument details.
@@ -251,7 +256,7 @@ def imap(
     map(
         'insert', keys, func, buffer=buffer, silent=silent, unique=unique,
         nowait=nowait, command=command, args=args, kwargs=kwargs,
-        pass_info=pass_info)
+        pass_info=pass_info, vim_exprs=vim_exprs)
 
 
 # TODO: Rename this and other handlers ...Mixin?

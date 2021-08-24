@@ -60,7 +60,13 @@ You can also redirect ``sys.stdout`` and ``sys.stderr`` to the VPE log.
     # Undo effect of the last call to redirect.
     log.unredirect()
 
-I personally find it convenient to always have redirection enabled.
+I personally find it convenient to always have redirection enabled, which I do
+in my personal Vim initialisation scripts. I also have a key mapping to make it
+easy to quickly view the log.
+
+.. code-block:: vim
+
+    :nmap <S-F1> :py3 vpe.log.show()<cr>
 
 
 Error logging
@@ -70,13 +76,14 @@ When VPE traps an error condition, it will normally write one or more error
 messages to the `vpe.log`. This is typically less disruptive that writing to
 the Vim console.
 
+Currently the log output does not distinguish between normal output and errors.
+This may well change in the future.
+
 
 Other logs
 ----------
 
 The `vpe.log` object is actualy just a specific instance of the `vpe.Log`
 class. VPE only creates the `vpe.log` automatically, but it can be more useful
-to create your one `Log` for your script or plug-in.
-
-It is often a good idea for a plug-in to create its own log to avoid polluting
-the general VPE log.
+to create your own `Log` for your script or plug-in. This keeps your plug-in's
+log output nicely separate.

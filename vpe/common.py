@@ -626,7 +626,7 @@ class CommandCallback(Callback):
         """Get the Python positional and keyword arguments.
 
         This makes the first positional argument a `CommandInfo` instance,
-        unless the `pass_info` has been set false.
+        unless `pass_info` has been set false.
         """
         vpe_args['bang'] = bool(vpe_args['bang'])
         if self.pass_info:

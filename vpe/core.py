@@ -951,8 +951,10 @@ class EventHandler:
     def handle(name: str, **kwargs) -> Callable[[Callable], Callable]:
         """Decorator to make an event invoke a method.
 
-        name:   The name of the event (see :vim:`autocmd-events`.
-        kwargs: See `AutoCmdGroup.add` for the supported values.
+        :name:   The name of the event (see :vim:`autocmd-events`.
+        :kwargs: See `AutoCmdGroup.add` for the supported arguments.
+                 Note that the ``pat`` argument defaults to '*', not
+                 '<buffer>'.
         """
         def wrapper(func: Callable) -> Callable:
             info = getattr(func, '_eventmappings_', None)
@@ -1197,17 +1199,17 @@ def define_command(
     :count:     The permitted type of count; must follow the rules for
                 :vim:`:command-count`, except that the N value may be an
                 integer. Use count=0 to get the same behaviour as '-count'.
-    :addr:      How range or count valuesa re interpreted
-                :vim:`:command-addr`).
+    :addr:      How range or count values are interpreted
+                (see :vim:`:command-addr`).
     :bang:      If set then the '!' modifieer is supported (see
-                :vim:`@command-register`).
+                :vim:`:command-bang`).
     :bar:       If set then the command may be followed by a '|' (see
-                :vim:`@command-register`).
+                :vim:`:command-bar`).
     :register:  If set then an optional register is supported (see
-                :vim:`@command-register`).
+                :vim:`:command-register`).
     :buffer:    If set then the command is only for the current buffer (see
-                :vim:`@command-register`).
-    :replace:   If set (the detault) then 'command!' is used to replace an
+                :vim:`:command-buffer`).
+    :replace:   If set (the default) then 'command!' is used to replace an
                 existing command of the same name.
     :pass_info: If set then the first argument passed to func is a MappingInfo
                 object. Defaults to True.
