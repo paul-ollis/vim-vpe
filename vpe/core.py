@@ -581,9 +581,8 @@ class Popup:
     def move(self, **p_options) -> None:
         """Set a number of move options at once.
 
-        This is useful to set certain groups of options that cannot be
-        separately set. For example 'textpropid' cannot be set unless
-        'textprop' is set in the same popup_setoptions call.
+        An efficient way to set multiple options that affect the popup's
+        position.
         """
         wrappers.vim.popup_move(self._id, p_options)
 
@@ -1170,10 +1169,10 @@ def _double_quote(expr):
 
 def define_command(
         name: str, func: Callable, *, nargs: Union[int, str] = 0,
-        complete: str = '', range: str = '', count: str = '', addr: str = '',
-        bang: bool = False, bar: bool = False, register: bool = False,
-        buffer: bool = False, replace: bool = True, pass_info: bool = True,
-        args=(), kwargs: Optional[dict] = None):
+        complete: str = '', range: Union[bool, str] = '', count: str = '',
+        addr: str = '', bang: bool = False, bar: bool = False,
+        register: bool = False, buffer: bool = False, replace: bool = True,
+        pass_info: bool = True, args=(), kwargs: Optional[dict] = None):
         # pylint: disable=too-many-locals,redefined-builtin
     """Create a user defined command that invokes a Python function.
 

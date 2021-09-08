@@ -213,7 +213,7 @@ def get_app_win_info() -> Optional[AppWin]:
             cell_size)
     except NameError as e:                                   # pragma: no cover
         # Likely one of the commands was not available.
-        print("Could not create allication window info", e)
+        print("Could not create application window info", e)
         return None
 
 

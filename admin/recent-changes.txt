@@ -1,3 +1,69 @@
+Version 0.6
+
+- The main activity has been writing more of a user guide. The built-in Vim
+  style help is now mainly reference. The full help is in HTML form - currently
+  available at https://vim-vpe.readthedocs.io/en/userguide/.
+
+- General
+
+  - Fixed issue where VPE could fail to load its plugins.
+
+  - Prevent some errors when getting application window information.
+
+  - Reduce the likelyhood of callback failures passing silently.
+
+  - The define_command function now allows the range argument to be True, which
+    is equivalent to the Vim '-range' option without arguments.
+
+  - The call_soon mechanism now logs a traceback upon failure.
+
+- Refactoring
+
+  - Cleaned up how single-shot timers are handled.
+
+  - Moved a lot of code into vpe.common.
+
+- AutoCmdGroup
+
+  - Additional keyword arguments may now be passed to the function handling an
+    event.
+
+- Channel
+
+  - The on_connect method is now invoked via call_soon.
+
+  - The closed property was fixed to prevent an exception.
+
+  - The on_message method is now invoked via call_soon.
+
+  - Added a read method to allow explicit channel reading.
+
+  - Prevent Vim error when closing an already closed channel.
+
+- Popup windows
+
+  - Better detection of mouse events, by adding hard coded sequences.
+
+  - Made the textprop, textpropif and textpropwin properties read/write.
+
+  - Tidied up handling of keys with modifiers.
+
+  - The buffer property is now None where it would previously raise an
+    exception.
+
+  - Added setoptions and move methods.
+
+- Buffer
+
+  - Added an add_listener method. Provides a hook into Vim's listener_add
+    mechanism. Treat this feature as quite experimental.
+
+- ScratchBuffer
+
+  - The init_options method now does nothing, it exists only to be
+    over-ridden by subclasses.
+
+
 Version 0.5.2
 
 - Big change to colors.py. Should not affect the existing API.
