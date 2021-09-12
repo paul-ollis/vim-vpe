@@ -78,6 +78,7 @@ class CodeSource:
 
             import functools
             import os
+            import pathlib
             import pickle
             import platform
             import sys
@@ -102,8 +103,13 @@ class CodeSource:
                 sys.stdout = sys.stderr = f
             vpe.log.set_maxlen(3000)
 
+            # Create a temp path name.
+            def tmp_path(stem):
+                dirname = os.environ.get('TEMP', '/tmp')
+                return f'{dirname}/{stem}'
+
             # Give the initial buffer a suitable name.
-            vim.current.buffer.name = '/tmp/test.txt'
+            vim.current.buffer.name = tmp_path('test.txt')
 
             try:
                 bufadd = vim.bufadd
@@ -118,14 +124,9 @@ class CodeSource:
                     return rf'C:\[[{name}]]'
                 return f'/[[{name}]]'
 
-            # Create a temp path name.
-            def tmp_path(stem):
-                dirname = os.environ.get('TEMP', '/tmp')
-                return f'{dirname}/{stem}'
-
             # Remove all but the first buffer.
             def zap_bufs():
-                with vpe.temp_log('/tmp/paul.log'):
+                with vpe.temp_log(tmp_path('test_zap.log')):
                     for b in vim.buffers:
                         b.options.modified = False
                     vpe.commands.buffer(1)

@@ -477,7 +477,7 @@ class Timers(support.Base):
 
     # TODO: Vim timers seem to behave badly and unpredictably if the remaining
     #       time hits zero whilst paused.
-    #       This is why the interval in this test is 500ms. Too small a number
+    #       This is why the interval in this test is 1000ms. Too small a number
     #       and the test is unrealiable (at least on Windows).
     @test(testID='timer-control')
     def control_timer(self):
@@ -495,7 +495,7 @@ class Timers(support.Base):
 
             res = Struct()
             res.start_time = time.time()
-            timer = vpe.Timer(ms=500, func=on_expire, repeat=3)
+            timer = vpe.Timer(ms=1000, func=on_expire, repeat=3)
             res.ticks = 0
             dump(res)
         """
@@ -1261,7 +1261,7 @@ class DefineCommand(support.Base):
 
     @test(testID='ucmd-single-arg')
     def single_arg_command(self):
-        """A user defined command  can tage a single argument.
+        """A user defined command  can take a single argument.
 
         :<py>:
 

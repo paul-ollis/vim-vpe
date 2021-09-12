@@ -16,6 +16,7 @@ def get_tmp_paths(filename: str) -> Tuple[pathlib.Path, pathlib.Path]:
     """Get temporary path names for test and Vim worlds."""
     vim_path = test_path = pathlib.Path(f'/tmp/{filename}')
     if platform.platform().startswith('CYGWIN'):
+        # On windows, use a literal $TEMP here. Vim will expand it correctly.
         vim_path = pathlib.Path(f'$TEMP/{filename}')
     return test_path, vim_path
 
@@ -113,7 +114,10 @@ class VimSession:
             lines = cproc.stdout.strip().decode().splitlines()
             cls.version_str = lines[0].split()[4]
             cls.version = [int(p) for p in cls.version_str.split('.')[:2]]
-            cls.version.append(int(lines[1].split()[-1].split('-')[-1], 10))
+            if lines[1].startswith('Included patches: '):
+                cls.version.append(int(lines[1].split()[-1].split('-')[-1], 10))
+            else:
+                cls.version.append(0)
         return cls.version
 
     def ensure_vim_session(self):
