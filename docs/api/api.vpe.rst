@@ -1154,9 +1154,8 @@ Popup
 
             Set a number of move options at once.
 
-            This is useful to set certain groups of options that cannot be
-            separately set. For example 'textpropid' cannot be set unless
-            'textprop' is set in the same popup_setoptions call.
+            An efficient way to set multiple options that affect the popup's
+            position.
 
         .. py:method:: vpe.Popup.on_close(result: int) -> None
 
@@ -2066,7 +2065,7 @@ define_command
                 func: Callable,
                 nargs: Union[int, str] = 0,
                 complete: str = '',
-                range: str = '',
+                range: Union[bool, str] = '',
                 count: str = '',
                 addr: str = '',
                 bang: bool = False,
@@ -2105,7 +2104,7 @@ define_command
         *complete*: str
             Argument completion mode (see :vim:`command-complete`). Does
             not currently support 'custom' or 'customlist'.
-        *range*: str
+        *range*: typing.Union[bool, str]
             The permitted type of range; must follow the rules for
             :vim:`:command-range`, except that the N value may be an
             integer.

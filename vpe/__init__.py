@@ -114,7 +114,7 @@ def version() -> Tuple[int, int, int]:
     The tuple follows the conventions of semantic versioning 2.0
     (https://semver.org/); *i.e.* (major, minor, patch).
     """
-    return 0, 5, 0
+    return 0, 6, 0
 
 
 def dot_vim_dir() -> str:

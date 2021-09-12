@@ -36,7 +36,7 @@ class TestInfo(support.Base):
             dump(res)
         """
         res = self.run_self()
-        failUnlessEqual((0, 5, 0), res.version)
+        failUnlessEqual((0, 6, 0), res.version)
 
 
 class DisplayBuffer(support.Base):
