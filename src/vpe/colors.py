@@ -6,7 +6,7 @@ from typing import List
 
 from vpe import wrappers
 
-# Regular expressin to split a colour name into up to 5 words.
+# Regular expression to split a colour name into up to 5 words.
 _R_LUMPY = re.compile('''(?x)
     ([A-Za-z][a-z0-9]+)
     ([A-Z][a-z0-9]+)?
@@ -319,7 +319,7 @@ _extra_color_table = {
     'Goldenrod3':           ('#cd9b1d', 'Orange3'),
     'Goldenrod4':           ('#8b6914', 'Olive'),
     'Gray':                 ('#bebebe', 'Grey74'),
-    'Gray0':                ('#000000', 'Grey0'),
+    'Gray0':                ('#000000', 'Black'),
     'Gray1':                ('#030303', 'Grey0'),
     'Gray10':               ('#1a1a1a', 'Grey11'),
     'Gray100':              ('#ffffff', 'Grey100'),
@@ -606,7 +606,7 @@ _extra_color_table = {
     'YellowGreen':          ('#9acd32', 'DarkKhaki'),
 }
 
-# A mapping from any defined color name to the one of the stndard 16 colors.
+# A mapping from any defined color name to the one of the standard 16 colors.
 _to_standard = {
     'AliceBlue':            'White',
     'AntiqueWhite':         'White',
@@ -1197,7 +1197,7 @@ def alt_names(name: str) -> List[str]:
         m = _R_LUMPY.match(name)
         if m:
             words = [g for g in m.groups() if g]
-        else:
+        else:                                                # pragma: no cover
             words = [name]
 
     words_1 = [w.lower() for w in words]
@@ -1216,26 +1216,34 @@ def well_defined_name(name: str) -> str:
 
     The well defined form is the same as the first entry, without spaces,
     obtained using `alt_name'. This can be used to present consistent color
-    names to a user, but is not based on any 'standard'
+    names to a user, but is not based on any 'standard'.
 
     :name:   The color name.
-    :return: The name converted to a well defined form.
+    :return: The name converted to a well defined form. If the name is unknown
+             then 'Black' is returned.
     """
     for alt_name in alt_names(name):
         if ' ' not in alt_name:
             return alt_name
-    assert 0
+
+    return 'Black'                                           # pragma: no cover
 
 
 def to_256_num(name: str):
     """Convert a colour name to a best match 256 color terminal number.
 
-    :name: The color to convert. It should exist and be well defined.
+    The provided name is converted to a well defined name and then the 'best'
+    match within the 256 color pallette is chosen.
+
+    :name: The color to convert.
     """
+    name = well_defined_name(name)
     if name not in _xterm_color_table:
         _, name = _extra_color_table.get(name, (None, name))
+
     if name not in _xterm_color_table:
         return 0
+
     return _xterm_color_table[name][1]
 
 
@@ -1244,12 +1252,15 @@ def _to_std_num(name: str):
 
     :name: The color to convert. It should exist and be well defined.
     """
-    name = _to_standard.get(name, name)
+    name = _to_standard.get(well_defined_name(name), name)
     if name not in _xterm_color_table:
         return 0
     return _xterm_color_table[name][1]
 
 
+# TODO:
+#   I have a much more full-featured class in vpe_syntax. This should be
+#   abandonded.
 class HighlightSpec:                   # pylint: disable=too-few-public-methods
     """A full specification for text highlighting.
 

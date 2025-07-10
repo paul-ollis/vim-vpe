@@ -3,6 +3,7 @@
 You should not normally need to import this module directly.
 """
 # pylint: disable=too-many-lines
+from __future__ import annotations
 
 import collections
 import itertools
@@ -10,12 +11,12 @@ import pathlib
 import pprint
 import weakref
 from typing import (
-    Any, Callable, ClassVar, Dict, Iterator, List, Optional, Set, Tuple, Type,
-    Union)
+    Any, Callable, ClassVar, Iterator, NamedTuple, Optional, Type)
 
 import vim as _vim
 
-from . import common
+from vpe import common
+from vpe.vpe_lib import diffs, resources
 
 __all__ = ('tabpages', 'TabPage', 'Vim', 'Registers', 'vim',
            'Function', 'windows', 'Window',
@@ -23,11 +24,11 @@ __all__ = ('tabpages', 'TabPage', 'Vim', 'Registers', 'vim',
 __api__ = ('Commands', 'Command')
 
 # Type aliases
-ListenerCallbackFunc = Callable[[int, int, int, int, List[Dict]], None]
-ListenerCallbackMethod = Callable[[int, int, int, List[Dict]], None]
+ListenerCallbackFunc = Callable[[int, int, int, int, list[dict]], None]
+ListenerCallbackMethod = Callable[[int, int, int, list[dict]], None]
 
 # Special values used to reset represent Vi or Vim default values. Currently
-# only use to set options.
+# only used to set options.
 VI_DEFAULT =  object()
 VIM_DEFAULT =  object()
 
@@ -163,6 +164,11 @@ class Struct:
     use of this class is not intended as part of the API.
     """
     def __getattr__(self, name: str):
+        if name not in self.__dict__ and name.startswith('_'):
+            # Non-simple names should not default to ``None``.
+            cname = self.__class__.__name__
+            raise AttributeError(
+                f'{cname!r} object has no attribute {name!r}')
         return self.__dict__.get(name)
 
     def __setattr__(self, name: str, value: Any):
@@ -229,6 +235,7 @@ class TemporaryOptions:
         """
         self._saved.clear()
         for name, value in self._presets.items():
+            # pylint: disable=unnecessary-dunder-call
             self.__setitem__(name, value)
 
     def restore(self):
@@ -270,6 +277,69 @@ class BufferListContext(list):
                 b[:] = self
 
 
+class BufListener(common.Callback):
+    """A Pythonic wrapping of Vim's listener... functions.
+
+    One of these is created by `Buffer.add_listener`. Direct instantiation of
+    this class is not recommended or supported.
+
+    :func: The Python function or method to be called back.
+    :buf:  The `Buffer` instance.
+
+    @listen_id: The unique ID from a :vim:`listener_add` invocation.
+    """
+    listen_id: int
+
+    def __init__(self, func, buf, is_method: bool):
+        super().__init__(func)
+        self.buf = buf
+        self.is_method = is_method
+
+    def flush(self):
+        """Request that any pending callbacks are invoked for this listener."""
+        vim.listener_flush(self.buf.number)
+
+    def invoke_self(self, vpe_args):
+        """Invoke this Callback.
+
+        This extends the `Callback.invoke_self` method.
+
+        The vpe_args['args'] are (From Vim's docs):
+
+        bufnr
+            The buffer that was changed
+        start
+            First changed line number
+        end
+            First line number below the change
+        added
+            Number of lines added, negative if lines were deleted
+        changes
+            A List of items with details about the changes
+
+        The ``bufnr`` is ignored, since this is just self.buf.number. The start
+        and end are adjusted so they form a Python range. Each entry in the
+        changes is converted to one of a `BufAddOp`, `BufDeleteOp` or
+        `BufChangeOp`.
+        """
+        _, start, end, added, changes = vpe_args['args']
+        start -= 1
+        end -= 1
+        vpe_changes = [diffs.BufOperation.create(**ch) for ch in changes]
+        if self.is_method:
+            vpe_args['args'] = start, end, added, vpe_changes
+        else:
+            vpe_args['args'] = self.buf, start, end, added, vpe_changes
+        super().invoke_self(vpe_args)
+
+    def stop_listening(self):
+        """Stop listening for changes.
+
+        This permanently disables this listener.
+        """
+        vim.listener_remove(self.listen_id)
+
+
 class Range(common.MutableSequenceProxy):
     """Wrapper around the built-in vim.Range type.
 
@@ -291,18 +361,132 @@ class Range(common.MutableSequenceProxy):
             self._proxied.append(line_or_lines, nr)
 
 
+class Marker(NamedTuple):
+    """Information about a buffer marker.
+
+    :uid:   A unique ID for this marker. Unique within a marker set within a
+            buffer.
+    :lidx:  The current start line index for this marker.
+    :start: The original starting line index for this marker.
+    :stop:  The current start line index for this marker.
+    """
+
+    lidx: int
+    start: int
+    stop: int
+
+
+# TODO:
+#   This code appears to be broken. I assume nothing has been using it.
+class MarkerSet:
+    """A set of related markers within a buffer.
+
+    This is not intended to be directly instantiated. Use `Buffer.marker_set`.
+
+    :buf:
+        The buffer that ths set belongs to.
+    :name:
+        A unique name (within the parent Buffer) for this marker set.
+    """
+
+    def __init__(self, buf: Buffer, name: str):
+        self.buf = weakref.proxy(buf)
+        self.name = name
+        self.id_pool = resources.IntIdentifierPool()
+        self.markers: dict[int, range] = {}
+        self._prop_type_name: str = f'vpe:marker:{name}'
+        args = self._prop_args()
+        props = vim.prop_type_get(self._prop_type_name, args)
+        if not props:
+            vim.prop_type_add(self._prop_type_name, args)
+
+    @property
+    def number(self) -> int:
+        """The number of the buffer."""
+        return self.buf.number
+
+    def set_line_range_marker(self, start_lidx: int, stop_lidx: int) -> int:
+        """Set a hidden marker for a range of lines using a propery.
+
+        Each marker is given a unique ID (within the buffer), which is the
+        return value. The ID can be used with `find_line_marker`.
+
+        :start_lidx:  The index of the starting line.
+        :stop_lidx:   The index of the line after the end of the property.
+
+        :return:
+            A unique ID for this marker, within the context of this marker set.
+        """
+        uid = self.id_pool.alloc()
+        args = self._prop_args(id=uid, end_lnum=stop_lidx, end_col=1)
+        vim.prop_add(start_lidx + 1, 1, args)
+        self.markers[uid] = range(start_lidx, stop_lidx)
+        return uid
+
+    def find_line_marker(self, uid: int):
+        """Find the marker with the given ID."""
+        args = {
+            'type': 'vpe:marker',
+            'id': uid,
+            'both': 1,
+            'bufnr': self.number,
+            'lnum': 1,
+            'col': 1,
+        }
+        return vim.prop_find(args)
+
+    def find_markers_for_lidx(self, lidx: int) -> list[Marker]:
+        """Find the markers that include a given line."""
+        list_args = self._prop_args()
+        find_args = self._prop_args(both=1, col=1)
+        vim_prop_list = vim.prop_list(lidx + 1, list_args)
+        found_props = []
+        for prop in vim_prop_list:
+            if prop.get('start'):
+                prop['lnum'] = lidx + 1
+                print("AT START", dict(prop))
+                found_props.append(prop)
+            else:
+                find_args['id'] = prop['id']
+                find_args['lnum'] = lidx + 1
+                found = vim.prop_find(find_args, 'b')
+                if found:
+                    print("FOUND START", dict(found))
+                    found_props.append(found)
+
+        markers = []
+        for prop in found_props:
+            uid = prop['id']
+            r = self.markers.get(uid)
+            if r:
+                m = Marker(lidx=prop['lnum'] - 1, start=r.start, stop=r.stop)
+                markers.append(m)
+
+        return markers
+
+    def _prop_args(self, **kwargs):
+        """Create a dict of arguments for a vim.prop_...() function."""
+        args = dict(kwargs)
+        args['bufnr'] = self.buf.number
+        args['type'] = self._prop_type_name
+        args['types'] = [self._prop_type_name]
+        return args
+
+
 class Buffer(common.MutableSequenceProxy):
     """Wrapper around a :vim:`python-buffer`.
 
     The official documentation is provided by _BufferDesc.
     """
-    _known: Dict[int, "Buffer"] = {}
+    # pylint: disable=too-many-public-methods
+    _known: dict[int, "Buffer"] = {}
     _writeable = set(('name',))
 
     def __init__(self, buffer):
         self.__dict__['_number'] = buffer.number
         self.__dict__['_store'] = collections.defaultdict(Struct)
         self._known[buffer.number] = self
+        self.__dict__['_marker_sets']: dict[str, MarkerSet] = {}
         super().__init__()
 
     @property
@@ -330,6 +514,7 @@ class Buffer(common.MutableSequenceProxy):
         """
         return self._store[key]
 
+    # TODO: I think the docstring is wrong; 'a' is a line number, not an index.
     def range(self, a: int, b: int) -> Range:
         """Get a `Range` for the buffer.
 
@@ -442,10 +627,17 @@ class Buffer(common.MutableSequenceProxy):
         :line_or_lines: The line or lines to append.
         :nr:            If present then append after this line number.
         """
-        if nr is None:
-            self._proxied.append(line_or_lines)
-        else:
-            self._proxied.append(line_or_lines, nr)
+        try:
+            if nr is None:
+                self._proxied.append(line_or_lines)
+            else:
+                self._proxied.append(line_or_lines, nr)
+        except vim.error:
+            # I have seen this happen when appending to the log buffer. Trying
+            # to log an error is therefore a *bad* idea.
+            #
+            # TODO: Could we check this is not the log buffer?
+            pass
 
     def list(self):
         """A sequence context for efficient buffer modification.
@@ -492,7 +684,7 @@ class Buffer(common.MutableSequenceProxy):
         """
         return TemporaryOptions(self.options, **presets)
 
-    def find_active_windows(self, all_tabpages=False) -> List['Window']:
+    def find_active_windows(self, all_tabpages=False) -> list['Window']:
         """Find windows where this buffer is active.
 
         The list windows returned is prioritised as a result of searching in
@@ -508,7 +700,7 @@ class Buffer(common.MutableSequenceProxy):
             if win.buffer is self and k not in found:
                 found[k] = win
 
-        found: Dict[int, 'Window'] = {}
+        found: dict[int, 'Window'] = {}
         add_win(vim.current.window)
         for win in vim.current.tabpage.windows:
             add_win(win)
@@ -547,34 +739,103 @@ class Buffer(common.MutableSequenceProxy):
 
     def add_listener(
             self,
-            func: Union[ListenerCallbackFunc, ListenerCallbackMethod]
-            ) -> common.BufListener:
+            func: ListenerCallbackFunc | ListenerCallbackMethod
+            ) -> BufListener:
         """Add a callback for changes to this buffer.
 
         This is implemented using :vim:`listener_add()`
 
         :func:
-            The callback function which is invoked the following arguments:
+            The callback function which is invoked with the following
+            arguments:
 
-            :buf:     The buffer that was changed. Only present if *func* is
-                      not a bound method of this instance.
-            :start:   Start of the range of modified lines (zero based).
-            :end:     End of the range of modified lines.
-            :added:   Number of lines added, negative if lines were deleted.
-            :changed: A List of items with details about the changes.
+            :buf:
+                The buffer that was changed. Only present if *func* is not a
+                bound method of this instance.
+            :start:
+                Start of the range of modified lines (zero based).
+            :end:
+                End of the range of modified lines.
+            :added:
+                Number of lines added, negative if lines were deleted.
+            :changed:
+                A list of diffs.BufOperation instances with details about the
+                changes.
         :return:
-            The unique ID for this callback, as provided by
-            :vim:`listener_add()`.
+            A `BufListener' object.
         """
-        # TODO: Fix dependency tree.
         inst = getattr(func, '__self__', None)
-        p_buf = weakref.proxy(self.buf)
+        p_buf = weakref.proxy(self)
         if inst is self:
-            cb = common.BufListener(func, p_buf, is_method=True)
+            cb = BufListener(func, p_buf, is_method=True)
         else:
-            cb = common.BufListener(func, p_buf, is_method=False)
+            cb = BufListener(func, p_buf, is_method=False)
         cb.listen_id = vim.listener_add(cb.as_vim_function(), self.number)
         return cb
+
+    def clear_props(self):
+        """Remove all properties from all line in this buffer."""
+        vim.prop_clear(1, len(self), {'bufnr': self.number})
+
+    def set_line_prop(
+            self, lidx: int, start_cidx: int, end_cidx: int, hl_group: str,
+            name: str = ''):
+        """Set a highlighting property on a single line.
+
+        :lidx:        The index of the line to hold the property.
+        :start_cidx:  The index within the line where the property starts.
+        :end_cidx:    The index within the line where the property ends.
+        :hl_group:    The name of the highlight group to use.
+        :name:        An optional name for the property.
+        """
+        # pylint: disable=too-many-positional-arguments
+        # pylint: disable=too-many-arguments
+        prop_type_name = f'vpe:hl:{name or hl_group}'
+        args = {'bufnr': self.number}
+        props = vim.prop_type_get(prop_type_name, args)
+        if not props:
+            args['highlight'] = hl_group
+            vim.prop_type_add(prop_type_name, args)
+        args = {
+            'type': prop_type_name,
+            'bufnr': self.number,
+            'end_col': end_cidx + 1,
+        }
+        vim.prop_add(lidx + 1, start_cidx + 1, args)
+
+    def set_property_type(
+            self,
+            name: str,
+            **kwargs):
+        """Register or modify a property type associated with this buffer.
+
+        This is a wrapper around vim.prop_type_add and vim.prop_type_change.
+
+        :kwargs:
+            The same parameters used for vim.prop_type_add's props argument;
+            namely:
+                highlight: str
+                priority: int
+                combine: bool
+                override: bool
+                start_incl: bool
+                end_incl: bool
+        """
+        args = kwargs.copy()
+        if not vim.prop_type_get(name):
+            args['bufnr'] = self.number
+            vim.prop_type_add(name, args)
+        else:
+            vim.prop_type_change(name, args)
+
+    def marker_set(self, name: str):
+        """Get the marker set with a given name.
+
+        The marker set for a given name is created on demand.
+        """
+        if name not in self._marker_sets:
+            self._marker_sets[name] = MarkerSet(self, name)
+        return self._marker_sets[name]
 
     def __getattr__(self, name):
         """Make the values from getbufinfo() available as attributes.
@@ -654,7 +915,7 @@ class Window(common.Proxy):
         return False
 
     @property
-    def visible_line_range(self) -> Tuple[int, int]:
+    def visible_line_range(self) -> tuple[int, int]:
         """The range of buffer lines visible within this window.
 
         This is a Python style range.
@@ -679,6 +940,18 @@ class Window(common.Proxy):
         if 0 in (n_win, n_tab):
             return _deadwin
         return _vim.tabpages[n_tab - 1].windows[n_win - 1]
+
+    @staticmethod
+    def win_id_to_window(win_id: str) -> Window | None:
+        """Return the window corresponding to a given window ID."""
+        win_index = vim.win_id2win(win_id) - 1
+        if win_index >= 0:
+            try:
+                return windows[win_index]
+            except IndexError:
+                return None
+        else:
+            return None
 
 
 class Windows(common.ImmutableSequenceProxy):  # pylint: disable=too-few-public-methods
@@ -705,7 +978,7 @@ class TabPage(common.Proxy):
     This is a proxy that extends the vim.Window behaviour in various ways.
     """
     # pylint: disable=too-few-public-methods
-    _writeable: Set[str] = set()
+    _writeable: set[str] = set()
 
     @property
     def vars(self):
@@ -767,6 +1040,11 @@ class ImmutableVariables(common.MutableMappingProxy):
     # pylint: disable=too-few-public-methods
     def __getattr__(self, name):
         if name not in self._proxied:
+            if name.startswith('__'):
+                # Special names should not default to ``None``.
+                cname = self.__class__.__name__
+                raise AttributeError(
+                    f'{cname!r} object has no attribute {name!r}')
             return None
         return self._wrap_or_decode(self._proxied[name], name)
 
@@ -836,7 +1114,7 @@ class ListOption(str):
         return self._sep.join(parts)
 
     @staticmethod
-    def _split(_s: str) -> List[str]:
+    def _split(_s: str) -> list[str]:
         """Split the options string according to its type.
 
         This needs to be over-ridden in subclasses.
@@ -966,14 +1244,14 @@ class Registers:
     the key is the special '=' value, the un-evaluated contents of the register
     is returned.
     """
-    def __getitem__(self, reg_name: Union[str, int]) -> Any:
+    def __getitem__(self, reg_name: str | int) -> Any:
         """Allow reading registers as dictionary entries.
 
         The reg_name may also be an integer value in the range 0-9.
         """
         return common.vim_simple_eval(f'@{reg_name}')
 
-    def __setitem__(self, reg_name: Union[str, int], value: Any):
+    def __setitem__(self, reg_name: str | int, value: Any):
         """Allow setting registers as dictionary entries.
 
         The reg_name may also be an integer value in the range 0-9.
@@ -984,8 +1262,8 @@ class Registers:
 class Command:
     """Wrapper to invoke a Vim command as a function.
 
-    The `Commands` creates instances of this; direct instantiation by users is
-    not intended.
+    The `Commands` class creates instances of this; direct instantiation by
+    users is not intended.
 
     Invocation takes the form of::
 
@@ -1014,6 +1292,7 @@ class Command:
                  provided.
     :a:          The start line.
     :b:          The end line (forming a range with *a*).
+    :silent:     Run with the silent command modifier.
     :vertical:   Run with the vertical command modifier.
     :aboveleft:  Run with the aboveleft command modifier.
     :belowright: Run with the belowright command modifier.
@@ -1024,12 +1303,19 @@ class Command:
                  would be passed to vim.command.
     """
     # pylint: disable=too-few-public-methods
-    def __init__(self, name):
-        self.name = name
+    mod_names = (
+        'silent',
+        'vertical', 'aboveleft', 'belowright', 'topleft', 'botright',
+        'keepalt')
 
-    def __call__(                             # pylint: disable=too-many-locals
+    def __init__(self, name, modifiers: dict[str, bool]):
+        self.name = name
+        self.modifiers = modifiers.copy()
+
+    def __call__(
             self, *args, bang=False, lrange='', a='', b='', preview=False,
-            keepalt=True, **kwargs):
+            keepalt=True, file=None, **modifiers):
+        # pylint: disable=too-many-arguments,too-many-branches,too-many-locals
         exclamation = '!' if bang else ''
         cmd = f'{self.name}{exclamation}'
         arg_expr = ''
@@ -1053,17 +1339,17 @@ class Command:
             else:
                 range_expr = f'.,{b} '
         mod_args = {'keepalt': keepalt}
-        mod_args.update(kwargs)
-        modifiers = (
-            'vertical', 'aboveleft', 'belowright', 'topleft', 'botright',
-            'keepalt')
-        cmd_mods = " ".join(mod for mod in modifiers if mod_args.get(mod))
+        mod_args.update(self.modifiers)
+        mod_args.update(modifiers)
+        cmd_mods = " ".join(mod for mod in self.mod_names if mod_args.get(mod))
         if cmd_mods:
             cmd = f'{cmd_mods} {range_expr}{cmd}{arg_expr}'
         else:
             cmd = f'{range_expr}{cmd}{arg_expr}'
         if not preview:
             common.vim_command(cmd)
+        if file:
+            file.write(f'{cmd}\n')
         return cmd
 
 
@@ -1111,8 +1397,16 @@ class Commands:
         define syntax highlighting.
 
     See also: `vpe.pedit`.
+
+    :modifiers:
+        A dictionary of the default modifier flags for generated `Command`
+        instances. This is only intended to be used by the `with_modifiers`
+        class method.
     """
     # pylint: disable=too-few-public-methods
+
+    def __init__(self, modifiers: dict[str, bool] = None):
+        self.modifiers = modifiers.copy() if modifiers else {}
 
     def __getattr__(self, name: str) -> Command:
         if name.startswith('__'):
@@ -1122,10 +1416,25 @@ class Commands:
         cname_form = f':{name}'
         if common.vim_simple_eval(f'exists({cname_form!r})') == '2':
             if name not in _blockedVimCommands:
-                return Command(name)
+                return Command(name, self.modifiers)
 
         raise AttributeError(
             f'No command function called {name!r} available')
+
+    @classmethod
+    def with_modifiers(cls, **modifiers):
+        """Return a version of ``Commands`` that always applies modifiers.
+
+        For example:<py>:
+
+            silent = vpe.commands.modified(silent=True)
+            silent.tabonly()
+
+        Is equivalent to:<py>:
+
+            vpe.commands.tabonly(silent=True)
+        """
+        return cls(modifiers)
 
 
 class Vim:
@@ -1175,7 +1484,7 @@ class Vim:
         return _vim.error
 
     @staticmethod
-    def iter_all_windows() -> Iterator[Tuple[TabPage, Window]]:
+    def iter_all_windows() -> Iterator[tuple[TabPage, Window]]:
         """Iterate over all the windows in all tabs.
 
         :yield: A tuple of TagPage and Window.
@@ -1197,6 +1506,9 @@ class Vim:
         }
 
     def __getattr__(self, name):
+        # TODO:
+        #   Look at ways to use _vim.Function(name) for built-in functions.
+        #   Lookup time and
         # Some attributes map to single global objects.
         if name in self._vim_singletons():
             return self._vim_singletons()[name]
@@ -1229,25 +1541,39 @@ class Function(_vim.Function):
     """
     # pylint: disable=too-few-public-methods
     def __call__(self, *args, **kwargs):
-        # print(f'Function.__call__: {self.name}'
-        #       f' vim.state()={_vim.eval("state()")}')
-        try:
+        # This can be useful for debugging, but be careful which functions are
+        # selected.
+        # pylint: disable=condition-evals-to-constant
+        if False and 'listen' in self.name:
+            common.call_soon(print, f'Function.__call__: {self.name}'
+                   f' vim.state()={_vim.eval("state()")}')
+            for i, a in enumerate(args):
+                common.call_soon(print, f' args[{i}] ={a}')
+        # pylint: enable=condition-evals-to-constant
+        if suppress_vim_invocation_errors.active:
             v = super().__call__(*args, **kwargs)  # pylint: disable=no-member
-        except Exception as e:
-            args_lines = pprint.pformat(args).splitlines()
-            kwargs_lines = pprint.pformat(kwargs).splitlines()
-            print(f'VPE: Function.__call__ failed: {e}')
-            print(f'    self.name={self.name}')
-            print(f'    self.args={self.args}')
-            print(f'    self.self={self.self}')
-            print(f'    args={args_lines[0]}')
-            for line in args_lines[1:]:
-                print(f'         {line}')
-            print(f'    kwargs={kwargs_lines}')
-            for line in kwargs_lines[1:]:
-                print(f'         {line}')
-            print(f'    vim.state()={_vim.eval("state()")}')
-            raise
+        else:
+            try:
+                # pylint: disable=no-member
+                v = super().__call__(*args, **kwargs)
+            except Exception as e:
+                args_lines = pprint.pformat(args).splitlines()
+                kwargs_lines = pprint.pformat(kwargs).splitlines()
+                call_soon = common.call_soon
+                call_soon(print, f'VPE: Function.__call__ failed: {type(e)}, {e}')
+                call_soon(print, f'    self.name={self.name}')
+                call_soon(print, f'    self.args={self.args}')
+                call_soon(print, f'    self.self={self.self}')
+                call_soon(print, f'    args={args_lines[0]}')
+                for line in args_lines[1:]:
+                    call_soon(print, f'         {line}')
+                call_soon(print, f'    kwargs={kwargs_lines[0]}')
+                for line in kwargs_lines[1:]:
+                    call_soon(print, f'           {line}')
+                call_soon(print, f'    vim.state()={_vim.eval("state()")}')
+                if isinstance(e, vim.error):
+                    raise common.VimError(e)
+                raise                                            # pragma: no cover
         if isinstance(v, bytes):
             try:
                 return v.decode()
@@ -1267,6 +1593,30 @@ def _get_wrapped_buffer(vim_buffer: _vim.Buffer) -> Buffer:
     if b is None:
         b = Buffer(vim_buffer)
     return b
+
+
+class _ErrorSuppressor:
+    """A context that suppresses logging details of failed Vim functions."""
+
+    def __init__(self):
+        self._count = 0
+
+    @property
+    def active(self) -> bool:
+        """Flag indication that error supporession is active."""
+        return self._count > 0
+
+    def __enter__(self):
+        self._count += 1
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self._count -= 1
+        return exc_val is not None and isinstance(exc_val, vim.error)
+
+
+# Context manager used to prevent logging of Vim function call errors.
+suppress_vim_invocation_errors = _ErrorSuppressor()
 
 
 common.register_wrapper(type(_vim.options), Options)
@@ -1342,7 +1692,7 @@ class _VimDesc:
         # pyre-ignore[7]:
         """An object providing access to Vim's global options."""
 
-    def eval(self, expr: str) -> Union[dict, list, str]:
+    def eval(self, expr: str) -> dict | list | str:
         # pyre-ignore[7]:
         """Evaluate a Vim expression.
 
@@ -1448,7 +1798,7 @@ class _BufferDesc:
         """
 
     @property
-    def windows(self) -> List[int]:
+    def windows(self) -> list[int]:
         # pyre-ignore[7]:
         """A list of window IDs for windows that are displaying this buffer.
 
@@ -1456,7 +1806,7 @@ class _BufferDesc:
         """
 
     @property
-    def popups(self) -> List[int]:
+    def popups(self) -> list[int]:
         # pyre-ignore[7]:
         """A list of window IDs for popups that are displaying this buffer.
 

@@ -1,13 +1,13 @@
-"""Development of channel support."""
+"""Pythonic wrappers for Vim's channels."""
+# TODO: The channel class should have checks to prevent invoking channel
+#       functions with closed or invalid channels.
 
-from typing import Any, Optional, Tuple, Dict, ClassVar, Union, List
-from functools import partial
 import weakref
+from functools import partial
+from typing import Any, ClassVar, Dict, List, Optional, Sequence, Tuple, Union
 
 import vpe
-from . import common
-from . import core
-from . import wrappers
+from . import common, core, wrappers
 
 __all__ = [
     'RawChannel', 'JsonChannel', 'NLChannel', 'JSChannel', 'VimChannel',
@@ -122,6 +122,7 @@ def vim_repr(obj: Any) -> str:
     :obj: The value to represent.
     """
     if isinstance(obj, VimChannel):
+        assert obj.varname
         return obj.varname
     if isinstance(obj, dict):
         body = ', '.join(
@@ -146,11 +147,12 @@ class ChannelFunction:
         self.name = name
 
     def __call__(self, *args, **kwargs):
-        call_and_assign(common.RET_VAR, self.name, *args)
+        call_and_assign(
+            varname=common.RET_VAR, funcname=self.name, args=args)
         return common.coerce_arg(wrappers.vim.eval(common.RET_VAR))
 
 
-def call_and_assign(varname: str, funcname: str, *args: Any) -> None:
+def call_and_assign(varname: str, funcname: str, args: Sequence[Any]) -> None:
     """Invoke a Vim function and assign the result to a Vim variable.
 
     This implements the invocation by forming a Vim command and executing it.
@@ -210,8 +212,9 @@ class Channel:
             return
         try:
             call_and_assign(
-                common.RET_VAR, 'ch_open', self.net_address,
-                self._open_options)
+                varname=common.RET_VAR,
+                funcname='ch_open',
+                args=(self.net_address, self._open_options))
         except common.VimError:                              # pragma: no cover
             return
 
@@ -246,7 +249,8 @@ class Channel:
         if ch is not None:
             data = wrappers.vim.vars.VPE_read_message
             data = common.coerce_arg(data)
-            vpe.call_soon(ch.on_message, data)
+            if data:
+                vpe.call_soon(ch.on_message, data)
 
         return 0
 
@@ -390,6 +394,7 @@ class Channel:
         return options
 
 
+# TODO: Remember why 'Sync' or find a better name.
 class SyncChannel(Channel):
     """Pythonic wrapper around a "json" or "js" channel."""
 
@@ -451,7 +456,7 @@ def ch_close(vch: VimChannel):
     if not vch.closed:
         try:
             vim_ch_close(vch)
-        except common.VimError as e:
+        except common.VimError as e:                         # pragma: no cover
             if e.code != 906:  # Ignore an already closed channel.
                 core.log(f'ch_close fail: {e}')
     vch.close()

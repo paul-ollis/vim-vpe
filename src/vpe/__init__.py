@@ -43,31 +43,44 @@ _vpe_args_
         A sequence of any unnamed arguments passed to the Vim function.
 """
 # pylint: disable=too-many-lines
+# ruff: noqa F403
 
+# This should be imported by ~/.vim/plugin/000-vpe.vim, or something very
+# similiar. This means that Vim has executed various non-gui ``...rc`` files.
+# The ~/.vim/plugin/000-vpe.vim is named so that it is one of, if not the
+# first, plugin to be loaded. This allows other plugins to fairly safely assume
+# that VPE is is active. However, using the new VPE plug-in mechanism is a
+# more robust approach.
+
+import collections
 import importlib
 import importlib.machinery
 import importlib.util
+import io
 import os
 import sys
 import traceback
+from importlib.metadata import entry_points
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Tuple, Union
 
-import vim as _vim
+import vim as _vim                                                 # noqa: F401
 
-# Make sure the 'common' and 'core' is are imported first. Later imports depend
-# on it to some extent.
-from .common import *
-from .core import *
-from .wrappers import Vim, vim
+# Make sure that 'common' and 'core' exported names are imported first. Later
+# imports depend on this to some extent - which is why the imports are not in
+# the order one would normally expect.
+from vpe import common
+from vpe.common import *
+from vpe.core import *
+from vpe.wrappers import Vim, vim
 
 # pylint: disable=wrong-import-position
-from . import channels, mapping, syntax
-from .mapping import MapCallback
-from .wrappers import (
+from vpe import channels, mapping, syntax
+from vpe.mapping import MapCallback
+from vpe.wrappers import (
     Buffer, Buffers, Current, GlobalOptions, Options, Range, Registers, Struct,
     TabPage, TabPages, VIM_DEFAULT, VI_DEFAULT, Variables, Window, Windows,
-    commands)
+    commands, suppress_vim_invocation_errors)
 
 __api__ = [
     'AutoCmdGroup', 'Timer', 'Popup', 'PopupAtCursor', 'PopupBeval',
@@ -78,10 +91,11 @@ __api__ = [
     'timer_stopall', 'find_buffer_by_name', 'script_py_path',
     'get_display_buffer', 'version', 'dot_vim_dir', 'temp_active_window',
     'define_command', 'CommandInfo', 'saved_current_window',
-    'Finish',
+    'Finish', 'run_after_enter',
 
     'core', 'commands', 'mapping', 'syntax', 'wrappers', 'panels',
     'ui', 'config', 'channels', 'windows', 'app_ui_support',
+    'suppress_vim_invocation_errors',
 
     # Types and functions that should not be directly invoked.
     'Variables', 'Window', 'TabPage', 'Windows', 'TabPages', 'Buffers',
@@ -93,6 +107,25 @@ __api__ = [
 PLUGIN_SUBDIR = 'vpe_plugins'
 
 _plugin_hooks: Dict[str, List[Callable[[], None]]] = {}
+
+
+class Namespace:
+    """Just an object that acts as an arbitrary namespace."""
+
+
+# TODO: Discard this BEFORE release. It makes linting hard without providing
+#       enough of an advantage; especially now I am transitioning to ``pip``
+#       installed plugins.
+#: A place to store globally available information.
+#:
+#: Each plugin must choose a suitably unique name, e.g. 'zippy'. Then it can
+#: store and retrieve arbitrary data as:<py>::
+#:
+#:    vpe.plugins['zippy'].unix_socket_name = 'unix:/tmp/zippy-sock'
+#:
+#: This is aimed at cross-plugin cooperation, but it can also make within
+#: plugin code less coupled.
+plugins: dict[str, object] = collections.defaultdict(Namespace)
 
 
 class Finish(Exception):
@@ -150,7 +183,7 @@ def _is_plugin(path):
 
     :path: The Path for the python file.
     """
-    with open(path) as f:
+    with open(path, encoding='utf-8') as f:
         line = f.readline()
     return line.startswith('"""VPE-plugin: ')
 
@@ -178,7 +211,8 @@ def _import_possible_plugin(path):
 
     try:
         # pylint: disable=exec-used
-        exec(f'import {PLUGIN_SUBDIR}.{path.stem}')
+        plugin_name = f'{PLUGIN_SUBDIR}.{path.stem}'
+        exec(f'import {plugin_name}')
     except Finish as exc:
         print('Could not initialise VPE plug-in {path}')
         print(f'   {exc}')
@@ -194,7 +228,8 @@ def _import_possible_plugin(path):
         try:
             func()
         except Exception as e:                   # pylint: disable=broad-except
-            error_msg(f'Error in post-plugin hook {func}, {e}', soon=True)
+            if not os.environ.get('VPE_TEST_MODE', None):    # pragma: no cover
+                error_msg(f'Error in post-plugin hook {func}, {e}', soon=True)
 
 
 def _load_plugins():
@@ -204,11 +239,64 @@ def _load_plugins():
         p for p in plugin_dir.glob('*') if p.suffix in ('.py', '')]
     possible_plugins = [
         p for p in possible_plugins if not p.name.startswith('_')]
+    possible_plugins = [p for p in possible_plugins if '-' not in p.name]
     for p in sorted(possible_plugins):
         _import_possible_plugin(p)
     plugin_doc_dir = plugin_dir / 'doc'
     if plugin_doc_dir.exists():
         vim.options.runtimepath += str(plugin_dir)
+
+    _load_new_plugins()
+
+
+def _load_new_plugins():
+    discovered_plugins = entry_points(group='vpe.plugins')
+    for entry_point in discovered_plugins:
+        # TODO: Need to handle plugin errors gracefully.
+        try:
+            module = entry_point.load()
+        except Exception as e:
+            f = io.StringIO()
+            traceback.print_exc(file=f)
+            print(
+                f'Error loading plugin {entry_point.name}: {e}'
+                f' \n{f.getvalue()}')
+            call_soon(print, f.getvalue())
+            continue
+
+        print(f'New plugin: {entry_point.name}')
+        try:
+            init_func = getattr(module, 'init')
+        except AttributeError:
+            pass
+        else:
+            if callable(init_func):
+                common.call_soon(init_func)
+
+
+def _run_post_enter_hooks():
+    """Run any code that as been schedule to run after VimEnter occurs."""
+    for func in _post_vim_enter_hooks:
+        try:
+            func()
+        except Exception:
+            call_soon(print, f'Failed to run post enter hook {func}')
+            # call_soon(print, f'    {e}')
+            f = io.StringIO()
+            traceback.print_exc(file=f)
+            call_soon(print, f.getvalue())
+
+
+def run_after_enter(func: Callable[[], None]):
+    """Invoke a function immediately if possible or after VimEnter."""
+    if vim.vvars.vim_did_enter:
+        try:
+            func()
+        except Exception as e:
+            call_soon(print, f'Failed to run {func}')
+            call_soon(print, f'    {e}')
+    else:
+        _post_vim_enter_hooks.append(func)
 
 
 def _init_vpe_plugins():
@@ -234,11 +322,7 @@ def _init_vpe_plugins():
     if not init_path.exists():
         init_path.write_text('')
 
-    if vim.vvars.vim_did_enter:
-        _load_plugins()
-    else:                                                    # pragma: no cover
-        with AutoCmdGroup('VPECore') as au:
-            au.add('VimEnter', _load_plugins, pat='*', nested=True)
+    run_after_enter(_load_plugins)
 
 
 class temp_log:                                              # pragma: no cover
@@ -253,7 +337,7 @@ class temp_log:                                              # pragma: no cover
         self.path = Path(file_path)
 
     def __enter__(self):
-        self.f = open(self.path, 'at')
+        self.f = open(self.path, 'at', encoding='utf-8')
         self.saved = sys.stderr, sys.stdout
         sys.stderr = sys.stdout = self.f
 
@@ -261,6 +345,11 @@ class temp_log:                                              # pragma: no cover
         self.f.close()
         sys.stderr, sys.stdout = self.saved
 
+
+_post_vim_enter_hooks = []
+
+with AutoCmdGroup('VPECore') as au:
+    au.add('VimEnter', _run_post_enter_hooks, pat='*', nested=True)
 
 _init_vpe_plugins()
 del _init_vpe_plugins

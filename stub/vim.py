@@ -1,7 +1,7 @@
 """Stub for the testing of the VPE module.
 
 This takes the place of the real vim module in order to be able to unpickle
-structures generated from within a Vim sessin.
+structures generated from within a Vim session.
 
 It also provides enough stubbed iplementation such that operations on some
 unpicked types will work as expected.

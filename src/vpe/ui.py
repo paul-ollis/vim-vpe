@@ -74,7 +74,7 @@ class FieldVar:
     def value(self):
         """"The current value for this variable."""
 
-    def set(self, _value: Any) -> str:            # pylint: disable=no-self-use
+    def set(self, _value: Any) -> str:
         """Try to set this option's value.
 
         :return: A string describing why the attempt failed. An empty string
@@ -83,7 +83,7 @@ class FieldVar:
         """
         return ''                                            # pragma: no cover
 
-    def values(self) -> List[Any]:                # pylint: disable=no-self-use
+    def values(self) -> List[Any]:
         """Return a set of the valid values for this field.
 
         :return: A list of the valid values. An empty list means that this
@@ -128,7 +128,7 @@ class Field:                     # pylint: disable=too-many-instance-attributes
     active = True
     default: Any = ''
 
-    def __init__(
+    def __init__(                          # pylint: disable=too-many-arguments
             self, *, lidx, cidx, prefix='', suffix='', prefix_width=0,
             suffix_width=0, value_width=6, opt_var=None, **kwargs):
         self.lidx = lidx
@@ -209,8 +209,7 @@ class Field:                     # pylint: disable=too-many-instance-attributes
         v_str = format_str(self.value_str, self.value_width)
         return ''.join((lhs, v_str, rhs))
 
-    @staticmethod
-    def increment(_step: int) -> bool:
+    def increment(self, _step: int) -> bool:
         """Increment this field's value by a given step.
 
         This typically needs to be over-ridden by subclasses.
@@ -219,8 +218,7 @@ class Field:                     # pylint: disable=too-many-instance-attributes
         """
         return False                                         # pragma: no cover
 
-    @staticmethod
-    def edit_value() -> bool:
+    def edit_value(self) -> bool:
         """Allow the user to edit the value of a field.
 
         This typically needs to be over-ridden by subclasses.

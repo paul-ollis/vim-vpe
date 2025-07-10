@@ -1,4 +1,5 @@
 """A pythonic API for creating syntax highlighting definitions."""
+from __future__ import annotations
 
 from typing import Dict, Tuple, List, Any, Callable, Optional, Union
 from typing import Set, Iterable
@@ -92,12 +93,12 @@ class Contains(Option):
     """
     # pylint: disable=too-few-public-methods
     name = 'contains'
-    groups: List["Group"]
+    groups: list[Group]
 
     def __init__(self, *groups: "Group"):
         self.groups = []
         for g in groups:
-            if isinstance(g, tuple):
+            if isinstance(g, (tuple, list)):
                 self.groups.extend(g)
             else:
                 self.groups.append(g)
@@ -111,8 +112,7 @@ class Contains(Option):
         args = []
         if Syntax.ALLBUT in self.groups:
             args.append('ALLBUT')
-        args.extend(sorted(
-            g.arg_name for g in self.groups if g is not Syntax.ALLBUT))
+        args.extend(g.arg_name for g in self.groups if g is not Syntax.ALLBUT)
         return f'{self.name}={",".join(args)}'
 
 
@@ -135,6 +135,12 @@ class MatchGroup(GroupOption):
     """A matchgroup option."""
     # pylint: disable=too-few-public-methods
     name = 'matchgroup'
+
+
+class ContainedIn(GroupOption):
+    """A containedin option."""
+    # pylint: disable=too-few-public-methods
+    name = 'containedin'
 
 
 class NextGroup(GroupOption):
@@ -226,11 +232,13 @@ class Region(SyntaxBase):
         self.syn = syn
         self.syn_cmd = syn_cmd
         self.qual_name = name
-        self.starts: List[Start] = []
-        self.skips: List[Skip] = []
-        self.ends: List[End] = []
+        self.directives: list[Start | Skip | End | MatchGorup] = []
         self.preview = options.pop('preview', False)
-        self.options = convert_syntax_options(options)
+        self.options = convert_syntax_options(self.syn, options)
+
+    def matchgroup(self, group: Group | None):
+        """Add or remove a matchgroup directive for this region."""
+        self.directives.append(MatchGorup(group))
 
     def start(self, pat: str, *pats: str, **kwargs) -> "Region":
         """Define a start pattern
@@ -240,7 +248,7 @@ class Region(SyntaxBase):
                  *pat* to form the complete regular expression.
         :kwargs: Additional options for the region start.
         """
-        self.starts.append(Start(pat, *pats, **kwargs))
+        self.directives.append(Start(pat, *pats, **kwargs))
         return self
 
     def skip(self, pat: str, *pats: str, **kwargs) -> "Region":
@@ -251,7 +259,7 @@ class Region(SyntaxBase):
                  *pat* to form the complete regular expression.
         :kwargs: Additional options for the region skip.
         """
-        self.skips.append(Skip(pat, *pats, **kwargs))
+        self.directives.append(Skip(pat, *pats, **kwargs))
         return self
 
     def end(self, pat: str, *pats: str, **kwargs) -> "Region":
@@ -262,7 +270,7 @@ class Region(SyntaxBase):
                  *pat* to form the complete regular expression.
         :kwargs: Additional options for the region skip.
         """
-        self.ends.append(End(pat, *pats, **kwargs))
+        self.directives.append(End(pat, *pats, **kwargs))
         return self
 
     def __enter__(self):
@@ -272,9 +280,7 @@ class Region(SyntaxBase):
         if exc_type is None:
             self.syn.schedule(
                 self.syn_cmd, 'region', f'{self.qual_name}',
-                *[p.arg_str() for p in self.starts],
-                *[p.arg_str() for p in self.skips],
-                *[p.arg_str() for p in self.ends],
+                *[p.arg_str() for p in self.directives],
                 *[opt.vim_fmt() for opt in self.options.values()])
             if self.preview:                                 # pragma: no cover
                 core.log(self.syn.preview_last())
@@ -319,7 +325,7 @@ class Group(NamedSyntaxItem):
         _, options = self.get_offsets(options, self._match_offset_names)
         if self.contained and 'contained' not in options:
             options['contained'] = True
-        options = convert_syntax_options(options)
+        options = convert_syntax_options(self.syn, options)
         self.syn.schedule(
             wrappers.commands.syntax, 'keyword', f'{self.qual_name}',
             ' '.join(keywords),
@@ -342,7 +348,7 @@ class Group(NamedSyntaxItem):
         offsets, options = self.get_offsets(options, self._match_offset_names)
         if self.contained and 'contained' not in options:
             options['contained'] = True
-        options = convert_syntax_options(options)
+        options = convert_syntax_options(self.syn, options)
         pre_pat_options = extract_keys(options, *self._pre_pat_names)
         if lidx is not None:
             all_pats[0:0] = [fr'\%{lidx + 1}l']
@@ -407,18 +413,19 @@ class Group(NamedSyntaxItem):
         """
         self.hl_args.update(kwargs)
 
-    def set_highlight(self):
+    def set_highlight(self, file=None):
         """Set up highlight definition for this group."""
         if self.hl_args:
-            core.highlight(group=self.qual_name, **self.hl_args)
+            core.highlight(group=self.qual_name, **self.hl_args, file=file)
 
-    def invoke(self) -> None:
+    def invoke(self, file=None) -> None:
         """Invoke any pending syntax commands.
 
         This is only intended to be used by a `Syntax` instance.
         """
         hilink = functools.partial(
-            wrappers.commands.highlight, 'default', 'link', bang=True)
+            wrappers.commands.highlight, 'default', 'link', bang=True,
+            file=file)
         for group in sorted(self.linked, key=lambda g: g.qual_name):
             hilink(group.qual_name, self.qual_name)
 
@@ -452,6 +459,8 @@ class Syntax(SyntaxBase):
         self.clusters: Dict[str, Cluster] = {}
         self.simple_includes: List[str] = []
         self.clear_prev_syntax = clear
+        self.spell = self.std_group('@Spell')
+        self.no_spell = self.std_group('@NoSpell')
 
     def std_group(self, name):
         """Create a standard (externally defined) group.
@@ -540,6 +549,23 @@ class Syntax(SyntaxBase):
         func, args, kwargs = self._directives[-1]
         return func(*args, **kwargs, preview=True)
 
+    def gen_vim_script(self):
+        with open('/tmp/syntax.vim', mode='wt', encoding='utf-8') as f:
+            if self.clear_prev_syntax:
+                wrappers.commands.syntax('clear', file=f)
+            for syn_name in self.simple_includes:
+                wrappers.commands.runtime(f'syntax/{syn_name}.vim', file=f)
+            for func, args, kwargs in self._directives:
+                func(file=f, *args, **kwargs)
+            for cluster in self.clusters.values():
+                cluster.invoke(file=f)
+            for group in self.groups.values():
+                group.invoke(file=f)
+            for group in self.std_groups.values():
+                group.invoke(file=f)
+            for group in self.groups.values():
+                group.set_highlight(file=f)
+
     def __enter__(self):
         self._directives = []
         return self
@@ -580,7 +606,7 @@ class Pattern(SyntaxBase):
         self.pat = ''.join(str(p) for p in pats)
         self.matchgroup = options.pop('matchgroup', None)
         self.offsets, _ = self.get_offsets(options, self._offset_names)
-        options = convert_syntax_options(options)
+        options = convert_syntax_options(None, options)
         self.pre_pat_options = extract_keys(options, *self._pre_pat_names)
         if lidx is not None:
             self.pat = fr'\%{lidx + 1}l' + self.pat
@@ -623,6 +649,17 @@ class End(Pattern):
     _pre_pat_names = ('keepend', 'extend', 'excludenl', 'matchgroup')
 
 
+class MatchGorup:
+    """A matchgroup directive for a region."""
+    def __init__(self, group: Group | None):
+        self.group = group
+
+    def arg_str(self) -> str:
+        """Format matchgroup as an directove in a region command."""
+        name = self.group.qual_name if self.group else 'NONE'
+        return f'matchgroup={name}'
+
+
 class Cluster(NamedSyntaxItem):
     """ A cluster of groups.
 
@@ -631,7 +668,7 @@ class Cluster(NamedSyntaxItem):
     """
     def __init__(self, syn, name):
         super().__init__(syn, name)
-        self.groups = set()
+        self.groups: list[Group] = []
 
     @property
     def arg_name(self):
@@ -647,10 +684,9 @@ class Cluster(NamedSyntaxItem):
         :groups: Additional groups to be added.
         """
         for group in (group1, *groups):
-            if isinstance(group, str):
-                self.groups.add(self.syn.group(group))
-            else:
-                self.groups.add(group)
+            g = self.syn.group(group) if isinstance(group, str) else group
+            if g not in self.groups:
+                self.groups.append(g)
 
     def group(self, name, **options):
         """Create and add a new group.
@@ -680,7 +716,7 @@ class Cluster(NamedSyntaxItem):
         self.syn.schedule(
             wrappers.commands.syntax, 'include', self.arg_name, path_name)
 
-    def invoke(self) -> None:
+    def invoke(self, file=None) -> None:
         """Invoke any pending syntax commands.
 
         This is only intended to be used by a `Syntax` instance.
@@ -688,7 +724,8 @@ class Cluster(NamedSyntaxItem):
         if not self.groups:
             return
         cont = Contains(*self.groups)
-        wrappers.commands.syntax('cluster', self.qual_name, cont.vim_fmt())
+        wrappers.commands.syntax(
+            'cluster', self.qual_name, cont.vim_fmt(), file=file)
 
 
 class StdCluster(Cluster):
@@ -721,23 +758,44 @@ def deliminate(pat: str) -> str:
     return f'{delim}{pat}{delim}'
 
 
-def convert_syntax_options(options) -> dict:
+def convert_syntax_options(syn, options) -> dict:
     """Convert values in a dictionary of option to `Option` instances.
 
     :options: The dictionary containing keyword defined options.
     :return:  The same (modified in place) dictionary.
     """
-    for name in options:
+    sp = None
+    spell = options.pop('spell', None)
+    if spell is not None and syn is not None:
+        if spell:
+            sp = syn.spell
+        else:
+            sp = syn.no_spell
+
+    for name in list(options):
         if name == 'contains':
-            options[name] = Contains(options[name])
+            if options[name]:
+                options[name] = Contains(options[name])
+                if sp:
+                    options[name].groups.append(sp)
+            else:
+                if sp:
+                    options[name] = Contains(sp)
+                else:
+                    del options[name]
         elif name == 'matchgroup':
             options[name] = MatchGroup(options[name])
+        elif name == 'containedin':
+            options[name] = ContainedIn(options[name])
         elif name == 'nextgroup':
             options[name] = NextGroup(options[name])
         elif name in ('grouphere', 'groupthere'):
             options[name] = LocationGroup(name, options[name])
         else:
             options[name] = SimpleOption(name, options[name])
+
+    if 'contains' not in options and sp:
+        options['spell'] = Contains(sp)
     return options
 
 

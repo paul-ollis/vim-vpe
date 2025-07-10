@@ -19,7 +19,12 @@ import sys
 import time
 import weakref
 from functools import partial
-from typing import Callable, List, Optional, Tuple, Type, Union
+from typing import Callable, List, Optional, TextIO, Tuple, Type, Union
+
+try:
+    from rich.traceback import install as install_rich_traceback
+except ImportError:
+    install_rich_traceback = None
 
 import vim as _vim
 
@@ -62,6 +67,7 @@ _known_special_buffers: dict = {}
 #: manually.
 _special_keymap: dict = {
     b'\x80\xfdd': '<Mouse>',
+    b'\x1b': '<Esc>',
 }
 
 _VIM_FUNC_DEFS = """
@@ -162,6 +168,7 @@ class ScratchBuffer(wrappers.Buffer):
         options.modifiable = False
         options.bufhidden = 'hide'
         options.buflisted = True
+        options.undolevels = -1
 
         # Allow subclasses a chance to set addidtional option or over-ride the
         # above settings.
@@ -318,15 +325,19 @@ class Log:
     available for general use. VPE also uses it to log significant occurrences
     - mainly error conditions.
 
-    :@name:  A name that maps to the corresponding display buffer.
-    :maxlen: The maximum number of lines to store.
+    :@name:      A name that maps to the corresponding display buffer.
+    :maxlen:     The maximum number of lines to store.
+    :timestamps: Set this to ``False`` to prevent the addition of timestamps.
 
     @buf: The corresponding Vim buffer. This will be ``None`` if the `show`
           method has never been invoked.
     """
-    def __init__(self, name, maxlen=500):
+    def __init__(
+            self, name: str, *,  maxlen: int = 500, timestamps: bool = True):
         self.fifo = collections.deque(maxlen=maxlen)
         self.name = name
+        self.timestamps = timestamps
+        self.allowed_extra_lines = maxlen // 10
         self.buf = None
         self.start_time = time.time()
         self.text_buf = io.StringIO()
@@ -344,16 +355,18 @@ class Log:
         self._flush_lines()
 
     def redirect(self):
-        """Redirect stdout/stderr to the log."""
+        """Redirect stdout/stderr to the log and use rich tracebacks."""
         self.saved_out.append((sys.stdout, sys.stderr))
         sys.stdout = sys.stderr = self
+        if install_rich_traceback:
+            install_rich_traceback(show_locals=True)
 
     def unredirect(self):
         """Undo most recent redirection."""
         if self.saved_out:
             sys.stdout, sys.stderr = self.saved_out.pop()
 
-    def _flush_lines(self):  # pylint: disable=too-many-branches
+    def _flush_lines(self):                 # pylint: disable=too-many-branches
         t = time.time()
         lines = []
         part_line = ''
@@ -361,11 +374,11 @@ class Log:
             if line[-1:] != '\n':
                 part_line = line
                 break
-            if i == 0:
-                prefix = f'{t - self.start_time:7.2f}:'
+            if self.timestamps:
+                prefix = ' ' * 9 if i else f'{t - self.start_time:7.2f}: '
             else:
-                prefix = ' ' * 8
-            lines.append(f'{prefix} {line}')
+                prefix = ''
+            lines.append(f'{prefix}{line}')
         self.text_buf = io.StringIO(part_line)
         self.text_buf.seek(0, io.SEEK_END)
 
@@ -375,18 +388,19 @@ class Log:
             with buf.modifiable():
                 buf.append(lines)
         self._trim()
+        vpe_vim: wrappers.Vim = wrappers.vim
         try:
-            win_execute = wrappers.vim.win_execute
+            win_execute = vpe_vim.win_execute
         except AttributeError:                               # pragma: no cover
             return
         if buf:
-            for w in wrappers.vim.windows:
+            for w in vpe_vim.windows:
                 if w.buffer.number == buf.number:
                     # TODO: Figure out why this can cause:
                     #           Vim(redraw):E315: ml_get: invalid lnum: 2
                     try:
-                        win_execute(wrappers.vim.win_getid(w.number), '$')
-                        win_execute(wrappers.vim.win_getid(w.number), 'redraw')
+                        win_execute(vpe_vim.win_getid(w.number), '$')
+                        win_execute(vpe_vim.win_getid(w.number), 'redraw')
                     except _vim.error:                       # pragma: no cover
                         pass
 
@@ -413,7 +427,7 @@ class Log:
         buf = self.buf
         if buf:
             d = len(buf) - len(self.fifo)
-            if d > 0:
+            if d > self.allowed_extra_lines:
                 with buf.modifiable():
                     del buf[:d]
 
@@ -435,6 +449,7 @@ class Log:
         else:
             wrappers.commands.wincmd('s')
             self.buf.show()
+            wrappers.vim.current.window.options.spell = False
             wrappers.commands.wincmd('w')
 
     def set_maxlen(self, maxlen: int) -> None:
@@ -475,7 +490,7 @@ class _PopupRWOption(_PopupROOption, _PopupWOOption):
 class _PopupROPos(_PopupOption):
     # pylint: disable=too-few-public-methods
     def __get__(self, obj, _):
-        return wrappers.vim.popup_getpos(obj.id)[self.name]
+        return wrappers.vim.popup_getpos(obj.id).get(self.name, None)
 
 
 class _PopupWOPos(_PopupOption):
@@ -517,7 +532,8 @@ class Popup:
     Popup method. There is no filter or callback property.
 
     :content:   The content for the window.
-    :p_options: Nearly all the standard popup_create options (line, col, pos
+    :name:      An optional name for the Popup. If provided then a named
+                `ScratchBuffer` is used for the content rather than letting Vim
                 *etc*.) can be provided as keyword arguments. The exceptions
                 are filter and callback. Over ride the `on_key` and `on_close`
                 methods instead.
@@ -525,15 +541,24 @@ class Popup:
     _popups: dict = {}
     _create_func = 'popup_create'
 
-    def __init__(self, content, **p_options):
+    def __init__(self, content, name: str = '', **p_options):
         close_cb = common.Callback(self._on_close)
         filter_cb = common.Callback(self._on_key, pass_bytes=True)
         p_options['callback'] = close_cb.as_vim_function()
         p_options['filter'] = filter_cb.as_vim_function()
+        if 'tabpage' not in p_options:
+            p_options['tabpage'] = -1   # Show for all tab pages.
+        self.p_options = p_options.copy()
+        if name:
+            self._buf = get_display_buffer(name)
+        else:
+            self._buf = None
         self._id = getattr(wrappers.vim, self._create_func)(content, p_options)
         self._popups[self._id] = weakref.ref(self, self._on_del)
         self._clean_up()
         self.result = -1
+        if name and content:
+            self.settext(content)
 
     @property
     def id(self) -> int:
@@ -550,8 +575,8 @@ class Popup:
         n = wrappers.vim.winbufnr(self._id)
         if n >= 0:
             return wrappers.vim.buffers[n]
-
-        return None
+        else:
+            return None
 
     @classmethod
     def _on_del(cls, _, _win_id=None):
@@ -563,7 +588,15 @@ class Popup:
 
     def show(self) -> None:
         """Show the popup."""
-        wrappers.vim.popup_show(self._id)
+        options = wrappers.vim.popup_getoptions(self._id)
+        if not options:
+            if self._buf:
+                self._id = getattr(wrappers.vim, self._create_func)(
+                    self._buf.number, self.p_options)
+            else:
+                print('DEBUG: Dead temporary popup')
+        else:
+            wrappers.vim.popup_show(self._id)
 
     def settext(self, content) -> None:
         """Set the text of the popup."""
@@ -658,7 +691,8 @@ class Popup:
     def _on_close(self, _, close_arg):
         self.result = close_arg
         self.on_close(close_arg)
-        self._popups.pop(self._id, None)
+        if self._buf is None:
+            self._popups.pop(self._id, None)
 
     def _on_key(self, _, key_bytes: bytes) -> bool:
         ret = False
@@ -806,17 +840,23 @@ class expr_arg:
     def __str__(self):
         return self.arg
 
+    def __repr__(self):
+        return self.arg
+
 
 # TODO: This could probably be a more generic mechanism baked into Callback.
 class AutoCmdCallback(common.Callback):
-    """Thin `Callback` wrapper to support debugging."""
+    """Thin `Callback` wrapper to support debugging.
+
+    Temporarily rename x__call__ to __call__ in order to get debug output.
+    """
     # pylint: disable=too-few-public-methods
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.debug_meta: Optional[Tuple[str, str]] = None
 
-    def x__call__(self, *args, **kwargs):
+    def x__call__(self, *args, **kwargs):                    # pragma: no cover
         """Useful for some debugging."""
         name, pat = self.debug_meta
         print(
@@ -899,7 +939,7 @@ class AutoCmdGroup:
             if wrappers.vim.has('patch-8.1.1113'):
                 cmd_seq.append('++nested')
             else:
-                cmd_seq.append('nested')
+                cmd_seq.append('nested')                     # pragma: no cover
         kwargs = kwargs or None
         callback = AutoCmdCallback(func, once=once, py_kwargs=kwargs)
         cmd_seq.append(callback.as_call())
@@ -976,9 +1016,16 @@ class BufEventHandler(EventHandler):
 
 
 def highlight(
-        *, group=None, clear=False, default=False, link=None, disable=False,
+        *,
+        group: str | None = None,
+        clear: bool = False,
+        default: bool = False,
+        link: str | None = None,
+        disable: bool = False,
+        dump: bool = False,
+        file: TextIO or None = None,
         **kwargs):
-    """Python version of the highlight command.
+    """Execute a highlight command.
 
     This provides keyword arguments for all the command parameters. These are
     generally taken from the :vim:`:highlight` command's documentation.
@@ -1007,9 +1054,12 @@ def highlight(
         If set then the generated command has the form ``highlight
         default...``.
 
+    :dump:
+        Print the command's arguments, for debugging use.
+
     :kwargs:
-        The remain keyword arguments act like the :vim:`:highlight` command's
-        keyword arguments.
+        The remaining keyword arguments act like the :vim:`:highlight`
+        command's keyword arguments.
     """
     _convert_colour_names(kwargs)
     args = []
@@ -1017,30 +1067,39 @@ def highlight(
         args.append('link')
         args.append(group)
         args.append(link)
-        return wrappers.commands.highlight(*args)
+        if dump:
+            print(f'HL {args=}')
+        return wrappers.commands.highlight(*args, file=file)
     if group:
         args.append(group)
     if clear:
         args[0:0] = ['clear']
-        return wrappers.commands.highlight(*args)
+        if dump:
+            print(f'HL {args=}')
+        return wrappers.commands.highlight(*args, file=file)
 
     if disable:
         args.append('NONE')
-        return wrappers.commands.highlight(*args)
+        if dump:
+            print(f'HL {args=}')
+        return wrappers.commands.highlight(*args, file=file)
 
     if default:
         args.append('default')
 
     for name, value in kwargs.items():
-        args.append(f'{name}={value}')
+        if value:
+            args.append(f'{name}={value!r}')
 
-    ret = wrappers.commands.highlight(*args)
+    if dump:
+        print(f'HL {args=}')
+    ret = wrappers.commands.highlight(*args, file=file)
     return ret
 
 
 def _name_to_number(name):
     if isinstance(name, int):
-        return name
+        return name                                          # pragma: no cover
     return colors.to_256_num(colors.well_defined_name(name))
 
 
@@ -1049,7 +1108,8 @@ def _convert_colour_names(kwargs):
     _gui_argnames = set(('guifg', 'guibg', 'guisp'))
     for key, name in kwargs.items():
         if name in _std_vim_colours or not isinstance(name, str):
-            continue
+            # My version of coverage is falsely reporting this as a miss.
+            continue                                         # pragma: no cover
         if key in _cterm_argnames:
             kwargs[key] = _name_to_number(name)
         elif key in _gui_argnames:
@@ -1069,7 +1129,7 @@ def _invoke_now_or_soon(soon, func, *args, **kwargs):
     """Invoke a function immediately or soon.
 
     :soon:   If false then invoke immediately. Otherwise arrange to invoke soon
-             from Vim's execution loop.
+             from Vim's import loop.
     :func:   The function.
     :args:   The functions arguments.
     :kwargs: The function's keyword arguments.
@@ -1129,8 +1189,8 @@ def pedit(path: str, silent=True, noerrors=False):
 def feedkeys(keys, mode=None, literal=False):
     """Feed keys into Vim's type-ahead buffer.
 
-    Unlike vim.feedkeys() directly this provides support for using special key
-    mnemonics.
+    Unlike using vim.feedkeys() directly this provides support for using
+    special key mnemonics.
 
     :keys:    The keys string.
     :mode:    The mode passed to Vim's feedkeys function.
@@ -1357,8 +1417,8 @@ class temp_active_buffer:
 
     If a switch is made then while the context is actives:
 
-    - autocommands are disabled (by setting eventignore=all).
-    - the replaced buffer has bufhidden=hide set.
+    - The autocommands are disabled (by setting eventignore=all).
+    - The replaced buffer has bufhidden=hide set.
     - The alternative buffer register ('#') is not updated.
 
     This can be used to execute Vim operations that only apply to the current

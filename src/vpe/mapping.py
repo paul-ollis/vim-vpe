@@ -143,7 +143,7 @@ def map(
                 should be one of: normal, visual, op-pending, insert, command,
                 select. The command and select mode are not supported when
                 *func* is not a string.
-    :keys:      The key sequence to be mapped. This may be an interable set of
+    :keys:      The key sequence to be mapped. This may be an iterable set of
                 key sequences that should all be mapped to the same action.
     :func:      The Python function to invoke for the mapping or a string to
                 use as the right hand side of the mapping.
@@ -170,29 +170,34 @@ def map(
         '<silent>' if silent else '',
         '<unique>' if unique else '',
         '<nowait>' if nowait else ''] if el]
-    if isinstance(func, str):
-        rhs = func
-    else:
-        cb = MapCallback(
-            func, info=(mode, keys), py_args=args, py_kwargs=kwargs or {},
-            vim_exprs=vim_exprs, pass_info=pass_info)
-        if mode == 'normal':
-            rhs = f':silent {cb.as_call()}<CR>'
-        elif mode == 'insert':
-            if command:
-                rhs = rf'<C-\><C-N>:silent {cb.as_call()}<CR>'
-            else:
-                rhs = f'<C-R>={cb.as_invocation()}<CR>'
-        elif mode == 'visual':
-            rhs = f':<C-U>silent {cb.as_call()}<CR>'
-        elif mode == 'op-pending':
-            rhs = f':<C-U>silent {cb.as_call()}<CR>'
-        else:
-            raise NotImplementedError
 
+    # TODO: Buf fix: The info-(mode, keys) was not providing the specific key
+    #       sequence. It was listing all key sequences.
     if isinstance(keys, str):
         keys = [keys]
+
     for key_seq in keys:
+        if isinstance(func, str):
+            rhs = func
+        else:
+            cb = MapCallback(
+                func, info=(mode, key_seq), py_args=args,
+                py_kwargs=kwargs or {}, vim_exprs=vim_exprs,
+                pass_info=pass_info)
+            if mode == 'normal':
+                rhs = f':silent {cb.as_call()}<CR>'
+            elif mode == 'insert':
+                if command:
+                    rhs = rf'<C-\><C-N>:silent {cb.as_call()}<CR>'
+                else:
+                    rhs = f'<C-R>={cb.as_invocation()}<CR>'
+            elif mode == 'visual':
+                rhs = f':<C-U>silent {cb.as_call()}<CR>'
+            elif mode == 'op-pending':
+                rhs = f':<C-U>silent {cb.as_call()}<CR>'
+            else:
+                raise NotImplementedError
+
         map_cmd = mode_to_map_command[mode]
         cmd = f'{map_cmd} <special> {" ".join(specials)} {key_seq} {rhs}'
         vim.command(cmd)
@@ -263,17 +268,21 @@ def imap(
 class KeyHandler:
     """Mix-in to support mapping key sequences to methods."""
 
-    def auto_map_keys(self):
+    def auto_map_keys(self, *, pass_info: bool = False, debug: bool = False):
         """Set up mappings for methods."""
         def is_method(obj):
             return inspect.ismethod(obj) or inspect.isfunction(obj)
 
-        kmap = partial(map, pass_info=False)
+        kmap = partial(map, pass_info=pass_info)
         with vim.temp_options(cpoptions=vpe.VIM_DEFAULT):
             for _, method in inspect.getmembers(self, is_method):
                 info = getattr(method, '_keymappings_', None)
+                if debug:
+                    print("AM", info)
                 if info is not None:
                     for mode, keyseq, kwargs in info:
+                        if debug:
+                            print("AM", (mode, keyseq, method, kwargs))
                         kmap(mode, keyseq, method, **kwargs)
 
     @staticmethod

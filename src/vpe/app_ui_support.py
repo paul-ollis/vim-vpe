@@ -58,7 +58,7 @@ def _my_xwin_id():
     return ''                                                # pragma: no cover
 
 
-class _Coord:
+class _Coord:                          # pylint: disable=too-few-public-methods
     """A simple X/ Y coordinate."""
     def __init__(self, x, y):
         self.x = x
@@ -97,7 +97,7 @@ class AppWin:
         """
         if self.cell_size[0] != 0:
             return self.dims_pixels[0] // self.cell_size[0]
-        return None
+        return None                                          # pragma: no cover
 
     @property
     def decor_dims(self) -> Tuple[int, int]:
@@ -107,7 +107,7 @@ class AppWin:
         return w + a + b, h + c + d
 
 
-class Display:
+class Display:                         # pylint: disable=too-few-public-methods
     """Information about a single display (physical screen).
 
     :@w: The width in pixels.

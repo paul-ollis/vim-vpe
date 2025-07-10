@@ -9,7 +9,7 @@ values in an INI style configuration file and makes option values available as
 (pseudo) instance attributes.
 """
 
-from configparser import ConfigParser
+import configparser
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
@@ -68,7 +68,8 @@ class Option:
         """
         return {'prefix': self.name, 'description': self.description}
 
-    def values(self) -> List[Any]:
+    @staticmethod
+    def values() -> List[Any]:
         """Get the list of choices.
 
         This supports the protocol required for Tab completion support.
@@ -231,11 +232,11 @@ class Config:
         """
         path = Path(vpe.dot_vim_dir()) / f'{CONFIG_SUBDIR}/{self._name}.ini'
         try:
-            f = open(path, 'rt')
+            f = open(path, 'rt', encoding='utf-8')
         except OSError:                                      # pragma: no cover
             vpe.error_msg(f'Could not read {path}.', soon=True)
             return
-        parser = ConfigParser()
+        parser = configparser.ConfigParser()
         try:
             parser.read_file(f)
         except configparser.Error:                           # pragma: no cover
@@ -254,8 +255,8 @@ class Config:
         file will be lost.
         """
         path = Path(vpe.dot_vim_dir()) / f'{CONFIG_SUBDIR}/{self._name}.ini'
-        dir = path.parent
-        if not dir.exists():
+        parent_dir = path.parent
+        if not parent_dir.exists():
             try:
                 path.parent.mkdir(parents=True)
             except OSError:                                  # pragma: no cover
@@ -263,11 +264,11 @@ class Config:
                     f'Could not create {path.parent} driectory.', soon=True)
                 return
         try:
-            f = open(path, 'wt')
+            f = open(path, 'wt', encoding='utf-8')
         except OSError:                                      # pragma: no cover
             vpe.error_msg(f'Could not write {path}.', soon=True)
             return
-        parser = ConfigParser()
+        parser = configparser.ConfigParser()
         for option in self._options.values():
             parser['DEFAULT'][option.name] = option.store_repr
         with f:
