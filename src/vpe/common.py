@@ -426,6 +426,7 @@ class Callback(CallableRef):
     # pylint: disable=too-many-instance-attributes
     vim_func = 'VPE_Call'
     callbacks: ClassVar[Dict[str, 'Callback']] = {}
+    callback_data = {}
 
     def __init__(
             self, func, *, py_args=(), py_kwargs=None, vim_exprs=(),
@@ -434,6 +435,8 @@ class Callback(CallableRef):
         super().__init__(func)
         uid = self.uid = str(next(id_source))
         self.callbacks[uid] = self
+        self.callback_data[uid] = f'{func} {py_args} {py_kwargs}'
+
         self.vim_exprs = vim_exprs
         self.py_args = py_args
         self.py_kwargs = {} if py_kwargs is None else py_kwargs.copy()
@@ -527,7 +530,7 @@ class Callback(CallableRef):
         uid = vpe_args.pop('uid')
         cb = cls.callbacks.get(uid, None)
         if cb is None:
-            call_soon(print, f'uid={uid} is dead!')
+            call_soon(print, f'uid={uid} is dead! {cls.callback_data[uid]}')
             return 0
 
         try:
@@ -569,7 +572,8 @@ class Callback(CallableRef):
     # TODO: This form ignores the vim_exprs.
     def as_vim_function(self):
         """Create a vim.Function that will route to this callback."""
-        return _vim.Function(self.vim_func, args=[self.uid, self.func_name])
+        return _vim.Function(
+            f'g:{self.vim_func}', args=[self.uid, self.func_name])
 
     def format_call_fail_message(self):
         """Generate a message to give details of a failed callback invocation.

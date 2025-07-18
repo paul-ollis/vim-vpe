@@ -19,17 +19,14 @@ import sys
 import time
 import weakref
 from functools import partial
-from typing import Callable, List, Optional, TextIO, Tuple, Type, Union
+from typing import Callable, TextIO, Type
 
-try:
-    from rich.traceback import install as install_rich_traceback
-except ImportError:
-    install_rich_traceback = None
+from rich.traceback import install as install_rich_traceback
 
 import vim as _vim
 
 import vpe
-from . import colors, common, wrappers
+from vpe import colors, common, wrappers
 
 __api__ = [
     'expr_arg',
@@ -115,6 +112,9 @@ EOF
 endfunction
 """
 _vim.command(_VIM_FUNC_DEFS)
+
+# Provide rich tracebacks.
+install_rich_traceback(show_locals=True)
 
 
 def _clean_ident(s):
@@ -271,6 +271,23 @@ class ScratchBuffer(wrappers.Buffer):
         return self.temp_options(modifiable=True, readonly=False)
 
 
+def known_display_buffer(name: str) -> tuple[ScratchBuffer | None, str]:
+    r"""Get a named display-only buffer if it is already known and exists."""
+    # pylint: disable=unsubscriptable-object
+    if platform.system() == 'Windows': # pragma: no cover windows
+        buf_name = rf'C:\[[{name}]]'
+    else:
+        buf_name = f'/[[{name}]]'
+
+    # Return the already created buffer if possible.
+    b = _known_special_buffers.get(buf_name, None)
+    if b is not None and b.valid:
+        # Buffer has been deleted.
+        return b, buf_name
+    else:
+        return None, buf_name
+
+
 def get_display_buffer(
             name: str, buf_class: Type[ScratchBuffer] = ScratchBuffer
         ) -> ScratchBuffer:
@@ -283,14 +300,11 @@ def get_display_buffer(
            `ScratchBuffer.simple_name` attribute.
     """
     # pylint: disable=unsubscriptable-object
-    if platform.system() == 'Windows': # pragma: no cover windows
-        buf_name = rf'C:\[[{name}]]'
-    else:
-        buf_name = f'/[[{name}]]'
-    b = _known_special_buffers.get(buf_name, None)
-    if b is not None and b.valid:
+    b, buf_name = known_display_buffer(name)
+    if b is not None:
         return b
 
+    # Find the matching buffer or create it.
     for b in wrappers.vim.buffers:
         if b.name == buf_name:
             break
@@ -298,8 +312,10 @@ def get_display_buffer(
         n = wrappers.vim.bufnr(buf_name, True)
         b = wrappers.vim.buffers[n]
 
+    # Wrap the buffer and save in the table of known display buffers.
     b = buf_class(buf_name, b, name)
     _known_special_buffers[buf_name] = b
+
     return b
 
 
@@ -354,15 +370,19 @@ class Log:
         print(*args, file=self.text_buf)
         self._flush_lines()
 
+    @property
+    def maxlen(self) -> int:
+        """The current maximum length."""
+        return self.fifo.maxlen
+
     def redirect(self):
-        """Redirect stdout/stderr to the log and use rich tracebacks."""
-        self.saved_out.append((sys.stdout, sys.stderr))
-        sys.stdout = sys.stderr = self
-        if install_rich_traceback:
-            install_rich_traceback(show_locals=True)
+        """Redirect stdout/stderr to the log."""
+        if not self.saved_out:
+            self.saved_out.append((sys.stdout, sys.stderr))
+            sys.stdout = sys.stderr = self
 
     def unredirect(self):
-        """Undo most recent redirection."""
+        """Disable stdout/stderr redirection."""
         if self.saved_out:
             sys.stdout, sys.stderr = self.saved_out.pop()
 
@@ -423,13 +443,15 @@ class Log:
         self.fifo.clear()
         self._trim()
 
-    def _trim(self) -> None:
+    def _trim(self, debug=False) -> None:
         buf = self.buf
         if buf:
             d = len(buf) - len(self.fifo)
             if d > self.allowed_extra_lines:
                 with buf.modifiable():
                     del buf[:d]
+            if debug:
+                print(f'Trim: {d=} {self.allowed_extra_lines=}')
 
     def show(self) -> None:
         """Make sure the buffer is visible.
@@ -439,7 +461,8 @@ class Log:
         - Split the current window.
         - Create a buffer and show it in the new split.
         """
-        if self.buf is None:
+        b, _ = known_display_buffer(self.name)
+        if self.buf is None or b is None:
             self.buf = get_display_buffer(self.name)
             with self.buf.modifiable():
                 self.buf[:] = list(self.fifo)
@@ -452,6 +475,14 @@ class Log:
             wrappers.vim.current.window.options.spell = False
             wrappers.commands.wincmd('w')
 
+    def hide(self) -> None:
+        """Hide the log buffer, if showing."""
+        if self.buf is None:
+            return
+        for w in wrappers.vim.windows:
+            if w.buffer.number == self.buf.number:
+                w.close()
+
     def set_maxlen(self, maxlen: int) -> None:
         """Set the maximum length of the log's FIFO.
 
@@ -460,8 +491,11 @@ class Log:
         :maxlen: How many lines to store in the FIFO.
         """
         if maxlen != self.fifo.maxlen:
-            self.fifo = collections.deque(self.fifo, maxlen)
-        self._trim()
+            self.allowed_extra_lines = maxlen // 10
+            prev_content = list(self.fifo)
+            self.fifo = collections.deque([], maxlen)
+            self.fifo.extend(prev_content[-maxlen:])
+        self._trim(True)
 
 
 class _PopupOption:
@@ -553,6 +587,11 @@ class Popup:
             self._buf = get_display_buffer(name)
         else:
             self._buf = None
+
+        # Note the timeout, but do not pass to the creation function. Vim's
+        # timeout mechanism does not work with callbacks.
+        timeout = p_options.pop('time', None)
+        p_options['time'] = 0x7fffffff
         self._id = getattr(wrappers.vim, self._create_func)(content, p_options)
         self._popups[self._id] = weakref.ref(self, self._on_del)
         self._clean_up()
@@ -560,13 +599,19 @@ class Popup:
         if name and content:
             self.settext(content)
 
+        # Provide our own timeout mechanism, which does allow callbacks to be
+        # invoked.
+        self.timer: common.Timer | None = None
+        if timeout is not None and timeout > 0:
+            self.timer = common.Timer(timeout, self._on_timeout)
+
     @property
     def id(self) -> int:
         """The ID of the Vim popup window."""
         return self._id
 
     @property
-    def buffer(self) -> Optional[wrappers.Buffer]:
+    def buffer(self) -> wrappers.Buffer | None:
         """The buffer holding the window's content.
 
         :return:
@@ -688,11 +733,14 @@ class Popup:
         # pylint: disable=unused-argument,no-self-use
         return False
 
-    def _on_close(self, _, close_arg):
+    def _on_close(self, _id, close_arg):
         self.result = close_arg
         self.on_close(close_arg)
         if self._buf is None:
             self._popups.pop(self._id, None)
+
+    def _on_timeout(self, _timer: common.Timer) -> None:
+        wrappers.vim.popup_close(self._id, -2)
 
     def _on_key(self, _, key_bytes: bytes) -> bool:
         ret = False
@@ -794,9 +842,35 @@ class PopupBeval(Popup):
 class PopupNotification(Popup):
     """Popup configured as a short lived notification (default 3s).
 
-    This creates the popup using popup_notification().
+    This creates the popup in a similar manner to popup_notification.
+
+    Note that popup_notification cannot be used because because callback
+    invocation fails rather wierdly if the popup closes due to a timeout. The
+    main `Popup` class provides its own timeout mechanism., which does not
+    suffer from this problem.
     """
-    _create_func = 'popup_notification'
+    _create_func = 'popup_create'
+
+    def __init__(self, content, name: str = '', **p_options):
+        kw = {
+            'line': 1,
+            'col': 10,
+            'minwidth': 20,
+            'tabpage': -1,
+            'zindex': 300,
+            'time': 3000,
+            'drag': 1,
+            'highlight': 'WarningMsg',
+            'border': [],
+            'close': 'click',
+            'padding': [0,1,0,1],
+        }
+        if wrappers.vim.hlID('PopupNotification') > 0:
+            kw['highlight'] = 'PopupNotification'
+        for key, value in kw.items():
+            if key not in p_options:
+                p_options[key] = value
+        super().__init__(content, name, **p_options)
 
 
 class PopupDialog(Popup):
@@ -854,7 +928,7 @@ class AutoCmdCallback(common.Callback):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.debug_meta: Optional[Tuple[str, str]] = None
+        self.debug_meta: tuple[str, str] | None = None
 
     def x__call__(self, *args, **kwargs):                    # pragma: no cover
         """Useful for some debugging."""
@@ -954,7 +1028,7 @@ class EventHandler:
     The default pattern (see :vim:`autocmd-patterns`) is '*' unless explicitly
     set by the `handle` decorator.
     """
-    _default_event_pattern: Optional[str] = '*'
+    _default_event_pattern: str | None = '*'
 
     def auto_define_event_handlers(self, group_name: str, delete_all=False):
         """Set up mappings for event handling methods.
@@ -1119,8 +1193,14 @@ def _convert_colour_names(kwargs):
 def _echo_msg(*args, hl='None'):
     msg = ' '.join(str(a) for a in args)
     common.vim_command(f'echohl {hl}')
+    text = f'{msg!r}'
+    if text[0] == "'":
+        # Switch double and single quotes.
+        body = text[1:-1]
+        body = body.replace(r"\'", "'").replace('"', r'\"')
+        text = '"' + body + '"'
     try:
-        common.vim_command(f'echomsg {msg!r}')
+        common.vim_command(f'echomsg {text}')
     finally:
         common.vim_command('echohl None')
 
@@ -1129,7 +1209,7 @@ def _invoke_now_or_soon(soon, func, *args, **kwargs):
     """Invoke a function immediately or soon.
 
     :soon:   If false then invoke immediately. Otherwise arrange to invoke soon
-             from Vim's import loop.
+             from Vim's event loop.
     :func:   The function.
     :args:   The functions arguments.
     :kwargs: The function's keyword arguments.
@@ -1228,11 +1308,11 @@ def _double_quote(expr):
 
 
 def define_command(
-        name: str, func: Callable, *, nargs: Union[int, str] = 0,
-        complete: str = '', range: Union[bool, str] = '', count: str = '',
+        name: str, func: Callable, *, nargs: int | str = 0,
+        complete: str = '', range: bool | str = '', count: str = '',
         addr: str = '', bang: bool = False, bar: bool = False,
         register: bool = False, buffer: bool = False, replace: bool = True,
-        pass_info: bool = True, args=(), kwargs: Optional[dict] = None):
+        pass_info: bool = True, args=(), kwargs: dict | None = None):
         # pylint: disable=too-many-locals,redefined-builtin
     """Create a user defined command that invokes a Python function.
 
@@ -1275,7 +1355,7 @@ def define_command(
     :args:      Additional arguments to pass to the mapped function.
     :kwargs:    Additional keyword arguments to pass to the mapped function.
     """
-    cmd_args: List[Union[expr_arg, int]] = [
+    cmd_args: list[expr_arg | int] = [
         expr_arg('<line1>'), expr_arg('<line2>'), expr_arg('<range>'),
         expr_arg('<count>'), expr_arg('<q-bang>'), expr_arg('<q-mods>'),
         expr_arg('<q-reg>'), expr_arg('<f-args>')]
@@ -1312,7 +1392,20 @@ def define_command(
 
 
 class CommandHandler:
-    """Mix-in to support mapping user commands to methods."""
+    """Mix-in to support mapping user commands to methods.
+
+    To use this do the following:
+
+    - Make your class inherit from this class.
+
+    - Decorate methods that implement commands using the `command` class
+      method. A decorated method expect to be invoked with multiple positional
+      parameters, one per command line argument.
+
+    - In your init function, invoke ``self.auto_define_commands()``.
+
+    Your code should only create a single instance of the class.
+    """
 
     def auto_define_commands(self):
         """Set up mappings for command methods."""
@@ -1355,7 +1448,7 @@ def popup_clear(force=False):
     Popup.clear(force)
 
 
-def find_buffer_by_name(name: str) -> Optional[wrappers.Buffer]:
+def find_buffer_by_name(name: str) -> wrappers.Buffer | None:
     """Find the buffer with a given name.
 
     The name must be an exact match.

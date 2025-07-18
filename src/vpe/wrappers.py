@@ -514,6 +514,19 @@ class Buffer(common.MutableSequenceProxy):
         """
         return self._store[key]
 
+    def retrieve_store(self, key: Any) -> Struct | None:
+        """Retrive a given buffer store if it exists.
+
+        This is similar to `store`, but no new store is created.
+
+        :return:
+            The requested store `Struct` or ``None`` if it does not exist.
+        """
+        if key in self._store:
+            return self._store[key]
+        else:
+            return None
+
     # TODO: I think the docstring is wrong; 'a' is a line number, not an index.
     def range(self, a: int, b: int) -> Range:
         """Get a `Range` for the buffer.

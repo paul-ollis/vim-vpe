@@ -81,6 +81,7 @@ from vpe.wrappers import (
     Buffer, Buffers, Current, GlobalOptions, Options, Range, Registers, Struct,
     TabPage, TabPages, VIM_DEFAULT, VI_DEFAULT, Variables, Window, Windows,
     commands, suppress_vim_invocation_errors)
+from vpe import vpe_commands as _vpe_commands
 
 __api__ = [
     'AutoCmdGroup', 'Timer', 'Popup', 'PopupAtCursor', 'PopupBeval',
@@ -91,7 +92,7 @@ __api__ = [
     'timer_stopall', 'find_buffer_by_name', 'script_py_path',
     'get_display_buffer', 'version', 'dot_vim_dir', 'temp_active_window',
     'define_command', 'CommandInfo', 'saved_current_window',
-    'Finish', 'run_after_enter',
+    'Finish',
 
     'core', 'commands', 'mapping', 'syntax', 'wrappers', 'panels',
     'ui', 'config', 'channels', 'windows', 'app_ui_support',
@@ -234,6 +235,7 @@ def _import_possible_plugin(path):
 
 def _load_plugins():
     """Load any VPE based plugins."""
+
     plugin_dir = Path(dot_vim_dir()) / f'pack/{PLUGIN_SUBDIR}'
     possible_plugins = [
         p for p in plugin_dir.glob('*') if p.suffix in ('.py', '')]
@@ -271,6 +273,7 @@ def _load_new_plugins():
             pass
         else:
             if callable(init_func):
+                common.call_soon(print, f'Set up init for {entry_point.name}')
                 common.call_soon(init_func)
 
 
@@ -285,18 +288,6 @@ def _run_post_enter_hooks():
             f = io.StringIO()
             traceback.print_exc(file=f)
             call_soon(print, f.getvalue())
-
-
-def run_after_enter(func: Callable[[], None]):
-    """Invoke a function immediately if possible or after VimEnter."""
-    if vim.vvars.vim_did_enter:
-        try:
-            func()
-        except Exception as e:
-            call_soon(print, f'Failed to run {func}')
-            call_soon(print, f'    {e}')
-    else:
-        _post_vim_enter_hooks.append(func)
 
 
 def _init_vpe_plugins():
@@ -322,7 +313,7 @@ def _init_vpe_plugins():
     if not init_path.exists():
         init_path.write_text('')
 
-    run_after_enter(_load_plugins)
+    _load_plugins()
 
 
 class temp_log:                                              # pragma: no cover
@@ -346,10 +337,11 @@ class temp_log:                                              # pragma: no cover
         sys.stderr, sys.stdout = self.saved
 
 
-_post_vim_enter_hooks = []
+def post_init():
+    """Perform post-initialisation.
 
-with AutoCmdGroup('VPECore') as au:
-    au.add('VimEnter', _run_post_enter_hooks, pat='*', nested=True)
-
-_init_vpe_plugins()
-del _init_vpe_plugins
+    This is invoked by $HOME/.vim/plugin/000-vpe.vim immediately after the
+    `vpe` package is imported.
+    """
+    _vpe_commands.init()
+    _init_vpe_plugins()
