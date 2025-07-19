@@ -1,7 +1,8 @@
 Module vpe.core
 ===============
 
-.. py:module:: vpe.core
+
+.. py:module:: core
 
 Enhanced module for using Python3 in Vim.
 
@@ -15,10 +16,9 @@ module. It is intended that a Vim instance can be uses as a replacement for the
     # Now use 'vim' as an extended version of the ``vim`` module.
     # ...
 
-expr_arg
---------
+.. rubric:: expr_arg
 
-.. py:class:: vpe.core.expr_arg(arg: str)
+.. py:class:: expr_arg(arg: str)
 
     Wrapper for a Vim argument that is an expression.
 

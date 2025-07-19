@@ -1,29 +1,29 @@
 Module vpe.mapping
 ==================
 
-.. py:module:: vpe.mapping
+
+.. py:module:: mapping
 
 Python support for key sequence mapping.
 
 This module provides support for mapping key sequences to Python function
 calls.
 
-KeyHandler
-----------
+.. rubric:: KeyHandler
 
-.. py:class:: vpe.mapping.KeyHandler
+.. py:class:: KeyHandler
 
     Mix-in to support mapping key sequences to methods.
 
     **Methods**
 
-        .. py:method:: vpe.mapping.KeyHandler.auto_map_keys()
+        .. py:method:: auto_map_keys(pass_info: bool = False,debug: bool = False)
 
             Set up mappings for methods.
 
     **Static methods**
 
-        .. py:staticmethod:: vpe.mapping.KeyHandler.mapped(...)
+        .. py:staticmethod:: mapped(...)
 
             .. code::
 
@@ -42,15 +42,14 @@ KeyHandler
                 *mode*: str
                     The mode in which the mapping applies, one of normal,
                     op-pending, visual or insert.
-                *keyseq*: typing.Union[str, typing.Iterable[str]]
+                *keyseq*: Union
                     A key sequence string or sequence thereof, as used by `map`.
                 *kwargs*
                     See `map` for the supported values.
 
-MapCallback
------------
+.. rubric:: MapCallback
 
-.. py:class:: vpe.mapping.MapCallback(*args,**kwargs)
+.. py:class:: MapCallback(*args,**kwargs)
 
     Wrapper for a function to be invoked by a key mapping.
 
@@ -67,17 +66,16 @@ MapCallback
 
     **Methods**
 
-        .. py:method:: vpe.mapping.MapCallback.get_call_args(_vpe_args: Dict[str, Any])
+        .. py:method:: get_call_args(_vpe_args: Dict[str, Any])
 
             Get the Python positional and keyword arguments.
 
             This makes the first positional argument a `MappingInfo` instance,
             unless self.pass_info has been cleared.
 
-MappingInfo
------------
+.. rubric:: MappingInfo
 
-.. py:class:: vpe.mapping.MappingInfo(mode: str,keys: str)
+.. py:class:: MappingInfo(mode: str,keys: str)
 
     Information passed to a key mapping callback handler.
 
@@ -113,8 +111,7 @@ MappingInfo
 
     **Properties**
 
-        .. py:method:: line_range() -> Optional[Tuple[int, int]]
-            :property:
+        .. py:property:: line_range() -> Optional[Tuple[int, int]]
 
             The line range, if visual mode was active.
 
@@ -123,7 +120,7 @@ MappingInfo
 imap
 ----
 
-.. py:function:: vpe.mapping.imap(...)
+.. py:function:: imap(...)
 
     .. code::
 
@@ -146,7 +143,7 @@ imap
 map
 ---
 
-.. py:function:: vpe.mapping.map(...)
+.. py:function:: map(...)
 
     .. code::
 
@@ -194,10 +191,10 @@ map
             should be one of: normal, visual, op-pending, insert, command,
             select. The command and select mode are not supported when
             *func* is not a string.
-        *keys*: typing.Union[str, typing.Iterable[str]]
-            The key sequence to be mapped. This may be an interable set of
+        *keys*: Union
+            The key sequence to be mapped. This may be an iterable set of
             key sequences that should all be mapped to the same action.
-        *func*: typing.Union[typing.Callable, str]
+        *func*: Union
             The Python function to invoke for the mapping or a string to
             use as the right hand side of the mapping.
         *buffer*: bool
@@ -218,16 +215,16 @@ map
             object. Defaults to True.
         *args*
             Additional arguments to pass to the mapped function.
-        *kwargs*: typing.Optional[dict]
+        *kwargs*: Optional
             Additional keyword arguments to pass to the mapped function.
-        *vim_exprs*: typing.Tuple[str, ...]
+        *vim_exprs*: Tuple
             Vim expressions to be evaluated and passed to the callback
             function, when the mapping is triggered.
 
 nmap
 ----
 
-.. py:function:: vpe.mapping.nmap(...)
+.. py:function:: nmap(...)
 
     .. code::
 
@@ -249,7 +246,7 @@ nmap
 omap
 ----
 
-.. py:function:: vpe.mapping.omap(...)
+.. py:function:: omap(...)
 
     .. code::
 
@@ -271,7 +268,7 @@ omap
 xmap
 ----
 
-.. py:function:: vpe.mapping.xmap(...)
+.. py:function:: xmap(...)
 
     .. code::
 

@@ -1,7 +1,8 @@
 Module vpe.panels
 =================
 
-.. py:module:: vpe.panels
+
+.. py:module:: panels
 
 Simple display and control panel framework.
 
@@ -25,10 +26,9 @@ panels.:
 The contents of each panel is managed by a `Panel` subclass. The panels are
 managed by a `PanelViewBuffer`.
 
-Panel
------
+.. rubric:: Panel
 
-.. py:class:: vpe.panels.Panel
+.. py:class:: Panel
 
     Part of a `PanelViewBuffer`.
 
@@ -66,24 +66,21 @@ Panel
 
     **Properties**
 
-        .. py:method:: buf_slice()
-            :property:
+        .. py:property:: buf_slice()
 
             A slice object to select this panel's line range.
 
-        .. py:method:: end_lidx()
-            :property:
+        .. py:property:: end_lidx()
 
             The end index of the panel;s line range.
 
-        .. py:method:: syntax_prefix()
-            :property:
+        .. py:property:: syntax_prefix()
 
             A suitable prefix for syntax items in this panel.
 
     **Methods**
 
-        .. py:method:: vpe.panels.Panel.apply_syntax()
+        .. py:method:: apply_syntax()
 
             Apply syntax highlighting for this panel.
 
@@ -93,7 +90,7 @@ Panel
             This is only called when the panel's `start_lidx` is correctly set.
             Previous panel specific syntax must be deleted by this method.
 
-        .. py:method:: vpe.panels.Panel.apply_updates() -> bool
+        .. py:method:: apply_updates() -> bool
 
             Apply any changes since the last call to this method.
 
@@ -106,7 +103,7 @@ Panel
 
                 True if the buffer was updated.
 
-        .. py:method:: vpe.panels.Panel.format_contents()
+        .. py:method:: format_contents()
 
             Format this panel's contents.
 
@@ -118,14 +115,14 @@ Panel
             This invokes the `on_format_contents` method, which is responsible for
             filling the `content` list.
 
-        .. py:method:: vpe.panels.Panel.on_format_contents() -> None
+        .. py:method:: on_format_contents() -> None
 
             Format the content of this panel.
 
             The content is stored as a sequence of lines in the `content` property.
             This needs to be over-ridden in concrete subclasses.
 
-        .. py:method:: vpe.panels.Panel.reindex(idx: int) -> int
+        .. py:method:: reindex(idx: int) -> int
 
             Update the line index information for this panel.
 
@@ -146,7 +143,7 @@ Panel
 
                 The start line index for any following panel.
 
-        .. py:method:: vpe.panels.Panel.set_view(view: PanelViewBuffer,uid: int)
+        .. py:method:: set_view(view: PanelViewBuffer,uid: int)
 
             Set the parent `PanelViewBuffer`.
 
@@ -160,10 +157,9 @@ Panel
                 *uid*: int
                     The PanelViewBuffer unique ID for this panel.
 
-PanelViewBuffer
----------------
+.. rubric:: PanelViewBuffer
 
-.. py:class:: vpe.panels.PanelViewBuffer(*args,**kwargs)
+.. py:class:: PanelViewBuffer(*args,**kwargs)
 
     A `ScratchBuffer` organised as vertical sequence of panels.
 
@@ -177,27 +173,25 @@ PanelViewBuffer
 
     **Properties**
 
-        .. py:method:: data()
-            :property:
+        .. py:property:: data()
 
             The data store for this panel view.
 
-        .. py:method:: panels()
-            :property:
+        .. py:property:: panels()
 
             The sequence of panels for this display buffer.
 
     **Methods**
 
-        .. py:method:: vpe.panels.PanelViewBuffer.add_panel(panel: Panel)
+        .. py:method:: add_panel(panel: Panel)
 
             Add a panel an the end of the panel list.
 
-        .. py:method:: vpe.panels.PanelViewBuffer.format_panel(panel: Panel)
+        .. py:method:: format_panel(panel: Panel)
 
             Make a panel refresh itself.
 
-        .. py:method:: vpe.panels.PanelViewBuffer.insert_panel(panel: Panel,index: int)
+        .. py:method:: insert_panel(panel: Panel,index: int)
 
             Insert a panel into the panel list.
 
@@ -212,7 +206,7 @@ PanelViewBuffer
                 *index*: int
                     Where to insert the panel.
 
-        .. py:method:: vpe.panels.PanelViewBuffer.notify_content_change(panel: Panel)
+        .. py:method:: notify_content_change(panel: Panel)
 
             Handle notification that a panel's content has changed.
 
@@ -224,29 +218,29 @@ PanelViewBuffer
                 *panel*: Panel
                     The panel that has changed.
 
-        .. py:method:: vpe.panels.PanelViewBuffer.notify_size_change()
+        .. py:method:: notify_size_change()
 
             Handle notification that some panel's size has changed.
 
-        .. py:method:: vpe.panels.PanelViewBuffer.on_buf_enter()
+        .. py:method:: on_buf_enter()
 
             Invoked each time the buffer is entered.
 
             Subclasses may extend this.
 
-        .. py:method:: vpe.panels.PanelViewBuffer.on_reindex()
+        .. py:method:: on_reindex()
 
             Perform special processing when line reindexing has occurred.
 
             Subclasses may over-ride this.
 
-        .. py:method:: vpe.panels.PanelViewBuffer.on_set_syntax()
+        .. py:method:: on_set_syntax()
 
             Perform special processing when syntax is defined.
 
             Subclasses may over-ride this.
 
-        .. py:method:: vpe.panels.PanelViewBuffer.on_updates_applied(changes_occurred: bool)
+        .. py:method:: on_updates_applied(changes_occurred: bool)
 
             Perform special processing when buffer has been refreshed.
 
@@ -259,7 +253,7 @@ PanelViewBuffer
                 *changes_occurred*: bool
                     True if changes to the buffer have been made.
 
-        .. py:method:: vpe.panels.PanelViewBuffer.remove_panel(panel: Panel)
+        .. py:method:: remove_panel(panel: Panel)
 
             Remove a panel from the panel list.
 
@@ -271,13 +265,13 @@ PanelViewBuffer
                 *panel*: Panel
                     The panel to remove. It *must* be present.
 
-        .. py:method:: vpe.panels.PanelViewBuffer.schedule_win_op(key,func,*args)
+        .. py:method:: schedule_win_op(key,func,*args)
 
             Schedule an operation for when the buffer appears in a window.
 
 can_cause_changes
 -----------------
 
-.. py:function:: vpe.panels.can_cause_changes(method)
+.. py:function:: can_cause_changes(method)
 
     Decorator for `Panel` methods that can cause visible changes.

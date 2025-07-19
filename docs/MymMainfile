@@ -25,15 +25,19 @@ def ensure_dir_is_in_sys_path(path: Union[pathlib.Path, str], first=True):
 
 
 def make_api_files(node):
-    doculate.gen_api_tree(root_path=src_path, mod_name='vpe', dest='api')
+    doculate.gen_api_tree(
+        root_path=src_path, mod_name='vpe', dest='api',
+        # debug_items=['vpe.wrappers', 'vpe.wrappers.Vim'],
+    )
 
 
 # Make sure that we can import the doculate code and the VPE code.
 doc_path = pathlib.Path.cwd()
-src_path = doc_path.parent
+root_path = doc_path.parent
+src_path = root_path / 'src'
 ensure_dir_is_in_sys_path('~/np/sw/sphinx-ext', first=False)
 ensure_dir_is_in_sys_path(src_path)
-ensure_dir_is_in_sys_path(src_path / 'stub')
+ensure_dir_is_in_sys_path(root_path / 'stub')
 ensure_dir_is_in_sys_path(doc_path)
 
 import cs_theme
@@ -87,13 +91,13 @@ api_files = '''
 '''.split()
 api_files = [File(p) for p in api_files]
 
-Command(api_files, glob('../vpe/*.py'), Cmd=make_api_files)
+Command(api_files, glob('../src/vpe/*.py'), Cmd=make_api_files)
 
 Command("vimhelp/vpe-help.txt", api_files,
     Cmd = "sphinx-build -j5 -NaE -b vimhelp . vimhelp",
           AutoDep=sphinx.scanSphinx,
           Local=1)
 
-InstallFile("../start/vpe/doc/vpe-help.txt", "vimhelp/index.txt")
+InstallFile("../src/vpe/resources/vpe-help.txt", "vimhelp/index.txt")
 
 Include(dirs='guide')

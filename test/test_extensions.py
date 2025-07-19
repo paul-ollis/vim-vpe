@@ -32,11 +32,11 @@ class TestInfo(support.Base):
 
         :<py>:
             res = Struct()
-            res.version = vpe.version()
+            res.version = vpe.version
             dump(res)
         """
         res = self.run_self()
-        failUnlessEqual((0, 6, 0), res.version)
+        failUnlessEqual('0.8.0-alpha', res.version)
 
 
 class DisplayBuffer(support.Base):

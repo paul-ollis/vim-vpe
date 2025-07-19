@@ -21,6 +21,7 @@ from vpe.argparse import CommandBase, SubCommandBase, TopLevelSubCommandHandler
 
 if TYPE_CHECKING:
     from argparse import Namespace
+    from argparse import Namespace
 
 # Function to print error messages.
 error_msg = partial(core.error_msg, soon=True)

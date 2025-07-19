@@ -461,7 +461,7 @@ class Callback(CallableRef):
     def invoke_self(self, vpe_args):
         """Invoke this Callback.
 
-        This is invoked on the `Callback` instance found by `do_invoke`. The
+        This is invoked on the `Callback` instance found by `invoke`. The
         callback is invoked with as:<py>:
 
             self(*args, *vim_args, **kwargs)

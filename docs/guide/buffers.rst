@@ -2,25 +2,27 @@
 Using Buffers
 =============
 
-.. |bufnr| replace:: `bufnr<Buffer.bufnr>`
-.. |changed| replace:: `changed<Buffer.changed>`
-.. |changedtick| replace:: `changedtick<Buffer.changedtick>`
-.. |find_active_windows()| replace:: `find_active_windows()<Buffer.find_active_windows>`
-.. |find_best_active_window()| replace:: `find_best_active_window()<Buffer.find_best_active_window>`
-.. |goto_active_window()| replace:: `goto_active_window()<Buffer.goto_active_window>`
-.. |is_active()| replace:: `is_active()<Buffer.is_active>`
-.. |lastused| replace:: `lastused<Buffer.lastused>`
-.. |linecount| replace:: `linecount<Buffer.linecount>`
-.. |list()| replace:: `list()<Buffer.list>`
-.. |lnum| replace:: `lnum<Buffer.lnum>`
-.. |loaded| replace:: `loaded<Buffer.loaded>`
-.. |location| replace:: `location<Buffer.location>`
-.. |long_display_name| replace:: `long_display_name<Buffer.long_display_name>`
-.. |popups| replace:: `popups<Buffer.popups>`
-.. |short_display_name| replace:: `short_display_name<Buffer.short_display_name>`
-.. |store()| replace:: `store<Buffer.store>`
-.. |temp_options()| replace:: `temp_options()<Buffer.temp_options>`
-.. |type| replace:: `type<Buffer.type>`
+.. |Buffer_vars| replace:: :py:obj:`Buffer.vars`
+.. |Buffer| replace:: :py:obj:`Buffer`
+.. |bufnr| replace:: :py:obj:`bufnr<Buffer.bufnr>`
+.. |changed| replace:: :py:obj:`changed<Buffer.changed>`
+.. |changedtick| replace:: :py:obj:`changedtick<Buffer.changedtick>`
+.. |find_active_windows()| replace:: :py:obj:`find_active_windows()<Buffer.find_active_windows>`
+.. |find_best_active_window()| replace:: :py:obj:`find_best_active_window()<Buffer.find_best_active_window>`
+.. |goto_active_window()| replace:: :py:obj:`goto_active_window()<Buffer.goto_active_window>`
+.. |is_active()| replace:: :py:obj:`is_active()<Buffer.is_active>`
+.. |lastused| replace:: :py:obj:`lastused<Buffer.lastused>`
+.. |linecount| replace:: :py:obj:`linecount<Buffer.linecount>`
+.. |list()| replace:: :py:obj:`list()<Buffer.list>`
+.. |lnum| replace:: :py:obj:`lnum<Buffer.lnum>`
+.. |loaded| replace:: :py:obj:`loaded<Buffer.loaded>`
+.. |location| replace:: :py:obj:`location<Buffer.location>`
+.. |long_display_name| replace:: :py:obj:`long_display_name<Buffer.long_display_name>`
+.. |popups| replace:: :py:obj:`popups<Buffer.popups>`
+.. |short_display_name| replace:: :py:obj:`short_display_name<Buffer.short_display_name>`
+.. |store()| replace:: :py:obj:`store<Buffer.store>`
+.. |temp_options()| replace:: :py:obj:`temp_options()<Buffer.temp_options>`
+.. |type| replace:: :py:obj:`type<Buffer.type>`
 
 
 Always the same instance
@@ -61,7 +63,8 @@ in the folling table.
     range()               vim.range          `Range`
     ====================  =================  =================
 
-The `Buffer` class also provides a number of additional properties and methods, including:
+The |Buffer| class also provides a number of additional properties and methods,
+including:
 
 .. hlist::
     :columns: 3
@@ -127,7 +130,7 @@ Buffer store
 
 Vim provides buffer variables (:vim:`buffer-variable`) as a mechanism to
 associate arbitrary information with a given buffer. These are available
-using the `Buffer.vars` property, but VPE provides an alternative that can
+using the "Buffer_vars" property, but VPE provides an alternative that can
 be more convenient: the |store()|. Each entry in the buffer's store is a
 `Struct` and is accessed by name.
 

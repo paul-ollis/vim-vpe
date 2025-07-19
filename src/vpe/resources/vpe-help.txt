@@ -1,0 +1,4584 @@
+*vpe.txt*                    For Vim version 8.0                     Jul 2025
+
+                                  Introduction                                 
+
+  >
+   _    ______  ______
+  | |  / / __ \/ ____/
+  | | / / /_/ / __/
+  | |/ / ____/ /___     The Vim Python Extensions
+  |___/_/   /_____/
+<
+VPE provides a toolkit of modules and classes aimed at making it easier to
+extend Vim using modern Pythonic code. Its key features are:
+
+  - A |Vim| class and corresponding |vim| singleton that provides an API that is
+    is extremely compatible with Vim’s built-in vim module, but includes extended
+    capabilities.
+
+    This makes it relatively easy to convert existing Python based Vim extensions
+    in order to take advantage of the |Vim| class’s extra features.
+
+  - The |vpe| package, containing additional modules and classes which provide:
+
+      - More pythonic APIs for some Vim features.
+
+      - Extension modules and classes to help in writing plugins in Python.
+
+  - A Pythonic plugin mechanism for writing plugins, based on Python’s own
+    standardised plugin mechanisms.
+
+NOTE:
+
+  This Vim help file provides details of the |vpe| API and can be useful as a
+  reference. However, the user guide at:
+
+    https://vim-vpe.readthedocs.io/en/userguide/
+
+  is much easier to browse and provides more information.
+
+===============================================================================~
+1. Quick start~                                               *vpe.quick-start*
+
+The quickest way to start using VPE is to import the vim object:
+  >
+  from vpe import vim
+<
+The vim object is an instance of the |Vim| class and is intended to be a drop
+in replacement for Vim’s standard |python-vim| module, but with a number of
+enhancements.
+
+  - Most of Vim’s functions appear as members, for example:
+      >
+      vim.cursor(4, 10)            # Position cursor at row 4, column 10.
+      m = vim.execute('messages')  # Get all the recent Vim messagse.
+<
+  - The attributes buffers, current, options, tabpages, vars, vvars and windows
+    provide enhanced access to the corresponding Vim objects. For example
+    vim.current.buffer provides a |Buffer| instance in place of Vim’s standard
+    |python-buffer|.
+
+  - The Vim registers are available using the |registers| attribute.
+
+  - When errors occur a |VimError| is raised, which provides a better breakdown
+    of the error. This is a subclass of vim.error (|python-error|) so existing
+    code that catches vim.error still works.
+
+===============================================================================~
+2. Features~                                                     *vpe.features*
+
+This is a brief list of VPE’s features.
+
+  - A |Vim| class that provides an enhanced, drop-in replacement for the standard
+    python-vim module.
+
+  - Classes |Window|, |Buffer|, |TabPage| are enhanced wrappers around the
+    standard vim versions.
+
+  - Support for cleanly invoking Python functions for keyboard mappings.
+
+  - Pythonic support for using popup-windows. (Requires Vim 8.2.)
+
+  - Pythonic support for using timers.
+
+  - Pythonic support for autocommands that invoke Python functions.
+
+  - Python support for channels.
+
+  - Logging to a buffer. Useful when developing and debugging plug-ins.
+
+===============================================================================~
+3. Module vpe~                                                 *vpe.module-vpe*
+
+Enhanced module for using Python3 in Vim.
+
+This provides the Vim class, which is a wrapper around Vim’s built-in vim
+module. It is intended that a Vim instance can be uses as a replacement for the
+vim module. For example:
+  >
+  from vpe import vim
+  # Now use 'vim' as an extended version of the *vim* module.
+  # ...
+<
+This is compatible with versions of Vim from 8.0. It also needs Python 3.6 or
+newer.
+
+The VPE module uses certain global Vim variables for its own internal purposes.
+The names are chosen to be suitably obscure, but obviously associated with VPE.
+
+  _vpe_args_
+    This is a dictionary that is used by a Vim function to pass information to
+    Python callback functions. Predefined entries are:
+
+      ‘uid’
+        The unique ID for the callback function to be invoked.
+
+      ‘args’
+        A sequence of any unnamed arguments passed to the Vim function.
+
+Attributes
+
+  vpe.VIM_DEFAULT                                             *vpe.VIM_DEFAULT*
+    Special value representing default Vim value for an option.
+
+  vpe.VI_DEFAULT                                               *vpe.VI_DEFAULT*
+    Special value representing default Vi value for an option.
+
+  vpe.commands                                                   *vpe.commands*
+    An object providing Vim commands as methods.
+
+    This is an instance of the |Commands| class.
+
+  vpe.log                                                             *vpe.log*
+    The Vpe log support object.
+
+    This is an instance of the |Log| class.
+
+  vpe.vim                                                             *vpe.vim*
+    A replacement for (and wrapper around) the |python-vim| module.
+
+    This is in instance of the |Vim| class.
+
+class vpe.AutoCmdGroup(name)                  *AutoCmdGroup* *vpe.AutoCmdGroup*
+  A Pythonic way to define auto commands.
+
+  This is a context manager that supports definition of autocommands that:
+
+    - Are always in a given group.
+
+    - Invoke Python code when triggered.
+
+  It is intended to be used as:
+    >
+    with AutoCmdGroup('mygroup') as g:
+        g.delete_all()
+        g.add('BufWritePre', handle_bufwrite, ...)
+        g.add('BufDelete', handle_bufdelete, ...)
+
+    ...
+
+    # Add more autocommands to the same group.
+    with AutoCmdGroup('mygroup') as g:
+        g.delete_all()
+        g.add('BufWritePre', handle_bufwrite, ...)
+<
+  Parameters
+
+    name
+      The name of the group.
+
+  Static methods
+
+    static add(...)                                      *vpe.AutoCmdGroup.add*
+        >
+        add(
+                event,
+                func,
+                pat='<buffer>',
+                once=False,
+                nested=False,
+<
+      Add a new auto command to the group.
+
+      Parameters
+
+        event
+          The name of the event.
+
+        func
+          The Python function to invoke. Plain functions and instance methods
+          are supported.
+
+        pat
+          The file pattern to match. If not supplied then the special
+          ‘<buffer>’ pattern is used. If the argument is a |Buffer| then the
+          special pattern ‘<buffer=N> is used.
+
+        once
+          The standard ‘:autocmd’ options.
+
+        nested
+          The standard ‘:autocmd’ options.
+
+        kwargs
+          Additional keyword arguments to be passed the func.
+
+    static delete_all()                           *vpe.AutoCmdGroup.delete_all*
+      Delete all entries in the group.
+
+class vpe.BufEventHandler                                 *vpe.BufEventHandler*
+  Mix-in to support mapping events to methods for buffers.
+
+  This differs from EventHandler by the use of self as the default pattern.
+
+class vpe.Buffer(buffer)                                  *Buffer* *vpe.Buffer*
+  Wrapper around a |python-buffer|.
+
+  User code should not directly instantiate this class. VPE creates and manages
+  instances of this class as required.
+
+  A number of extensions to the standard |python-buffer| are provided.
+
+    - The |vars| property provides access to the buffer’s variables.
+
+    - The |list| context manager provides a clean, and often more efficient, way
+      to access the buffer’s content.
+
+    - The |temp_options| context manager provides a clean way to work with a
+      buffer with some of its options temporarily modified.
+
+    - Buffer specific meta-data can be attached using the |store|.
+
+    - The values provided by |getbufinfo()| are effectively available as
+      properties of this class.
+
+  Properties
+
+    property bufnr -> int                                    *vpe.Buffer.bufnr*
+      The same as the |number| attribute.
+
+      This exists as a side effect of providing |getbufinfo()| values as
+      properties. It is more  efficient to use the |number| attribute.
+
+    property changed -> int                                *vpe.Buffer.changed*
+      Modified flag; 0=unchanged, 1=changed.
+
+    property changedtick -> int                        *vpe.Buffer.changedtick*
+      Same as |changetick|.
+
+    property hidden -> int                                  *vpe.Buffer.hidden*
+      Hidden flag; 0=buffer visible in a window, 1=buffer hidden.
+
+    property lastused -> int                              *vpe.Buffer.lastused*
+      Time (in seconds) when buffer was last used.
+
+      This is a time in seconds as returned by |localtime()|.
+
+    property linecount -> int                            *vpe.Buffer.linecount*
+      The number of lines in the buffer.
+
+    property lnum -> int                                      *vpe.Buffer.lnum*
+      The current line number for the buffer.
+
+    property loaded -> int                                  *vpe.Buffer.loaded*
+      Buffer loaded flag; 0=not loaded, 1=buffer loaded.
+
+    property location -> str                   *location* *vpe.Buffer.location*
+      The location of the file loaded in this buffer.
+
+      If the buffer is not associated with a file then an empty string.
+      Otherwise the absolute directory part of the file’s name.
+
+    property long_display_name -> str            *vpe.Buffer.long_display_name*
+      A long-form name for display purposes.
+
+    property number                                *number* *vpe.Buffer.number*
+      The number of this buffer.
+
+    property popups -> list[int]                            *vpe.Buffer.popups*
+      A list of window IDs for popups that are displaying this buffer.
+
+      Each entry is a |window-ID|.
+
+    property short_description -> str            *vpe.Buffer.short_description*
+      A short description for the buffer.
+
+      For a quickfix window this is the title string. For a terminal this is
+      the buffer’s name. For other types that are associated with a file the
+      |location| property is provided.
+
+    property short_display_name -> str          *vpe.Buffer.short_display_name*
+      A short-form name for display purposes.
+
+    property type -> str                                      *vpe.Buffer.type*
+      The type name of this buffer.
+
+      This is similar to the 'buftype' option, but normal buffers have the type
+      ‘normal’.
+
+    property valid -> bool                                   *vpe.Buffer.valid*
+      Test of this buffer is valid.
+
+      A buffer can become invalid if, for example, the underlying Vim buffer
+      has been wiped out.
+
+    property variables -> |Variables|                    *vpe.Buffer.variables*
+      The same as the |vars| attribute.
+
+      This exists as a side effect of providing |getbufinfo()| values as
+      properties. It is more  efficient to use the |vars| attribute.
+
+    property vars -> |Variables|                       *vars* *vpe.Buffer.vars*
+      The buffar vars wrapped as a |Variables| instance.
+
+    property windows -> list[int]                          *vpe.Buffer.windows*
+      A list of window IDs for windows that are displaying this buffer.
+
+      Each entry is a |window-ID|.
+
+  Methods
+
+    __getattr__(name)                                  *vpe.Buffer.__getattr__*
+      Make the values from getbufinfo() available as attributes.
+
+      This extends the base class implementation.
+
+    add_listener(...)                                 *vpe.Buffer.add_listener*
+        >
+        add_listener(
+                func: ListenerCallbackFunc | ListenerCallbackMethod
+<
+      Add a callback for changes to this buffer.
+
+      This is implemented using |listener_add()|
+
+      Parameters
+
+        func: Union
+          The callback function which is invoked with the following arguments:
+
+          The buffer that was changed. Only present if func is not a bound
+          method of this instance.
+
+          Start of the range of modified lines (zero based).
+
+          End of the range of modified lines.
+
+          Number of lines added, negative if lines were deleted.
+
+          A list of diffs.BufOperation instances with details about the
+          changes.
+
+      Return value
+
+      A BufListener object.
+
+    append(line_or_lines, nr=None)                          *vpe.Buffer.append*
+      Append one or more lines to the buffer.
+
+      This is the same as using the append method of |python-buffer|.
+
+      Parameters
+
+        line_or_lines
+          The line or lines to append.
+
+        nr
+          If present then append after this line number.
+
+    clear_props()                                      *vpe.Buffer.clear_props*
+      Remove all properties from all line in this buffer.
+
+                         *find_active_windows* *vpe.Buffer.find_active_windows*
+    find_active_windows(all_tabpages=False) -> list['Window']
+      Find windows where this buffer is active.
+
+      The list windows returned is prioritised as a result of searching in the
+      following order. The current window, windows in the current tab page, all
+      windows in all tab pages.
+
+      Parameters
+
+        all_tabpages
+          If True then all tab pages are searched. Otherwise only the current
+          tab page is searched.
+
+      Return value
+
+      A list of the windows found.
+
+                                           *vpe.Buffer.find_best_active_window*
+    find_best_active_window(all_tabpages=False) -> 'Window' | None
+      Find the best choice for a window where this buffer is active.
+
+      This returns the first entry found by |find_active_windows|.
+
+      Parameters
+
+        all_tabpages
+          If True (the default) all tab pages are searched. Otherwise only the
+          current tab page is searched.
+
+      Return value
+
+      The window or None.
+
+                                                *vpe.Buffer.goto_active_window*
+    goto_active_window(all_tabpages=False) -> 'Window' | None
+      Goto the best choice window where this buffer is active.
+
+      This goes to the first entry found by |find_active_windows|.
+
+      Parameters
+
+        all_tabpages
+          If True (the default) all tab pages are searched. Otherwise only the
+          current tab page is searched.
+
+      Return value
+
+      The window that was chosen or None.
+
+    is_active()                                          *vpe.Buffer.is_active*
+      Test whether the current window is showing this buffer.
+
+    list()                                             *list* *vpe.Buffer.list*
+      A sequence context for efficient buffer modification.
+
+      As an example:
+        >
+        with vim.current.buffer.list() as lines:
+            # Now lines is a copy of the buffers lines.
+            lines[2:4] = ['one']  # Update lines in-place.
+
+        # The vim.current.buffer has now been updated with modified lines.
+<
+      Although this involves taking a copy of the buffer’s lines and then
+      completely replacing the buffer’s set of lines, this is a much more
+      efficient way to make non-trivial modifications to a buffer’s contents.
+
+      This will update the buffer, even if ‘modifiable’ is not set.
+
+    marker_set(name: str)                               *vpe.Buffer.marker_set*
+      Get the marker set with a given name.
+
+      The marker set for a given name is created on demand.
+
+    range(a: int, b: int) -> |Range|                         *vpe.Buffer.range*
+      Get a |Range| for the buffer.
+
+      This is like getting a |python-range| object, except that it is wrapped
+      in a |Range| instance.
+
+      Parameters
+
+        a: int
+          The start index of the range.
+
+        b: int
+          The end index of the range. Note that this line is included in the
+          range; i.e. the range is inclusive, unlike Python ranges.
+
+    retrieve_store(key: Any) -> |Struct| | None     *vpe.Buffer.retrieve_store*
+      Retrive a given buffer store if it exists.
+
+      This is similar to |store|, but no new store is created.
+
+      Return value
+
+      The requested store |Struct| or None if it does not exist.
+
+    set_line_prop(...)                               *vpe.Buffer.set_line_prop*
+        >
+        set_line_prop(
+                lidx: int,
+                start_cidx: int,
+                end_cidx: int,
+                hl_group: str,
+<
+      Set a highlighting property on a single line.
+
+      Parameters
+
+        lidx: int
+          The index of the line to hold the property.
+
+        start_cidx: int
+          The index within the line where the property starts.
+
+        end_cidx: int
+          The index within the line where the property ends.
+
+        hl_group: str
+          The name of the highlight group to use.
+
+        name: str
+          An optional name for the property.
+
+    set_property_type(name: str, **kwargs)       *vpe.Buffer.set_property_type*
+      Register or modify a property type associated with this buffer.
+
+      This is a wrapper around vim.prop_type_add and vim.prop_type_change.
+
+      Parameters
+
+        kwargs
+          The same parameters used for vim.prop_type_add’s props argument;
+          namely:
+            >
+            highlight: str
+            priority: int
+            combine: bool
+            override: bool
+            start_incl: bool
+            end_incl: bool
+<
+
+    store(key: Any) -> |Struct|                      *store* *vpe.Buffer.store*
+      Return a |Struct| for a give key.
+
+      This provides a mechanism to store arbitrary data associated with a given
+      buffer. A new |Struct| is created the first time a given key is used. An
+      example of how this can be used:
+        >
+        vim.current.buffer.store['my-store'].processed = True
+        ...
+        for buf in vim.buffers:
+            if buf.store['my-store'].processed:
+                # Treat already processed buffers differently.
+                ...
+<
+      The |vpe| package arranges to return the same |Buffer| instance for a
+      given |python-buffer| so this effectively allows you to associated meta-
+      data with individual Vim buffers.
+
+                                       *temp_options* *vpe.Buffer.temp_options*
+    temp_options(**presets) -> TemporaryOptions
+      Context used to temporarily change options.
+
+      This makes it easy, for example, to use a normally unmodifiable buffer to
+      display information in a buffer. To update the displayed buffer’s
+      contents do something like:
+        >
+        with disp_buf.temp_options(modifiable=True):
+            disp.buf.append('Another line')
+<
+      When the context ends, the modifiable option is reset to its original
+      value. An alterative approach is:
+        >
+        with disp_buf.temp_options as opt:
+            opt.modifiable = True
+            disp.buf.append('Another line')
+<
+      Only options set using presets or the context object are restored when
+      the context exits.
+
+      Parameters
+
+        presets
+          One or more options values may be defined using keyword arguments.
+          The values are applied when the context is entered.
+
+  Class methods
+
+                                                         *vpe.Buffer.get_known*
+    classmethod get_known(buffer: Any) -> 'Buffer' | None
+      Get the Buffer instance for a given vim.buffer.
+
+      This is only intended for internal use.
+
+      Parameters
+
+        buffer: Any
+          A standard |python-buffer|.
+
+class vpe.Buffers(obj=None)                             *Buffers* *vpe.Buffers*
+  Wrapper around the built-in vim.buffers.
+
+  User code should not directly instantiate this class. VPE creates and manages
+  instances of this class as required.
+
+class vpe.Callback(...)                               *Callback* *vpe.Callback*
+    >
+    Callback(
+            func,
+            py_args=(),
+            py_kwargs=None,
+            vim_exprs=(),
+            pass_bytes=False,
+            once=False,
+<
+  Wrapper for a function to be called from Vim.
+
+  This encapsulates the mechanism used to arrange for a Python function to be
+  invoked in response to an event in the ‘Vim World’. A Callback stores the
+  Python function together with an ID that is uniquely associated with the
+  function (the UID). If, for example this wraps function ‘spam’ giving it
+  UID=42 then the Vim script code:
+    >
+    :call VPE_Call(42, 'hello', 123)
+<
+  will result in the Python function ‘spam’ being invoked as:
+    >
+    spam('hello', 123)
+<
+  The way this works is that the VPE_Call function first stores the UID and
+  arguments in the global Vim variable _vpe_args_ in a dictionary as:
+    >
+    {
+        'uid': 42,
+        'args': ['hello', 123]
+    }
+<
+  Then it calls this class’s |invoke| method:
+    >
+    return py3eval('vpe.Callback.invoke()')
+<
+  The |invoke| class method extracts the UID and uses it to find the Callback
+  instance.
+
+    @callbacks   A class level mapping from |uid| to |Callback| instance. This
+      is used to lookup the correct function during the execution of VPE_Call.
+
+  Parameters
+
+    func
+      The Python function or method to be called back.
+
+    py_args
+      Addition positional arguments to be passed to func.
+
+    py_kwargs
+      Additional keyword arguments to be passed to func.
+
+    vim_exprs
+      Expressions used as positional arguments for the VPE_Call helper
+      function.
+
+    pass_bytes
+      If true then vim byte-strings will not be decoded to Python strings.
+
+    once
+      If True then the callback will only ever be invoked once.
+
+    kwargs
+      Additional info to store with the callback. This is used by subclasses -
+      see ‘MapCallback’ for an example.
+
+  Attributes
+
+    call_count                                        *vpe.Callback.call_count*
+      The number of times the wrapped function or method has been invoked.
+
+    uid                                                *uid* *vpe.Callback.uid*
+      The unique ID for this wrapping. It is the string form of an integer.
+
+  Methods
+
+    as_call()                                            *vpe.Callback.as_call*
+      Format a command of the form ‘call VPE_xxx(…)’
+
+      The result can be used as a colon prompt command.
+
+    as_invocation()                                *vpe.Callback.as_invocation*
+      Format a command of the form ‘VPE_xxx(…)’
+
+      The result is a valid Vim script expression.
+
+    as_vim_function()                            *vpe.Callback.as_vim_function*
+      Create a vim.Function that will route to this callback.
+
+    format_call_fail_message()          *vpe.Callback.format_call_fail_message*
+      Generate a message to give details of a failed callback invocation.
+
+      This is used when the |Callback| instance exists, but the call raised an
+      exception.
+
+    get_call_args(_vpe_args: Dict[str, Any])       *vpe.Callback.get_call_args*
+      Get the Python positional and keyword arguments.
+
+      This may be over-ridden by subclasses.
+
+    invoke_self(vpe_args)                            *vpe.Callback.invoke_self*
+      Invoke this Callback.
+
+      This is invoked on the |Callback| instance found by |invoke|. The
+      callback is invoked with as:
+        >
+        self(*args, *vim_args, **kwargs)
+<
+      Where args and kwargs are those provided when this instance was created.
+      The vim_args arr the ‘args’ from the vpe_args dictionary.
+
+      Parameters
+
+        vpe_args
+          A dictionary containing:
+
+            uid
+              The unique ID that is used to find the correct |Callback|
+              instance.
+
+            args
+              Any additional arguments passed to the callback by Vim.
+
+    on_del(ref)                                           *vpe.Callback.on_del*
+      “Handle deletion of weak reference to method’s instance.
+
+  Class methods
+
+    classmethod invoke() -> Any                  *invoke* *vpe.Callback.invoke*
+      Invoke a particular callback function instance.
+
+      This is invoked from the ‘Vim World’ by VPE_Call. The global Vim
+      dictionary variable _vpe_args_ will have been set up to contain ‘uid’ and
+      ‘args’ entries. The ‘uid’ is used to find the actual |Callback| instance
+      and the ‘args’ is a sequence of Vim values, which are passed to the
+      callback as positional arguments.
+
+      The details are store in the Vim global variable _vpe_args_, which is a
+      dictionary containing:
+
+        uid
+          The unique ID that is used to find the correct |Callback| instance.
+
+        args
+          Any additional arguments passed to the callback by Vim.
+
+      It is possible that there is no instance for the given |uid|. In that
+      case a message is logged, but no other action taken.
+
+      Return value
+
+      Normally the return value of the invoked function. If the callback is
+      dead then the value is zero and if an exception is raised then the value
+      is -1.
+
+class vpe.CommandHandler                                   *vpe.CommandHandler*
+  Mix-in to support mapping user commands to methods.
+
+  To use this do the following:
+
+    - Make your class inherit from this class.
+
+    - Decorate methods that implement commands using the |command| class method.
+      A decorated method expect to be invoked with multiple positional
+      parameters, one per command line argument.
+
+    - In your init function, invoke self.auto_define_commands().
+
+  Your code should only create a single instance of the class.
+
+  Methods
+
+    auto_define_commands()            *vpe.CommandHandler.auto_define_commands*
+      Set up mappings for command methods.
+
+  Static methods
+
+                                         *command* *vpe.CommandHandler.command*
+    static command(name: str, **kwargs) -> Callable[[Callable], Callable]
+      Decorator to make a user command invoke a method.
+
+      Parameters
+
+        name: str
+          The name of the user defined command.
+
+        kwargs
+          See |vpe.define_command| for the supported values.
+
+class vpe.CommandInfo(...)                      *CommandInfo* *vpe.CommandInfo*
+    >
+    CommandInfo(
+            line1: int,
+            line2: int,
+            range: int,
+            count: int,
+            bang: bool,
+            mods: str,
+<
+  Information passed to a user command callback handler.
+
+  Attributes
+
+    bang                                                 *vpe.CommandInfo.bang*
+      True if the command was invoked with a ‘!’.
+
+    count                                               *vpe.CommandInfo.count*
+      Any count value supplied (see |command-count|).
+
+    line1                                               *vpe.CommandInfo.line1*
+      The start line of the command range.
+
+    line2                                               *vpe.CommandInfo.line2*
+      The end line of the command range.
+
+    mods                                                 *vpe.CommandInfo.mods*
+      The command modifiers (see `:command-modifiers`).
+
+    range                                               *vpe.CommandInfo.range*
+      The number of items in the command range: 0, 1 or 2 Requires at least vim
+      8.0.1089; for earlier versions this is fixed as -1.
+
+    reg                                                   *vpe.CommandInfo.reg*
+      The optional register, if provided.
+
+class vpe.Current(obj=None)                             *Current* *vpe.Current*
+  Wrapper around the built-in vim.current attribute.
+
+class vpe.EventHandler                                       *vpe.EventHandler*
+  Mix-in to support mapping events to methods.
+
+  This provides a convenient alternative to direct use of |AutoCmdGroup|. The
+  default pattern (see |autocmd-patterns|) is ‘*’ unless explicitly set by the
+  |handle| decorator.
+
+  Methods
+
+                                  *vpe.EventHandler.auto_define_event_handlers*
+    auto_define_event_handlers(group_name: str, delete_all=False)
+      Set up mappings for event handling methods.
+
+      Parameters
+
+        group_name: str
+          The name for the auto command group (see |augrp|). This will be
+          converted to a valid Vim identifier.
+
+        delete_all
+          If set then all previous auto commands in the group are deleted.
+
+  Static methods
+
+                                             *handle* *vpe.EventHandler.handle*
+    static handle(name: str, **kwargs) -> Callable[[Callable], Callable]
+      Decorator to make an event invoke a method.
+
+      Parameters
+
+        name: str
+          The name of the event (see |autocmd-events|.
+
+        kwargs
+          See |vpe.AutoCmdGroup.add| for the supported arguments. Note that the
+          pat argument defaults to ‘*’, not ‘<buffer>’.
+
+class vpe.Finish(reason: str)                                      *vpe.Finish*
+  Used by plugin’s to abort installation.
+
+  This is intended to play a similar role to the `:finish` command, as used in
+  plug-ins that may not be able to complete initialisation.
+
+  Parameters
+
+    reason
+      A string providing the reason for aborting.
+
+class vpe.GlobalOptions(vim_options)        *GlobalOptions* *vpe.GlobalOptions*
+  Wrapper for vim.options, etc.
+
+  This extends the behaviour so that options appear as attributes. The standard
+  dictionary style access still works.
+
+                                                                *Log* *vpe.Log*
+class vpe.Log(name: str, maxlen: int = 500, timestamps: bool = True)
+  Support for logging to a display buffer.
+
+  An instance of this class provides a mechanism to support logging that can be
+  viewed within a buffer. Instances of this class act as a simple print
+  function.:
+    >
+    info = Log('my_info')
+    info("Created log", info)
+    info("Starting process")
+<
+  The output is stored in a Python FIFO structure, up to a maximum number of
+  lines; the default is 500, change this with |set_maxlen|. No actual Vim
+  buffer is created until required, which is when |show| is first invoked.:
+    >
+    info.show()   # Make the log visible.
+<
+  The |vpe| module provides a predefined log, called ‘VPE’. This is available
+  for general use. VPE also uses it to log significant occurrences - mainly
+  error conditions.
+
+  Parameters
+
+    name
+      A name that maps to the corresponding display buffer.
+
+    maxlen
+      The maximum number of lines to store.
+
+    timestamps
+      Set this to False to prevent the addition of timestamps.
+
+  Attributes
+
+    buf                                                           *vpe.Log.buf*
+      The corresponding Vim buffer. This will be None if the |show| method has
+      never been invoked.
+
+    name                                                         *vpe.Log.name*
+      A name that maps to the corresponding display buffer.
+
+  Properties
+
+    property maxlen -> int                                     *vpe.Log.maxlen*
+      The current maximum length.
+
+  Methods
+
+    __call__(*args)                                          *vpe.Log.__call__*
+      Write to the log.
+
+      The arguments are formatted using print and then appended to the log
+      buffer, with a time stamp.
+
+      Parameters
+
+        args
+          The same as for Python’s print function.
+
+    clear() -> None                                             *vpe.Log.clear*
+      Clear all lines from the log.
+
+      The FIFO is cleared and the corresponding buffer updated.
+
+    flush()                                                     *vpe.Log.flush*
+      File like I/O support.
+
+    hide() -> None                                               *vpe.Log.hide*
+      Hide the log buffer, if showing.
+
+    redirect()                                               *vpe.Log.redirect*
+      Redirect stdout/stderr to the log.
+
+    set_maxlen(maxlen: int) -> None           *set_maxlen* *vpe.Log.set_maxlen*
+      Set the maximum length of the log’s FIFO.
+
+      This will discard older lines if necessary.
+
+      Parameters
+
+        maxlen: int
+          How many lines to store in the FIFO.
+
+    show() -> None                                        *show* *vpe.Log.show*
+      Make sure the buffer is visible.
+
+      If there is no buffer currently displayed the log then this will:
+
+        - Split the current window.
+
+        - Create a buffer and show it in the new split.
+
+    unredirect()                                           *vpe.Log.unredirect*
+      Disable stdout/stderr redirection.
+
+    write(s)                                                    *vpe.Log.write*
+      Write a string to the log buffer.
+
+      Parameters
+
+        s
+          The string to write.
+
+class vpe.Options(vim_options)                                    *vpe.Options*
+  Wrapper for buffer.options, etc.
+
+  This extends the behaviour so that options appear as attributes. The standard
+  dictionary style access still works.
+
+class vpe.Popup(content, name: str = '', **p_options)       *Popup* *vpe.Popup*
+  A Pythonic way to use Vim’s popup windows.
+
+  This can be used as instead of the individual functions popup_create,
+  popup_hide, popup_show, popup_settext, popup_close).
+
+  Creation of a Popup uses vim.popup_create to create the actual popup window.
+  Control of the popup windows is achieved using the methods |hide|, |show| and
+  |settext|. You can subclass this in order to override the |on_close| or
+  |on_key| methods.
+
+  The subclasses |PopupAtCursor|, |PopupBeval|, |PopupNotification|,
+  |PopupDialog| and |PopupMenu|, provide similar convenient alternatives to
+  popup_atcursor, popup_beval, popup_notification, popup_dialog and popup_menu.
+
+  The windows options (line, col, pos, etc.) are made avaiable as properties of
+  the same name. For example, to change the first displayed line:
+    >
+    p = vpe.Popup(my_text)
+    ...
+    p.firstline += 3
+<
+  The close option must be accessed as close_control, because |close| is a
+  Popup method. There is no filter or callback property.
+
+  Parameters
+
+    content
+      The content for the window.
+
+    name
+      An optional name for the Popup. If provided then a named |ScratchBuffer|
+      is used for the content rather than letting Vim etc.) can be provided as
+      keyword arguments. The exceptions are filter and callback. Over ride the
+      |on_key| and |on_close| methods instead.
+
+  Properties
+
+    property buffer -> vpe.wrappers.Buffer | None            *vpe.Popup.buffer*
+      The buffer holding the window’s content.
+
+      A |Buffer| or None.
+
+    property id -> int                                           *vpe.Popup.id*
+      The ID of the Vim popup window.
+
+  Methods
+
+    close(result: int = 0) -> None                    *close* *vpe.Popup.close*
+      Close the popup.
+
+      Parameters
+
+        result: int
+          The result value that will be forwarded to on_close.
+
+    hide() -> None                                      *hide* *vpe.Popup.hide*
+      Hide the popup.
+
+    move(**p_options) -> None                                  *vpe.Popup.move*
+      Set a number of move options at once.
+
+      An efficient way to set multiple options that affect the popup’s
+      position.
+
+    on_close(result: int) -> None               *on_close* *vpe.Popup.on_close*
+      Invoked when the popup is closed.
+
+      The default implementation does nothing, it is intended that this be
+      over-ridden in subclasses.
+
+      Parameters
+
+        result: int
+          The value passed to |close|. This will be -1 if the user forcefully
+          closed the popup.
+
+    on_key(key: str, byte_seq: bytes) -> bool       *on_key* *vpe.Popup.on_key*
+      Invoked when the popup receives a keypress.
+
+      The default implementation does nothing, it is intended that this be
+      over-ridden in subclasses. The keystream is preprocessed before this
+      method is invoked as follows:
+
+        - Merged key sequences are split, so that this is always invoked with the
+          sequence for just a single key.
+
+        - Anything that does not convert to a special name is decoded to a Python
+          string, if possible.
+
+        - Special key sequences are converted to the standard Vim symbolic names
+          such as <Up>, <LeftMouse>, <F11>, etc. Modifiers are also handled where
+          possible - the modified symbolic names known to be available are:
+
+            - <S-Up> <S-Down> <S-Left> <S-Right> <S-Home> <S-End> <S-Insert>
+
+            - <C-F1> <C-F2>, etc.
+
+            - <C-A> <M-A> <S-M-A> <C-M-A>, <C-B> … <C-M-Z>
+
+      Parameters
+
+        key: str
+          The pressed key. This is typically a single character such as ‘a’ or
+          a symbolic Vim keyname, such as ‘<F1>’.
+
+        byte_seq: bytes
+          The unmodified byte sequence, as would be received for a filter
+          callback using Vimscript.
+
+      Return value
+
+      True if the key should be considered consumed.
+
+    setoptions(**p_options) -> None                      *vpe.Popup.setoptions*
+      Set a number of options at once.
+
+      This is useful to set certain groups of options that cannot be separately
+      set. For example ‘textpropid’ cannot be set unless ‘textprop’ is set in
+      the same popup_setoptions call.
+
+    settext(content) -> None                      *settext* *vpe.Popup.settext*
+      Set the text of the popup.
+
+    show() -> None                                             *vpe.Popup.show*
+      Show the popup.
+
+  Class methods
+
+    classmethod clear(force: bool) -> None                    *vpe.Popup.clear*
+      Clear all popups from display.
+
+      Use this in preference to vim.popup_clear, to ensure that VPE cleans up
+      its underlying administrative structures.
+
+      Parameters
+
+        force: bool
+          If true then if the current window is a popup, it will also be
+          closed.
+
+                                            *PopupAtCursor* *vpe.PopupAtCursor*
+class vpe.PopupAtCursor(content, name: str = '', **p_options)
+  Popup configured to appear near the cursor.
+
+  This creates the popup using popup_atcursor().
+
+                                                  *PopupBeval* *vpe.PopupBeval*
+class vpe.PopupBeval(content, name: str = '', **p_options)
+  Popup configured to appear near (v:beval_line, v:beval_col).
+
+  This creates the popup using popup_beval().
+
+                                                *PopupDialog* *vpe.PopupDialog*
+class vpe.PopupDialog(content, name: str = '', **p_options)
+  Popup configured as a dialogue.
+
+  This creates the popup using popup_dialog(). It also provides a default
+  |vpe.PopupDialog.on_key| implementation that invokes popup_filter_yesno.
+
+  Methods
+
+    on_key(key, byte_seq)                              *vpe.PopupDialog.on_key*
+      Invoke popup_filter_yesno to handle keys for this popup.
+
+                                                    *PopupMenu* *vpe.PopupMenu*
+class vpe.PopupMenu(content, name: str = '', **p_options)
+  Popup configured as a menu.
+
+  This creates the popup using popup_menu(). It also provides a default
+  |vpe.PopupMenu.on_key| implementation that invokes popup_filter_menu.
+
+  Methods
+
+    on_key(key, byte_seq)                                *vpe.PopupMenu.on_key*
+      Invoke popup_filter_menu to handle keys for this popup.
+
+                                    *PopupNotification* *vpe.PopupNotification*
+class vpe.PopupNotification(content, name: str = '', **p_options)
+  Popup configured as a short lived notification (default 3s).
+
+  This creates the popup in a similar manner to popup_notification.
+
+  Note that popup_notification cannot be used because because callback
+  invocation fails rather wierdly if the popup closes due to a timeout. The
+  main |Popup| class provides its own timeout mechanism., which does not suffer
+  from this problem.
+
+class vpe.Range(obj=None)                                   *Range* *vpe.Range*
+  Wrapper around the built-in vim.Range type.
+
+  User code should not directly instantiate this class.
+
+  Methods
+
+    append(line_or_lines, nr=None)                           *vpe.Range.append*
+      Append one or more lines to the range.
+
+      This is the same as using the append method of |python-range|.
+
+      Parameters
+
+        line_or_lines
+          The line or lines to append.
+
+        nr
+          If present then append after this line number.
+
+class vpe.Registers                                 *Registers* *vpe.Registers*
+  Dictionary like access to the Vim registers.
+
+  This allows Vim’s registers to be read and modified. This is typically via
+  the |registers| attribute.:
+    >
+    vim.registers['a'] = 'A line of text'
+    prev_copy = vim.registers[1]
+<
+  This uses |eval’ to read registers and :vim:`setreg| to write them. Keys are
+  converted to strings before performing the register lookup. When the key is
+  the special ‘=’ value, the un-evaluated contents of the register is returned.
+
+  Methods
+
+    __getitem__(reg_name: str | int) -> Any         *vpe.Registers.__getitem__*
+      Allow reading registers as dictionary entries.
+
+      The reg_name may also be an integer value in the range 0-9.
+
+                                                    *vpe.Registers.__setitem__*
+    __setitem__(reg_name: str | int, value: Any)
+      Allow setting registers as dictionary entries.
+
+      The reg_name may also be an integer value in the range 0-9.
+
+                                            *ScratchBuffer* *vpe.ScratchBuffer*
+class vpe.ScratchBuffer(name, buffer, simple_name=None)
+  A scratch buffer.
+
+  A scratch buffer has no associated file, has no swap file, never gets written
+  and never appears to be modified. The content of such a buffer is typically
+  under the control of plugin code. Direct editing is disabled.
+
+  Direct instantiation is not recommended; use |get_display_buffer|, which
+  creates bufferes with suitably formatted names.
+
+  Parameters
+
+    name
+      The name for the buffer.
+
+    buffer
+      The |python-buffer| that this wraps.
+
+    simple_name
+      An alternative simple name. This is used in the generation of the
+      |syntax_prefix| and |auto_grp_name| property values. If this is not set
+      then is is the same a the name parameter. If this is not a valid
+      identifier then it is converted to one by replacing invalid characters
+      with ‘x’.
+
+  Attributes
+
+    simple_name                                 *vpe.ScratchBuffer.simple_name*
+      An alternative simple name. This is used in the generation of the
+      |syntax_prefix| and |auto_grp_name| property values. If this is not set
+      then is is the same a the name parameter. If this is not a valid
+      identifier then it is converted to one by replacing invalid characters
+      with ‘x’.
+
+  Properties
+
+                              *auto_grp_name* *vpe.ScratchBuffer.auto_grp_name*
+    property auto_grp_name
+      A suitable name for auto commands for this buffer.
+
+                              *syntax_prefix* *vpe.ScratchBuffer.syntax_prefix*
+    property syntax_prefix
+      A suitable prefix for syntax items in this buffer.
+
+  Methods
+
+    init_options()                             *vpe.ScratchBuffer.init_options*
+      Initialise the scratch buffer specific options.
+
+      This gets invoked via call_soon because option setting can otherwise
+      silently fail for subclasses.
+
+      Subclasses may over-ride this.
+
+    modifiable() -> TemporaryOptions             *vpe.ScratchBuffer.modifiable*
+      Create a context that allows the buffer to be modified.
+
+    on_first_showing()                     *vpe.ScratchBuffer.on_first_showing*
+      Invoked when the buffer is first, successfully displayed.
+
+      This is expected to be extended (possibly over-ridden) by subclasses.
+
+    set_ext_name(name)                         *vpe.ScratchBuffer.set_ext_name*
+      Set the extension name for this buffer.
+
+      Parameters
+
+        name
+          The extension part of the name
+
+                                                       *vpe.ScratchBuffer.show*
+    show(splitlines: int = 0, splitcols: int = 0) -> bool
+      Make this buffer visible.
+
+      Without a splitlines or splitcols argument, this will use the current
+      window to show this buffer. Otherwise the current window is split,
+      horizontally if splitlines != 0 or vertically if splitcols != 0. The
+      buffer is shown in the top/left part of the split. A positive split
+      specifies how many lines/columns to allocate to the bottom/right part of
+      the split. A negative split specifies how many lines to allocate to the
+      top/left window.
+
+      Parameters
+
+        splitlines: int
+          Number of lines allocated to the top/bottom of the split.
+
+        splitcols: int
+          Number of columns allocated to the left or right window of the split.
+
+      Return value
+
+      True if the window is successfully shown.
+
+class vpe.Struct                                          *Struct* *vpe.Struct*
+  A basic data storage structure.
+
+  This is intended to store arbitrary name, value pairs as attributes.
+  Attempting to read an undefined attribute gives None.
+
+  This is provided primarily to support the |store| mechanism. Direct use of
+  this class is not intended as part of the API.
+
+  Methods
+
+    __getstate__()                                    *vpe.Struct.__getstate__*
+      Support pickling - only intended for testing.
+
+    __setstate__(state)                               *vpe.Struct.__setstate__*
+      Support pickling - only intended for testing.
+
+class vpe.TabPage(obj=None)                             *TabPage* *vpe.TabPage*
+  Wrapper around a |python-tabpage|.
+
+  User code should not directly instantiate this class. VPE creates and manages
+  instances of this class as required.
+
+  This is a proxy that extends the vim.Window behaviour in various ways.
+
+  Properties
+
+    property vars                                            *vpe.TabPage.vars*
+      The buffar vars wrapped as a |Variables| instance.
+
+class vpe.TabPages(obj=None)                          *TabPages* *vpe.TabPages*
+  Wrapper around the built-in vim.tabpages.
+
+  User code should not directly instantiate this class. VPE creates and manages
+  instances of this class as required.
+
+  This is a proxy that extends the vim.TabPages behaviour in various ways.
+
+  Static methods
+
+    static new(position='after')                             *vpe.TabPages.new*
+      Create a new tab page.
+
+      Parameters
+
+        position
+          The position relative to this tab. The standard character prefixes
+          for the `:tabnew` command can be used or one of the more readable
+          strings:
+
+            ‘after’, ‘before’
+              Immediately after or before the current tab (same as ‘.’, ‘-‘),
+
+            ‘first’, ‘last’
+              As the first or last tab (same as ‘0’, ‘$’),
+
+          This defaults to ‘after’.
+
+class vpe.Timer(...)                                        *Timer* *vpe.Timer*
+    >
+    Timer(
+            ms,
+            func,
+            repeat=None,
+            pass_timer=True,
+            no_hard_ref=False,
+            args=(),
+<
+  Pythonic way to use Vim’s timers.
+
+  This can be used as a replacement for the vim functions: timer_start,
+  timer_info, timer_pause, timer_stop.
+
+  An example of usage:
+    >
+    def handle_expire(t):
+        print(f'Remaining repeats = {t.repeat}')
+
+    # This will cause handle_expire to be called twice. The output will be:
+    #     t.repeat=2
+    #     t.repeat=1
+    t = Timer(ms=100, handle_expire, repeat=2)
+<
+  The status of a timer can be queried using the properties |time|, |repeat|,
+  |remaining| and |paused|. The methods |pause|, |stop| and |resume| allow an
+  active timer to be controlled.
+
+  A timer with ms == 0 is a special case, used to schedule an action to occur
+  as soon as possible once Vim is waiting for user input. Consequently the
+  repeat argument is forced to be 1 and the pass_timer argument is forced to be
+  False.
+
+  If the created timer instamce has a repeat count of 1, then a hard reference
+  to the function is stored. This means that the code that creates the timer
+  does not need to keep a reference, allowing single-shot timers to be ‘set-
+  and-forget’. The no_hard_ref argument can be used to prevent this.
+
+  Parameters
+
+    ms
+      The timer’s interval in milliseconds.
+
+    func
+      The function to be invoked when the timer fires. This is called with the
+      firing |Timer| instance as the only parameter.
+
+    repeat
+      How many times to fire. This defaults to a single firing.
+
+    pass_timer
+      Set this false to prevent the timer being passed to func.
+
+    no_hard_ref
+      Set True to prevent a hard reference to the func being held by this
+      timer.
+
+    args
+      Optional positional arguments to pass to func.
+
+    kwargs
+      Optional keyword arguments to pass to func.
+
+  Attributes
+
+    args                                                       *vpe.Timer.args*
+      Optional positional arguments to pass to func.
+
+    dead                                                       *vpe.Timer.dead*
+      This is set true when the timer is no longer active because all repeats
+      have occurred or because the callback function is no longer available.
+
+    fire_count                                           *vpe.Timer.fire_count*
+      This increases by one each time the timer’s callback is invoked.
+
+    kwargs                                                   *vpe.Timer.kwargs*
+      Optional keyword arguments to pass to func.
+
+  Properties
+
+    property id -> int                                           *vpe.Timer.id*
+      The ID of the underlying vim timer.
+
+    property paused -> bool                         *paused* *vpe.Timer.paused*
+      True if the timer is currently paused.
+
+    property remaining -> int                 *remaining* *vpe.Timer.remaining*
+      The time remaining (ms) until the timer will next fire.
+
+    property repeat -> int                          *repeat* *vpe.Timer.repeat*
+      The number of times the timer will still fire.
+
+      Note that this is 1, during the final callback - not zero.
+
+    property time -> int                                *time* *vpe.Timer.time*
+      The time value used to create the timer.
+
+  Methods
+
+    finish()                                                 *vpe.Timer.finish*
+      Take action when a timer is finished.
+
+    on_del(ref)                                              *vpe.Timer.on_del*
+      “Handle deletion of weak reference to method’s instance.
+
+    pause()                                           *pause* *vpe.Timer.pause*
+      Pause the timer.
+
+      This invokes vim’s timer_pause function.
+
+    resume()                                        *resume* *vpe.Timer.resume*
+      Resume the timer, if paused.
+
+      This invokes vim’s timer_pause function.
+
+    stop()                                              *stop* *vpe.Timer.stop*
+      Stop the timer.
+
+      This invokes vim’s timer_stop function.
+
+  Class methods
+
+    classmethod num_instances() -> int                *vpe.Timer.num_instances*
+      The number of |Timer| instances.
+
+    classmethod stop_all()                                 *vpe.Timer.stop_all*
+      Stop all timers and clean up.
+
+      Use this in preference to vim.timer_stopall, to ensure that VPE cleans up
+      its underlying administrative structures.
+
+class vpe.Variables(obj=None)                       *Variables* *vpe.Variables*
+  Wrapper around the various vim variable dictionaries.
+
+  This allows entries to be modified.
+
+class vpe.Vim(*args, **kwargs)                                        *vpe.Vim*
+  A wrapper around and replacement for the vim module.
+
+  This is a instance object not a module, but it provides a API that is
+  extremely compatible with the |python-vim| module.
+
+  Properties
+
+    property buffers -> |Buffers|                             *vpe.Vim.buffers*
+      A read-only container of the all the buffers.
+
+    property current -> |Current|                             *vpe.Vim.current*
+      Convenient access to currently active objects.
+
+      Note: Does not support assignment to window, buffer or tabpage.
+
+    property error -> Type[_vim.error]                          *vpe.Vim.error*
+      The plain built-in Vim exception (|python-error|).
+
+    property options -> |GlobalOptions|                       *vpe.Vim.options*
+      An object providing access to Vim’s global options.
+
+    property registers -> |Registers|           *registers* *vpe.Vim.registers*
+      Dictionary like access to Vim’s registers.
+
+      This returns a |Registers| object.
+
+    property tabpages -> |TabPages|                          *vpe.Vim.tabpages*
+      A read-only container of the all the tab pages.
+
+    property vars -> |Variables|                                 *vpe.Vim.vars*
+      An object providing access to global Vim variables.
+
+    property vvars -> |Variables|                               *vpe.Vim.vvars*
+      An object providing access to Vim (v:) variables.
+
+    property windows -> |Windows|                             *vpe.Vim.windows*
+      A read-only container of the windows of the current tab page.
+
+  Methods
+
+    command(cmd: str) -> None                                 *vpe.Vim.command*
+      Execute an Ex command.
+
+      Parameters
+
+        cmd: str
+          The Ex command to execute:
+
+      Exceptions raised
+
+        VimError
+          A more detailed version vim.error (|python-error|).
+
+    eval(expr: str) -> dict | list | str                         *vpe.Vim.eval*
+      Evaluate a Vim expression.
+
+      Return value
+
+      A dict, list or string. See |python-eval| for details.
+
+      Exceptions raised
+
+        VimError
+          A more detailed version vim.error (|python-error|).
+
+    temp_options(**presets) -> TemporaryOptions          *vpe.Vim.temp_options*
+      Context used to temporarily change options.
+
+  Static methods
+
+    static __new__(cls, *args, **kwargs)                      *vpe.Vim.__new__*
+      Ensure only a single Vim instance ever exists.
+
+      This means that code like:
+        >
+        myvim = vpe.Vim()
+<
+      Will result in the same object as |vim|.
+
+                                                     *vpe.Vim.iter_all_windows*
+    static iter_all_windows() -> Iterator[tuple[|TabPage|, |Window|]]
+      Iterate over all the windows in all tabs.
+
+      Parameters
+
+        yield
+          A tuple of TagPage and Window.
+
+    static vim()                                                  *vpe.Vim.vim*
+      Get the underlying built-in vim module.
+
+class vpe.VimError(error: vim.error)                  *VimError* *vpe.VimError*
+  A parsed version of vim.error.
+
+  VPE code raises this in place of the standard vim.error exception. It is a
+  subclass of vim.error, so code that handles vim.error will still work when
+  converted to use the |vim| object.
+
+  This exception attempts to parse the Vim error string to provide additional
+  attributes:
+
+  Attributes
+
+    code: int:                                              *vpe.VimError.code*
+      The error code. This will be zero if parsing failed to extract the code.
+
+    command: str:                                        *vpe.VimError.command*
+      The name of the Vim command that raised the error. This may be an empty
+      string.
+
+    message: str:                                        *vpe.VimError.message*
+      The message part, after extracting the command, error code and ‘Vim’
+      prefix. If parsing completely fails then is simply the unparsed message.
+
+class vpe.Window(window)                                  *Window* *vpe.Window*
+  Wrapper around a |python-window|.
+
+  User code should not directly instantiate this class. VPE creates and manages
+  instances of this class as required.
+
+  This is a proxy that extends the vim.Window behaviour in various ways.
+
+  Attributes
+
+    id                                                          *vpe.Window.id*
+      This is the window’s unique ID (as obtained by |win_getid|).
+
+  Properties
+
+    property vars -> |Variables|                              *vpe.Window.vars*
+      The buffar vars wrapped as a |Variables| instance.
+
+                                                *vpe.Window.visible_line_range*
+    property visible_line_range -> tuple[int, int]
+      The range of buffer lines visible within this window.
+
+      This is a Python style range.
+
+  Methods
+
+    close() -> bool                                          *vpe.Window.close*
+      Close this window, if possible.
+
+      Return value
+
+      True if the window was closed.
+
+    goto() -> bool                                            *vpe.Window.goto*
+      Switch to this window, if possible.
+
+      Return value
+
+      True if the current window was set successfully.
+
+    temp_options(**presets) -> TemporaryOptions       *vpe.Window.temp_options*
+      Context used to temporarily change options.
+
+      This does for a window what |temp_options| does for buffer.
+
+  Static methods
+
+                                                  *vpe.Window.win_id_to_window*
+    static win_id_to_window(win_id: str) -> |Window| | None
+      Return the window corresponding to a given window ID.
+
+class vpe.Windows(obj=None)                             *Windows* *vpe.Windows*
+  Wrapper around the built-in vim.windows.
+
+  User code should not directly instantiate this class. VPE creates and manages
+  instances of this class as required.
+
+  Parameters
+
+    obj
+      A |python-windows| object.
+
+class vpe.saved_current_window                       *vpe.saved_current_window*
+  Context manager that saves and restores the active window.
+
+class vpe.saved_winview                                     *vpe.saved_winview*
+  Context manager that saves and restores the current window’s view.
+
+class vpe.temp_active_window(win: |Window|)            *vpe.temp_active_window*
+  Context manager that temporarily changes the active window.
+
+  Parameters
+
+    win
+      The |Window| to switch to.
+
+  -----------------------------------------------------------------------------~
+  3.1. call_soon~                                               *vpe.call-soon*
+
+                                                    *call_soon* *vpe.call_soon*
+  vpe.call_soon(func: Callable, *args: Any, **kwargs: Any)
+    Arrange to call a function ‘soon’.
+
+    This uses a Vim timer with a delay of 0ms to schedule the function call.
+    This means that currently executing Python code will complete before the
+    function is invoked.
+
+    The function is invoked as:
+      >
+      func(*args, **kwargs)
+<
+    Parameters
+
+      func: Callable
+        The function to be invoked.
+
+      args: Any
+        Positional arguments for the callback function.
+
+      kwargs: Any
+        Keyword arguments for the callback function.
+
+  -----------------------------------------------------------------------------~
+  3.2. call_soon_once~                                     *vpe.call-soon-once*
+
+                                                           *vpe.call_soon_once*
+  vpe.call_soon_once(token: Any, func: Callable, *args: Any, **kwargs: Any)
+    Arrange to call a function ‘soon’, but only once.
+
+    This is like |call_soon|, but if multiple calls with the same token are
+    scheduled then only the first registed function is invoked when Vim’s main
+    loop regains control.
+
+    Parameters
+
+      token: Any
+        A token that identifies duplicate registered callbacks. This can be any
+        object that may be a member of a set, except None.
+
+      func: Callable
+        The function to be invoked.
+
+      args: Any
+        Positional arguments for the callback function.
+
+      kwargs: Any
+        Keyword arguments for the callback function.
+
+  -----------------------------------------------------------------------------~
+  3.3. define_command~                                     *vpe.define-command*
+
+  vpe.define_command(...)                                  *vpe.define_command*
+      >
+      define_command(
+              name: str,
+              func: Callable,
+              nargs: int | str = 0,
+              complete: str = '',
+              range: bool | str = '',
+              count: str = '',
+              addr: str = '',
+              bang: bool = False,
+              bar: bool = False,
+              register: bool = False,
+              buffer: bool = False,
+              replace: bool = True,
+              pass_info: bool = True,
+              args=(),
+<
+    Create a user defined command that invokes a Python function.
+
+    When the command is executed, the function is invoked as:
+      >
+      func(info, *args, *cmd_args, **kwargs)
+<
+    The info parameter is |CommandInfo| instance which carries all the meta
+    information, such as the command name, range, modifiers, etc. The cmd_args
+    are those provided to the command; each a string. The args and kwargs are
+    those provided to this function.
+
+    Parameters
+
+      name: str
+        The command name; must follow the rules for `:command`.
+
+      func: Callable
+        The function that implements the command.
+
+      nargs: int | str
+        The number of supported arguments; must follow the rules for `:command-
+        nargs`, except that integer values of 0, 1 are permitted.
+
+      complete: str
+        Argument completion mode (see |command-complete|). Does not currently
+        support ‘custom’ or ‘customlist’.
+
+      range: bool | str
+        The permitted type of range; must follow the rules for `:command-
+        range`, except that the N value may be an integer.
+
+      count: str
+        The permitted type of count; must follow the rules for `:command-
+        count`, except that the N value may be an integer. Use count=0 to get
+        the same behaviour as ‘-count’.
+
+      addr: str
+        How range or count values are interpreted (see `:command-addr`).
+
+      bang: bool
+        If set then the ‘!’ modifieer is supported (see `:command-bang`).
+
+      bar: bool
+        If set then the command may be followed by a ‘|’ (see `:command-bar`).
+
+      register: bool
+        If set then an optional register is supported (see `:command-
+        register`).
+
+      buffer: bool
+        If set then the command is only for the current buffer (see `:command-
+        buffer`).
+
+      replace: bool
+        If set (the default) then ‘command!’ is used to replace an existing
+        command of the same name.
+
+      pass_info: bool
+        If set then the first argument passed to func is a MappingInfo object.
+        Defaults to True.
+
+      args
+        Additional arguments to pass to the mapped function.
+
+      kwargs: dict | None
+        Additional keyword arguments to pass to the mapped function.
+
+  -----------------------------------------------------------------------------~
+  3.4. dot_vim_dir~                                           *vpe.dot-vim-dir*
+
+  vpe.dot_vim_dir() -> str                                    *vpe.dot_vim_dir*
+    Return the path to the ~/.vim directory or its equivalent.
+
+    Return value
+
+    This returns the first directory in the runtimepath option.
+
+  -----------------------------------------------------------------------------~
+  3.5. echo_msg~                                                 *vpe.echo-msg*
+
+  vpe.echo_msg(*args, soon=False)                                *vpe.echo_msg*
+    Like |error_msg|, but for information.
+
+    Parameters
+
+      args
+        All non-keyword arguments are converted to strings before output.
+
+      soon
+        If set, delay invocation until the back in the Vim main loop.
+
+  -----------------------------------------------------------------------------~
+  3.6. error_msg~                                               *vpe.error-msg*
+
+  vpe.error_msg(*args, soon=False)                  *error_msg* *vpe.error_msg*
+    A print-like function that writes an error message.
+
+    Unlike using sys.stderr directly, this does not raise a vim.error.
+
+    Parameters
+
+      args
+        All non-keyword arguments are converted to strings before output.
+
+      soon
+        If set, delay invocation until the back in the Vim main loop.
+
+  -----------------------------------------------------------------------------~
+  3.7. find_buffer_by_name~                           *vpe.find-buffer-by-name*
+
+                                                      *vpe.find_buffer_by_name*
+  vpe.find_buffer_by_name(name: str) -> vpe.wrappers.Buffer | None
+    Find the buffer with a given name.
+
+    The name must be an exact match.
+
+    Parameters
+
+      name: str
+        The name of the buffer to find.
+
+  -----------------------------------------------------------------------------~
+  3.8. get_display_buffer~                             *vpe.get-display-buffer*
+
+  vpe.get_display_buffer(...)     *get_display_buffer* *vpe.get_display_buffer*
+      >
+      get_display_buffer(
+              name: str,
+              buf_class: Type[ScratchBuffer] = <class 'vpe.core.ScratchBuffer'>
+<
+    Get a named display-only buffer.
+
+    The actual buffer name will be of the form ‘/[[name]]’. The buffer is
+    created if it does not already exist.
+
+    Parameters
+
+      name: str
+        An identifying name for this buffer. This becomes the
+        |vpe.ScratchBuffer.simple_name| attribute.
+
+  -----------------------------------------------------------------------------~
+  3.9. highlight~                                               *vpe.highlight*
+
+  vpe.highlight(...)
+      >
+      highlight(
+              group: str | None = None,
+              clear: bool = False,
+              default: bool = False,
+              link: str | None = None,
+              disable: bool = False,
+              dump: bool = False,
+              file: TextIO = None,
+<
+    Execute a highlight command.
+
+    This provides keyword arguments for all the command parameters. These are
+    generally taken from the `:highlight` command’s documentation.
+
+    Parameters
+
+      group: str | None
+        The name of the group being defined. If omitted then all other
+        arguments except clear are ignored.
+
+      clear: bool
+        If set then the command highlight clear [<group>] is generated. All
+        other arguments are ignored.
+
+      disable: bool
+        If set then the specified group is disabled using the command:
+
+          highlight <group> NONE
+
+      link: str | None
+        If set then a link command will be generated of the form:
+
+          highlight link <group> <link>.
+
+        Other arguments are ignored.
+
+      default: bool
+        If set then the generated command has the form highlight default....
+
+      dump: bool
+        Print the command’s arguments, for debugging use.
+
+      kwargs
+        The remaining keyword arguments act like the `:highlight` command’s
+        keyword arguments.
+
+  -----------------------------------------------------------------------------~
+  3.10. pedit~                                                      *vpe.pedit*
+
+  vpe.pedit(path: str, silent=True, noerrors=False)
+    Edit file in the preview window.
+
+    Parameters
+
+      path: str
+        The files path.
+
+      silent
+        If true then run the :pedit command silently.
+
+      noerrors
+        If true then add ‘!’ to suppress errors.
+
+  -----------------------------------------------------------------------------~
+  3.11. popup_clear~                                          *vpe.popup-clear*
+
+  vpe.popup_clear(force=False)                                *vpe.popup_clear*
+    Convenience function that invokes |vpe.Popup.clear|.
+
+  -----------------------------------------------------------------------------~
+  3.12. script_py_path~                                    *vpe.script-py-path*
+
+  vpe.script_py_path() -> str                              *vpe.script_py_path*
+    Derive a python script name from the current Vim script name.
+
+  -----------------------------------------------------------------------------~
+  3.13. timer_stopall~                                      *vpe.timer-stopall*
+
+  vpe.timer_stopall()                                       *vpe.timer_stopall*
+    Convenience function that invokes |vpe.Timer.stop_all|.
+
+  -----------------------------------------------------------------------------~
+  3.14. warning_msg~                                          *vpe.warning-msg*
+
+  vpe.warning_msg(*args, soon=False)                          *vpe.warning_msg*
+    A print-like function that writes a warning message.
+
+    Parameters
+
+      args
+        All non-keyword arguments are converted to strings before output.
+
+      soon
+        If set, delay invocation until the back in the Vim main loop.
+
+  -----------------------------------------------------------------------------~
+                    *vpe.module-app_ui_support* *vpe.module-vpe-app-ui-support*
+  3.15. Module vpe.app_ui_support~
+
+  Application level user interface support.
+
+  Currently this only works on X.Org based desktops.
+
+                                               *AppWin* *app_ui_support.AppWin*
+  class app_ui_support.AppWin(dims_pixels, dims_cells, corners, borders, cell_size)
+    Information about Vim’s application window.
+
+    Parameters
+
+      dims_pixels
+        A sequence (w, h) giving the window’s undecorated size in pixels.
+
+      dims_cells
+        A sequence (w, h) giving the window’s undecorated size in character
+        cells.
+
+      dims_corners
+        A sequence of pixel coordiates for the windows corners, in the order
+        TL, TR, BR, BL. For TR and BR the X value is with repect to the right
+        hand edge of the display. For BL and BR the Y value is with repect to
+        the lower edge of the display.
+
+      borders
+        The pixel sizes of the window decoration borders in the order, left,
+        right, top, bottom.
+
+      cell_size
+        The size of a character cell, in pixels.
+
+    Attributes
+
+      borders                                   *app_ui_support.AppWin.borders*
+        The pixel sizes of the window decoration borders in the order, left,
+        right, top, bottom.
+
+      cell_size                               *app_ui_support.AppWin.cell_size*
+        The size of a character cell, in pixels.
+
+      dims_cells                             *app_ui_support.AppWin.dims_cells*
+        A sequence (w, h) giving the window’s undecorated size in character
+        cells.
+
+      dims_corners                         *app_ui_support.AppWin.dims_corners*
+        A sequence of pixel coordiates for the windows corners, in the order
+        TL, TR, BR, BL. For TR and BR the X value is with repect to the right
+        hand edge of the display. For BL and BR the Y value is with repect to
+        the lower edge of the display.
+
+      dims_pixels                           *app_ui_support.AppWin.dims_pixels*
+        A sequence (w, h) giving the window’s undecorated size in pixels.
+
+    Properties
+
+      property columns -> int | None            *app_ui_support.AppWin.columns*
+        The calculated number of columns for this window.
+
+        This should be the same as the columns option value.
+
+                                             *app_ui_support.AppWin.decor_dims*
+      property decor_dims -> Tuple[int, int]
+        The windows dimension in pixels including window decoration.
+
+                                             *Display* *app_ui_support.Display*
+  class app_ui_support.Display(w, h, x, y)
+    Information about a single display (physical screen).
+
+    Parameters
+
+      w
+        The width in pixels.
+
+      h
+        The height in pixels.
+
+      x
+        The X coordinate, in pixels, of the top left corner.
+
+      y
+        The Y coordinate, in pixels, of the top left corner.
+
+    Attributes
+
+      h                                              *app_ui_support.Display.h*
+        The height in pixels.
+
+      w                                              *app_ui_support.Display.w*
+        The width in pixels.
+
+      x                                              *app_ui_support.Display.x*
+        The X coordinate, in pixels, of the top left corner.
+
+      y                                              *app_ui_support.Display.y*
+        The Y coordinate, in pixels, of the top left corner.
+
+    Methods
+
+      contains_window(w) -> bool       *app_ui_support.Display.contains_window*
+        Test whether a window is fully contained by this display.
+
+  class app_ui_support.Displays            *Displays* *app_ui_support.Displays*
+    Information about the available displays (physical screens).
+
+    Attributes
+
+      displays                               *app_ui_support.Displays.displays*
+        A sequence of |Display| instances.
+
+    Methods
+
+      add(display)                                *app_ui_support.Displays.add*
+        Add a display.
+
+                              *app_ui_support.Displays.find_display_for_window*
+      find_display_for_window(w: |AppWin|) -> |Display| | None
+        Find which display a given |Window| is on.
+
+        The position of the windows top-left corner is used for the
+        determination.
+
+        Parameters
+
+          w: AppWin
+            The window bein searched for.
+
+
+    3.15.1. attach_vars~                                      *vpe.attach-vars*
+
+    app_ui_support.attach_vars(**kwargs)           *app_ui_support.attach_vars*
+      Decorator to attach variables to a function.
+
+      Parameters
+
+        kwargs
+          The names and initial values of the variables to add.
+
+
+    3.15.2. get_app_win_info~                            *vpe.get-app-win-info*
+
+                                              *app_ui_support.get_app_win_info*
+    app_ui_support.get_app_win_info() -> |AppWin| | None
+      Get information about the Vim application window.
+
+
+    3.15.3. get_display_info~                            *vpe.get-display-info*
+
+                                              *app_ui_support.get_display_info*
+    app_ui_support.get_display_info() -> |Displays|
+      Get information about the displays (screens).
+
+  -----------------------------------------------------------------------------~
+                                *vpe.module-channels* *vpe.module-vpe-channels*
+  3.16. Module vpe.channels~
+
+  Pythonic wrappers for Vim’s channels.
+
+  class channels.Channel(...)                                *channels.Channel*
+      >
+      Channel(
+              net_address: str,
+              drop: Optional[str] = None,
+              noblock: Optional[bool] = None,
+              waittime: Optional[int] = None,
+<
+    Pythonic wrapper around a Vim channel.
+
+    Parameters
+
+      net_address
+        A network address of the form hostname:port.
+
+      drop
+        When to drop messages. Must be ‘auto’ or ‘never’.
+
+      noblock
+        Set to true to prevent blocking on on write operations.
+
+      waittime
+        Time to wait for a connection to succeed.
+
+      timeout_ms
+        Time to wait for blocking request.
+
+    Attributes
+
+      open                                              *channels.Channel.open*
+        True if the channel is currently open.
+
+      vch: VimChannel:                                   *channels.Channel.vch*
+        The underlying |VimChannel| object.
+
+    Properties
+
+      property is_open -> bool                       *channels.Channel.is_open*
+        Test whether the channel is open.
+
+    Methods
+
+      close() -> None                                  *channels.Channel.close*
+        Close the channel.
+
+        Related vim function = |ch_close|.
+
+      close_in() -> None                            *channels.Channel.close_in*
+        Close the input part of the channel.
+
+        Related vim function = |ch_info|.
+
+      connect()                                      *channels.Channel.connect*
+        If necessary, try to connect.
+
+      getbufnr(what: str) -> int                    *channels.Channel.getbufnr*
+        Get the number of the buffer thas is being used for what.
+
+        Related vim function = |ch_getbufnr|.
+
+        Parameters
+
+          what: str
+            The type of use. One of ‘err’, ‘out’ or an empty string.
+
+      info() -> dict                                    *channels.Channel.info*
+        Get information about the channel.
+
+        Related vim function = |ch_info|.
+
+        Return value
+
+        A dictionary of information.
+
+      log(msg: str) -> None                              *channels.Channel.log*
+        Write a message to the channel log file (if open).
+
+        Related vim function = |ch_log|. Note that this always provides the
+        channel argument.
+
+        Parameters
+
+          msg: str
+            The message to add to the log file.
+
+      on_close()                                    *channels.Channel.on_close*
+        Handler for when channel is closed.
+
+        Not invoked when the |close| method is used.
+
+        Needs to be over-ridden in a subclass.
+
+      on_connect()                                *channels.Channel.on_connect*
+        Handler for a new outgoing connection.
+
+        May be over-ridden in a subclass.
+
+      on_message(message: str)                    *channels.Channel.on_message*
+        Handler for messages not explicitly handled by read methods.
+
+        Needs to be over-ridden in a subclass.
+
+        The contents of message depend on the type of the channel. Note that
+        for a raw channel, this is invoked when any amount of the input data
+        stream has been received. It is up to the application code to buffer
+        and decode the stream’s contents.
+
+        Parameters
+
+          message: str
+            The received message. This is always a string, even for raw
+            channels. Vim replaces any NUL chracters with newlines, so pure
+            binary messages cannot be handled using on_message.
+
+      read(timeout_ms: int | None = None)               *channels.Channel.read*
+        Read any available input.
+
+      send(message: str | bytes) -> None                *channels.Channel.send*
+        Send a message to the server.
+
+        Related vim function = |ch_sendraw|.
+
+        Parameters
+
+          message: Union
+            The message to send to the server. A bytes value is converted to a
+            Latin-1 string before sending.
+
+                                                  *channels.Channel.settimeout*
+      settimeout(timeout_ms: int | None = None)
+        Set the default teimout for the channel.
+
+        Related vim function = |ch_setoptions|.
+
+        Parameters
+
+          timeout_ms: Optional
+            Time to wait for blocking request.
+
+      status(part: str | None = None) -> str          *channels.Channel.status*
+        Get information about the channel.
+
+        Related vim function = |ch_status|.
+
+        Parameters
+
+          part: Optional
+            Which part of the channel to query; ‘err’ or ‘out’.
+
+        Return value
+
+        One of the strings ‘fail’, ‘open’, ‘buffered’ or ‘closed’.
+
+  class channels.JSChannel(...)                            *channels.JSChannel*
+      >
+      JSChannel(
+              net_address: str,
+              drop: Optional[str] = None,
+              noblock: Optional[bool] = None,
+              waittime: Optional[int] = None,
+<
+    Pythonic wrapper around a Vim channel in javascript mode.
+
+  class channels.JsonChannel(...)                        *channels.JsonChannel*
+      >
+      JsonChannel(
+              net_address: str,
+              drop: Optional[str] = None,
+              noblock: Optional[bool] = None,
+              waittime: Optional[int] = None,
+<
+    Pythonic wrapper around a Vim channel in json mode.
+
+  class channels.NLChannel(...)                            *channels.NLChannel*
+      >
+      NLChannel(
+              net_address: str,
+              drop: Optional[str] = None,
+              noblock: Optional[bool] = None,
+              waittime: Optional[int] = None,
+<
+    Pythonic wrapper for a newline based channel.
+
+  class channels.RawChannel(...)                          *channels.RawChannel*
+      >
+      RawChannel(
+              net_address: str,
+              drop: Optional[str] = None,
+              noblock: Optional[bool] = None,
+              waittime: Optional[int] = None,
+<
+    Pythonic wrapper for a raw channel.
+
+  class channels.SyncChannel(...)                        *channels.SyncChannel*
+      >
+      SyncChannel(
+              net_address: str,
+              drop: Optional[str] = None,
+              noblock: Optional[bool] = None,
+              waittime: Optional[int] = None,
+<
+    Pythonic wrapper around a “json” or “js” channel.
+
+    Methods
+
+                                                *channels.SyncChannel.evalexpr*
+      evalexpr(expr: Any, timeout_ms: int | None = None) -> Any
+        Evaluate an expression on the server.
+
+        Related vim function = |ch_evalexpr|.
+
+        Parameters
+
+          expr: Any
+            The expression to send to the server for evaluation.
+
+          timeout_ms: Optional
+            Max time to wait for a response. This overrides the timeout_ms
+            given at construction time.
+
+      sendexpr(...)                             *channels.SyncChannel.sendexpr*
+          >
+          sendexpr(
+                  expr: Union[None, int, float, str, bool, List[Any], Dict[str, Any]]
+<
+        Send an expression to the server.
+
+        Related vim function = |ch_sendexpr|.
+
+        Parameters
+
+          expr: Union
+            The expression to send to the server.
+
+                                             *VimChannel* *channels.VimChannel*
+  class channels.VimChannel(varname: str)
+    Simple proxy for a |Channel|.
+
+    This manages keeping the underlying Vim channel object alive, by storing it
+    in a global Vim variable.
+
+    Parameters
+
+      varname
+        The name of the a vim variable currently referencing the |Channel|.
+
+    Attributes
+
+      varname                                     *channels.VimChannel.varname*
+        The name of a Vim variable holding a reference to the underlying Vim
+        channel object. This is provided for debugging purposes.
+
+    Properties
+
+      property chid                                  *channels.VimChannel.chid*
+        The ID for this channel.
+
+      property closed                              *channels.VimChannel.closed*
+        True of the channel could not be opened or has been closed.
+
+      property info                                  *channels.VimChannel.info*
+        Get the information for a channel.
+
+    Methods
+
+      close()                                       *channels.VimChannel.close*
+        Mark as closed and release the underlying reference variable.
+
+  -----------------------------------------------------------------------------~
+  3.17. Module vpe.config~          *vpe.module-config* *vpe.module-vpe-config*
+
+  Support for managing configuration information.
+
+  Configuration values are held as |config.Option| instances, which carry
+  additional meta-data such default values, valid ranges and descriptions.
+  Options prevent assignment of invalid values.
+
+  The |Config| class groups a set options together. It supports storage of
+  option values in an INI style configuration file and makes option values
+  available as (pseudo) instance attributes.
+
+                                                                  *config.Bool*
+  class config.Bool(name, default_value=False, description='')
+    A boolean |config.Option|.
+
+    Its value is always forced to be True or False.
+
+    Methods
+
+      set(value: int | str | bool) -> str                     *config.Bool.set*
+        Try to set this option’s value.
+
+        Return value
+
+        A string describing why the attempt failed.
+
+                                                                *config.Choice*
+  class config.Choice(name, choices=(), default_value=None, description='')
+    A |config.Option| that can take one of a set of values.
+
+    Parameters
+
+      description
+        A description for the value, used for help generation.
+
+      name
+        The name of the value.
+
+      default_value
+        A default value for the option.
+
+      choices
+        The set of allowed values.
+
+    Methods
+
+      index() -> int                                      *config.Choice.index*
+        Get the index for the current value.
+
+      set(value: int | str | bool) -> str                   *config.Choice.set*
+        Try to set this option’s value.
+
+        Return value
+
+        A string describing why the attempt failed.
+
+      values() -> List[Any]                              *config.Choice.values*
+        Get the list of choices.
+
+        This supports the protocol required by a |Field|.
+
+  class config.Config(name: str)                       *Config* *config.Config*
+    A collection of options forming a configuration.
+
+    Each option’s value is accessible as a pseudo attribute. All the methods of
+    this class end with an underscore in order to prevent name clashes with
+    options values.
+
+    Parameters
+
+      name
+        The name of this configuration. By convention, for a plug-in, this is
+        typically the plug-in’s name.
+
+    Attributes
+
+      name                                          *name* *config.Config.name*
+        The name of this configuration. By convention, for a plug-in, this is
+        typically the plug-in’s name.
+
+    Methods
+
+      add_(option)                                         *config.Config.add_*
+        Add an option to this configuration.
+
+        Parameters
+
+          option
+            The |config.Option| to add.
+
+      get_(name)                                           *config.Config.get_*
+        Get the option with a given name.
+
+        Exceptions raised
+
+          KeyError
+            if the option does not exist.
+
+      ini_path_() -> pathlib.Path                     *config.Config.ini_path_*
+        Get the INI file path.
+
+      load_()                                             *config.Config.load_*
+        Load options from an INI file.
+
+        If, for example, |name| is ‘omega’ then (on Linux) the file
+        ~/.vim/config.d/omega.ini will be loaded. Any existing option values
+        not found in the file are left unchanged. Any value in the file that
+        does not match a defined otion is simply ignored.
+
+      options_() -> Dict[str, vpe.config.Option]       *config.Config.options_*
+        Get the dictionary of options.
+
+      save_()                                             *config.Config.save_*
+        Save options to an INI file.
+
+        If, for example, |name| is ‘omega’ then (on Linux) the file
+        ~/.vim/config.d/omega.ini will be written. All previous contents of the
+        file will be lost.
+
+  class config.Int(...)                                            *config.Int*
+      >
+      Int(
+              name,
+              default_value=0,
+              minval=None,
+              maxval=None,
+<
+    A |config.Option| that can take an integer value.
+
+    Parameters
+
+      description
+        A description for the value, used for help generation.
+
+      name
+        The name of the value.
+
+      default_value
+        A default value for the option.
+
+      minval
+        The minimum permitted value; None means unconstrained.
+
+      maxval
+        The maximum permitted value; None means unconstrained.
+
+    Methods
+
+      set(value: int | str | bool) -> str                      *config.Int.set*
+        Try to set this option’s value.
+
+        Return value
+
+        A string describing why the attempt failed.
+
+  class config.Option(name, default_value, description='')      *config.Option*
+    Details about a given option value.
+
+    Parameters
+
+      name
+        The name of the value.
+
+      default_value
+        A default value for the option.
+
+      description
+        A description for the value, used for help generation.
+
+    Attributes
+
+      default_value                               *config.Option.default_value*
+        A default value for the option.
+
+      description                                   *config.Option.description*
+        A description for the value, used for help generation.
+
+      name                                                 *config.Option.name*
+        The name of the value.
+
+    Properties
+
+      property store_repr                            *config.Option.store_repr*
+        “The representation of the |store_value|.
+
+      property store_value            *store_value* *config.Option.store_value*
+        “The value for this option that will be store in the config file.
+
+      property value                                      *config.Option.value*
+        “The current value for this option.
+
+    Methods
+
+      copy_to_store()                             *config.Option.copy_to_store*
+        Copy this value to the persistent layer.
+
+      set(_value: int | str | bool) -> str                  *config.Option.set*
+        Try to set this option’s value.
+
+        This needs to be over-ridden in subclasses.
+
+        Return value
+
+        A string describing why the attempt failed.
+
+                                              *config.Option.simple_field_args*
+      simple_field_args() -> Dict[str, Any]
+        Generate keyword arguments for a simple UI field.
+
+        This may be extended in subclasses.
+
+    Static methods
+
+      static values() -> List[Any]                       *config.Option.values*
+        Get the list of choices.
+
+        This supports the protocol required for Tab completion support.
+
+                                                                *config.String*
+  class config.String(name, default_value='', description='')
+    A string value option.
+
+    Methods
+
+      set(value: str) -> str                                *config.String.set*
+        Try to set this option’s value.
+
+  -----------------------------------------------------------------------------~
+  3.18. Module vpe.core~                *vpe.module-core* *vpe.module-vpe-core*
+
+  Enhanced module for using Python3 in Vim.
+
+  This provides the Vim class, which is a wrapper around Vim’s built-in vim
+  module. It is intended that a Vim instance can be uses as a replacement for
+  the vim module. For example:
+    >
+    from vpe import vim
+    # Now use 'vim' as an extended version of the ``vim`` module.
+    # ...
+<
+
+  class core.expr_arg(arg: str)                                 *core.expr_arg*
+    Wrapper for a Vim argument that is an expression.
+
+    This is used to wrap a string that represents an expression that should be
+    passed to a Vim function, without being quoted.
+
+    Parameters
+
+      arg
+        The argument as a string representing the Vim expression.
+
+  -----------------------------------------------------------------------------~
+  3.19. Module vpe.mapping~       *vpe.module-mapping* *vpe.module-vpe-mapping*
+
+  Python support for key sequence mapping.
+
+  This module provides support for mapping key sequences to Python function
+  calls.
+
+  class mapping.KeyHandler                                 *mapping.KeyHandler*
+    Mix-in to support mapping key sequences to methods.
+
+    Methods
+
+                                             *mapping.KeyHandler.auto_map_keys*
+      auto_map_keys(pass_info: bool = False, debug: bool = False)
+        Set up mappings for methods.
+
+    Static methods
+
+      static mapped(...)                            *mapping.KeyHandler.mapped*
+          >
+          mapped(
+                  mode: str,
+                  keyseq: Union[str, Iterable[str]],
+                  **kwargs
+<
+        Decorator to make a keyboard mapping invoke a method.
+
+        Parameters
+
+          mode: str
+            The mode in which the mapping applies, one of normal, op-pending,
+            visual or insert.
+
+          keyseq: Union
+            A key sequence string or sequence thereof, as used by |map|.
+
+          kwargs
+            See |map| for the supported values.
+
+  class mapping.MapCallback(*args, **kwargs)              *mapping.MapCallback*
+    Wrapper for a function to be invoked by a key mapping.
+
+    This extends the core |Callback| to provide a |MappingInfo| as the first
+    positional argument.
+
+    Parameters
+
+      pass_info
+        If True, provide a MappingInfo object as the first argument to the
+        callback function.
+
+    Methods
+
+                                            *mapping.MapCallback.get_call_args*
+      get_call_args(_vpe_args: Dict[str, Any])
+        Get the Python positional and keyword arguments.
+
+        This makes the first positional argument a |MappingInfo| instance,
+        unless self.pass_info has been cleared.
+
+                                            *MappingInfo* *mapping.MappingInfo*
+  class mapping.MappingInfo(mode: str, keys: str)
+    Information passed to a key mapping callback handler.
+
+    The initialisation parameters are made available as attributes.
+
+    Attributes
+
+      end_cursor                               *mapping.MappingInfo.end_cursor*
+        When mode==”visual”, a tuple (line, column) of the selection end. Both
+        values are 1-based. Will be (-1, -1) when not applicable.
+
+      keys                                           *mapping.MappingInfo.keys*
+        The sequence of keys that triggered the mapping.
+
+      mode                                           *mapping.MappingInfo.mode*
+        The mode in which the mapping was triggered (normal, visual, op-pending
+        or insert).
+
+      start_cursor                           *mapping.MappingInfo.start_cursor*
+        When mode==”visual”, a tuple (line, column) of the selection start.
+        Both values are 1-based. Will be (-1, -1) when not applicable.
+
+      vmode                                         *mapping.MappingInfo.vmode*
+        The visual mode (character, line or block). Will be None when not
+        applicable.
+
+    Properties
+
+                                               *mapping.MappingInfo.line_range*
+      property line_range -> Tuple[int, int] | None
+        The line range, if visual mode was active.
+
+        This is a Python style range.
+
+
+    3.19.1. imap~                                                    *vpe.imap*
+
+    mapping.imap(...)                                     *imap* *mapping.imap*
+        >
+        imap(
+                keys: Union[str, Iterable[str]],
+                func: Union[Callable, str],
+                buffer: bool = True,
+                silent: bool = True,
+                unique: bool = False,
+                pass_info=True,
+                nowait: bool = False,
+                command: bool = False,
+                args=(),
+                kwargs: Optional[dict] = None,
+<
+      Set up an insert mapping that invokes a Python function.
+
+      See |map| for argument details.
+
+
+    3.19.2. map~                                                      *vpe.map*
+
+    mapping.map(...)                                        *map* *mapping.map*
+        >
+        map(
+                mode: str,
+                keys: Union[str, Iterable[str]],
+                func: Union[Callable, str],
+                buffer: bool = True,
+                silent: bool = True,
+                unique: bool = False,
+                nowait: bool = False,
+                command: bool = False,
+                pass_info=True,
+                args=(),
+                kwargs: Optional[dict] = None,
+<
+      Set up a key mapping that invokes a Python function.
+
+      By default, the effective map command has the form:
+
+        {m}noremap <buffer> <silent> keys …
+
+      Where {m} is one of n, x, o, i.
+
+      The noremap form is always used.
+
+      By default the first argument passed to the mapped function is a
+      |MappingInfo| object. The pass_info argument can be used to prevent this.
+      Additional arguments can be speficied using args and kwargs.
+
+      For convenience, mode specific versions are provided (|nmap|, |xmap|,
+      |omap| and |imap|). See those for details of what he mapped function can
+      do. It is recommended that these mode specific versions are use in
+      preference to this function.
+
+      The func argument may also be a string, in which case it is interpreted
+      as the literal RHS of the key mapping.
+
+      Parameters
+
+        mode: str
+          A string defining the mode in which the mapping occurs. This should
+          be one of: normal, visual, op-pending, insert, command, select. The
+          command and select mode are not supported when func is not a string.
+
+        keys: Union
+          The key sequence to be mapped. This may be an iterable set of key
+          sequences that should all be mapped to the same action.
+
+        func: Union
+          The Python function to invoke for the mapping or a string to use as
+          the right hand side of the mapping.
+
+        buffer: bool
+          Use the <buffer> special argument. Defaults to True.
+
+        silent: bool
+          Use the <silent> special argument. Defaults to True.
+
+        unique: bool
+          Use the <unique> special argument. Defaults to False.
+
+        nowait: bool
+          Use the <nowait> special argument. Defaults to False.
+
+        command: bool
+          Only applicable to insert mode. If true then the function is invoked
+          from the command prompt and the return value is not used. Otherwise
+          (the default) the function should return the text to be inserted.
+
+        pass_info
+          If set then the first argument passed to func is a MappingInfo
+          object. Defaults to True.
+
+        args
+          Additional arguments to pass to the mapped function.
+
+        kwargs: Optional
+          Additional keyword arguments to pass to the mapped function.
+
+        vim_exprs: Tuple
+          Vim expressions to be evaluated and passed to the callback function,
+          when the mapping is triggered.
+
+
+    3.19.3. nmap~                                                    *vpe.nmap*
+
+    mapping.nmap(...)                                     *nmap* *mapping.nmap*
+        >
+        nmap(
+                keys: Union[str, Iterable[str]],
+                func: Union[Callable, str],
+                buffer: bool = True,
+                silent: bool = True,
+                unique: bool = False,
+                pass_info=True,
+                nowait: bool = False,
+                args=(),
+                kwargs: Optional[dict] = None,
+<
+      Set up a normal mode  mapping that invokes a Python function.
+
+      See |map| for argument details.
+
+
+    3.19.4. omap~                                                    *vpe.omap*
+
+    mapping.omap(...)                                     *omap* *mapping.omap*
+        >
+        omap(
+                keys: Union[str, Iterable[str]],
+                func: Union[Callable, str],
+                buffer: bool = True,
+                silent: bool = True,
+                unique: bool = False,
+                pass_info=True,
+                nowait: bool = False,
+                args=(),
+                kwargs: Optional[dict] = None,
+<
+      Set up an operator-pending mode mapping that invokes a Python function.
+
+      See |map| for argument details.
+
+
+    3.19.5. xmap~                                                    *vpe.xmap*
+
+    mapping.xmap(...)                                     *xmap* *mapping.xmap*
+        >
+        xmap(
+                keys: Union[str, Iterable[str]],
+                func: Union[Callable, str],
+                buffer: bool = True,
+                silent: bool = True,
+                unique: bool = False,
+                pass_info=True,
+                nowait: bool = False,
+                args=(),
+                kwargs: Optional[dict] = None,
+<
+      Set up a visual mode mapping that invokes a Python function.
+
+      See |map| for argument details.
+
+  -----------------------------------------------------------------------------~
+  3.20. Module vpe.panels~          *vpe.module-panels* *vpe.module-vpe-panels*
+
+  Simple display and control panel framework.
+
+  This is still being developed. The API and behaviour is likely to change.
+
+  The basic idea is that the contents of a buffer is divided into a sequence of
+  panels.:
+    >
+    .-------------------------------------------------------------------.
+    |Panel 1 contents.                                                  |
+    |-------------------------------------------------------------------|
+    |Panel 2 contents.                                                  |
+    |                                                                   |
+    |-------------------------------------------------------------------|
+    |Panel 3 contents.                                                  |
+    |                                                                   |
+    :                                                                   :
+<
+  The contents of each panel is managed by a |Panel| subclass. The panels are
+  managed by a |PanelViewBuffer|.
+
+  class panels.Panel                                     *Panel* *panels.Panel*
+    Part of a |PanelViewBuffer|.
+
+    Parameters
+
+      view: PanelViewBuffer
+        The parent |PanelViewBuffer|. This is set by |PanelViewBuffer| when a
+        panel is added.
+
+      uid: int
+        A unique (within the PanelViewBuffer) for this panel.  This is set by
+        |PanelViewBuffer| when a panel is added.
+
+    Attributes
+
+      content                                  *content* *panels.Panel.content*
+        The formatted content of this panel as a sequence of line. This should
+        only be set by the |format_contents| method.
+
+      old_slice                                        *panels.Panel.old_slice*
+        The buffer slice for previous content. This is set to None by the
+        apply_updates method.
+
+        TODO: The reindex method must update this when it is not None.
+
+      start_lidx                         *start_lidx* *panels.Panel.start_lidx*
+        The index of this panel’s first line within the buffer.
+
+    Properties
+
+      property buf_slice                               *panels.Panel.buf_slice*
+        A slice object to select this panel’s line range.
+
+      property end_lidx                                 *panels.Panel.end_lidx*
+        The end index of the panel;s line range.
+
+      property syntax_prefix                       *panels.Panel.syntax_prefix*
+        A suitable prefix for syntax items in this panel.
+
+    Methods
+
+      apply_syntax()                                *panels.Panel.apply_syntax*
+        Apply syntax highlighting for this panel.
+
+        This may be over-ridden in subclasses that need specialised syntax
+        highlighting.
+
+        This is only called when the panel’s |start_lidx| is correctly set.
+        Previous panel specific syntax must be deleted by this method.
+
+      apply_updates() -> bool                      *panels.Panel.apply_updates*
+        Apply any changes since the last call to this method.
+
+        This is where modifications to the underlying Vim buffer contents are
+        performed.
+
+        Return value
+
+        True if the buffer was updated.
+
+      format_contents()        *format_contents* *panels.Panel.format_contents*
+        Format this panel’s contents.
+
+        If the number of content lines changes then the parent view’s
+        |notify_size_change| method is invoked. If this results in the
+        formatted contents changing then the parent view’s
+        |notify_content_change| method is invoked.
+
+        This invokes the |on_format_contents| method, which is responsible for
+        filling the |content| list.
+
+                         *on_format_contents* *panels.Panel.on_format_contents*
+      on_format_contents() -> None
+        Format the content of this panel.
+
+        The content is stored as a sequence of lines in the |content| property.
+        This needs to be over-ridden in concrete subclasses.
+
+      reindex(idx: int) -> int                           *panels.Panel.reindex*
+        Update the line index information for this panel.
+
+        This is invoked when a panel is first added to a |PanelViewBuffer| and
+        when the |PanelViewBuffer| determines that the panel’s starting line
+        may have changed.
+
+        Parameters
+
+          idx: int
+            The start line index for this panel.
+
+        Return value
+
+        The start line index for any following panel.
+
+      set_view(view: |PanelViewBuffer|, uid: int)       *panels.Panel.set_view*
+        Set the parent |PanelViewBuffer|.
+
+        Parameters
+
+          view: PanelViewBuffer
+            The parent |PanelViewBuffer|.
+
+          uid: int
+            The PanelViewBuffer unique ID for this panel.
+
+                                     *PanelViewBuffer* *panels.PanelViewBuffer*
+  class panels.PanelViewBuffer(*args, **kwargs)
+    A |ScratchBuffer| organised as vertical sequence of panels.
+
+    This provides support for the content of panels to be independently
+    updated. The PanelView is responsible for making the buffer correctly
+    reflect the content of the constituent panels.
+
+    Each panel is responsible for notifying its parent PanelViewBuffer when
+    significant changes have occurred, such as lines being added, removed or
+    modified.
+
+    Properties
+
+      property data                               *panels.PanelViewBuffer.data*
+        The data store for this panel view.
+
+      property panels                           *panels.PanelViewBuffer.panels*
+        The sequence of panels for this display buffer.
+
+    Methods
+
+      add_panel(panel: |Panel|)              *panels.PanelViewBuffer.add_panel*
+        Add a panel an the end of the panel list.
+
+      format_panel(panel: |Panel|)        *panels.PanelViewBuffer.format_panel*
+        Make a panel refresh itself.
+
+                                          *panels.PanelViewBuffer.insert_panel*
+      insert_panel(panel: |Panel|, index: int)
+        Insert a panel into the panel list.
+
+        The new panel’s content must be empty.
+
+        Parameters
+
+          panel: Panel
+            The panel to insert.
+
+          index: int
+            Where to insert the panel.
+
+         *notify_content_change* *panels.PanelViewBuffer.notify_content_change*
+      notify_content_change(panel: |Panel|)
+        Handle notification that a panel’s content has changed.
+
+        Parameters
+
+          panel: Panel
+            The panel that has changed.
+
+               *notify_size_change* *panels.PanelViewBuffer.notify_size_change*
+      notify_size_change()
+        Handle notification that some panel’s size has changed.
+
+      on_buf_enter()                      *panels.PanelViewBuffer.on_buf_enter*
+        Invoked each time the buffer is entered.
+
+        Subclasses may extend this.
+
+      on_reindex()                          *panels.PanelViewBuffer.on_reindex*
+        Perform special processing when line reindexing has occurred.
+
+        Subclasses may over-ride this.
+
+      on_set_syntax()                    *panels.PanelViewBuffer.on_set_syntax*
+        Perform special processing when syntax is defined.
+
+        Subclasses may over-ride this.
+
+                                    *panels.PanelViewBuffer.on_updates_applied*
+      on_updates_applied(changes_occurred: bool)
+        Perform special processing when buffer has been refreshed.
+
+        Subclasses may over-ride this.
+
+        Parameters
+
+          changes_occurred: bool
+            True if changes to the buffer have been made.
+
+      remove_panel(panel: |Panel|)        *panels.PanelViewBuffer.remove_panel*
+        Remove a panel from the panel list.
+
+        Parameters
+
+          panel: Panel
+            The panel to remove. It must be present.
+
+                                       *panels.PanelViewBuffer.schedule_win_op*
+      schedule_win_op(key, func, *args)
+        Schedule an operation for when the buffer appears in a window.
+
+
+    3.20.1. can_cause_changes~                          *vpe.can-cause-changes*
+
+    panels.can_cause_changes(method)                 *panels.can_cause_changes*
+      Decorator for |Panel| methods that can cause visible changes.
+
+  -----------------------------------------------------------------------------~
+  3.21. Module vpe.syntax~          *vpe.module-syntax* *vpe.module-vpe-syntax*
+
+  A pythonic API for creating syntax highlighting definitions.
+
+  class syntax.Cluster(syn, name)                              *syntax.Cluster*
+    A cluster of groups.
+
+    Parameters
+
+      syn
+        The |Syntax| instance that created this cluster.
+
+      name
+        A name for this cluster.
+
+    Methods
+
+                                                           *syntax.Cluster.add*
+      add(group1: |Group| | str, *groups: |Group| | str)
+        Add groups to the cluster.
+
+        A group argument may be a name, in which case it references or creates
+        a group within the parent |syntax| object.
+
+        Parameters
+
+          group1: Union
+            The first group to be added.
+
+          groups: Union
+            Additional groups to be added.
+
+      group(name, **options)                             *syntax.Cluster.group*
+        Create and add a new group.
+
+        The new group is within the parent |Syntax| objects namespace. This
+        provides a convenient shortcut for:
+          >
+          g = syntax.group(name, ...)
+          cluster.add(g)
+<
+        Parameters
+
+          name
+            The name of the group.
+
+          options
+            Options for the group.
+
+      include(path_name)                               *syntax.Cluster.include*
+        Include Vim syntax file, adding its groups to this cluster.
+
+        This does a |syn-include| operation with a a cluster name.
+
+        Parameters
+
+          path_name
+            The path name of the syntax file to include. If this is a relative
+            path, the file is searched for within the :|runtimepath|.
+
+      invoke(file=None) -> None                         *syntax.Cluster.invoke*
+        Invoke any pending syntax commands.
+
+        This is only intended to be used by a |Syntax| instance.
+
+  class syntax.ContainedIn(group: 'Group')                 *syntax.ContainedIn*
+    A containedin option.
+
+  class syntax.Contains(*groups: 'Group')                     *syntax.Contains*
+    Store for the syntax contains option.
+
+    Parameters
+
+      groups: list
+        This can optionally be initialised with one or more groups.
+
+                                                                   *syntax.End*
+  class syntax.End(pat, *pats, lidx=None, lrange=None, **options)
+    An end pattern.
+
+                                                         *Group* *syntax.Group*
+  class syntax.Group(syn, name, std=False, contained=False)
+    A named syntax group.
+
+    Parameters
+
+      syn
+        The |Syntax| instance that created this item.
+
+      name
+        A name for the item.
+
+      std
+        If true then the group is treated as not in the Syntax object’s
+        namespace.
+
+      contained
+        If true then all matches, keywords and regions this creates
+        automtically have the contained option set.
+
+                                                     *syntax.Group.region_type*
+    class region_type(syn: 'Syntax', syn_cmd: Callable, name: str, **options)
+      A context manager for adding a region  to a group.
+
+      Parameters
+
+        syn
+          The |Syntax| instance that created this item.
+
+        syn_cmd
+          The syntax command function.
+
+        name
+          A name for the item.
+
+        options
+          Named options for the region command.
+
+      Methods
+
+                                                 *syntax.Group.region_type.end*
+        end(pat: str, *pats: str, **kwargs) -> |Region|
+          Define an end pattern
+
+          Parameters
+
+            pat: str
+              The first part of the regular expression string.
+
+            pats: str
+              Additional expression strings. These are concatenated with pat to
+              form the complete regular expression.
+
+            kwargs
+              Additional options for the region skip.
+
+                                          *syntax.Group.region_type.matchgroup*
+        matchgroup(group: |Group| | None)
+          Add or remove a matchgroup directive for this region.
+
+                                                *syntax.Group.region_type.skip*
+        skip(pat: str, *pats: str, **kwargs) -> |Region|
+          Define a skip pattern
+
+          Parameters
+
+            pat: str
+              The first part of the regular expression string.
+
+            pats: str
+              Additional expression strings. These are concatenated with pat to
+              form the complete regular expression.
+
+            kwargs
+              Additional options for the region skip.
+
+                                               *syntax.Group.region_type.start*
+        start(pat: str, *pats: str, **kwargs) -> |Region|
+          Define a start pattern
+
+          Parameters
+
+            pat: str
+              The first part of the regular expression string.
+
+            pats: str
+              Additional expression strings. These are concatenated with pat to
+              form the complete regular expression.
+
+            kwargs
+              Additional options for the region start.
+
+    Methods
+
+      add_keyword(keyword, *keywords, **options)     *syntax.Group.add_keyword*
+        Add one or more keywords to this syntax group.
+
+        Parameters
+
+          keyword
+            The first tkeyword to add.
+
+          keywords
+            Additional tkeywords to add.
+
+          options
+            Options for the set of keywords.
+
+      add_links(*groups)                               *syntax.Group.add_links*
+        Add groups to the set that link to this group.
+
+      add_match(...)                                   *syntax.Group.add_match*
+          >
+          add_match(
+                  pat: str,
+                  *pats: str,
+                  lidx: Optional[int] = None,
+                  lrange: Optional[Tuple[int, int]] = None,
+<
+        Add a syntax match for this group.
+
+        Parameters
+
+          pat: str
+            The first part of the regular expression string.
+
+          pats: str
+            Additional expression strings. These are concatenated with pat to
+            form the complete regular expression.
+
+          lidx: Optional
+            The index of a line to tie the match to.
+
+          lrange: Optional
+            A range of lines to tie the match to.
+
+          options
+            Additional options for the match.
+
+                                                      *syntax.Group.add_region*
+      add_region(start: str, end: str, skip: str | None = None, **options)
+        Add a syntax region for this group.
+
+        This is only suitable for simple region definitions. Only a single
+        start, skip and end pattern can be added. For more complex cases use a
+        |region| context.
+
+        Parameters
+
+          start: str
+            The start pattern.
+
+          end: str
+            The end pattern.
+
+          skip: Optional
+            Optional skip pattern.
+
+          options
+            Additional options for the region.
+
+      highlight(**kwargs)                              *syntax.Group.highlight*
+        Define highlighting for this group.
+
+        Parameters
+
+          kwargs
+            These are the same as for |vpe.highlight|, except that group and
+            clear should not be  used.
+
+      invoke(file=None) -> None                           *syntax.Group.invoke*
+        Invoke any pending syntax commands.
+
+        This is only intended to be used by a |Syntax| instance.
+
+      region(**options)                          *region* *syntax.Group.region*
+        Create a region context manager.
+
+        This supports regions with multiple start, skip and end patterns.
+
+        Parameters
+
+          options
+            Additional options for the region.
+
+      set_highlight(file=None)                     *syntax.Group.set_highlight*
+        Set up highlight definition for this group.
+
+  class syntax.GroupOption(group: 'Group')                 *syntax.GroupOption*
+    Base class for group options.
+
+    Parameters
+
+      group
+        A group instance.
+
+  class syntax.LocationGroup(name, group)                *syntax.LocationGroup*
+    A grouphere or groupthere option.
+
+    Parameters
+
+      name: str
+        The option name - ‘grouphere’ or groupthere’.
+
+      group
+        A group instance.
+
+  class syntax.MatchGorup(group: |Group| | None)            *syntax.MatchGorup*
+    A matchgroup directive for a region.
+
+    Methods
+
+      arg_str() -> str                              *syntax.MatchGorup.arg_str*
+        Format matchgroup as an directove in a region command.
+
+  class syntax.MatchGroup(group: 'Group')                   *syntax.MatchGroup*
+    A matchgroup option.
+
+                                                       *syntax.NamedSyntaxItem*
+  class syntax.NamedSyntaxItem(syn: 'Syntax', name: str, std=False)
+    A syntax item with an assigned name.
+
+    Parameters
+
+      syn
+        The |Syntax| instance that created this item.
+
+      name
+        A name for the item.
+
+      std
+        If true then the item is treated as not in the Syntax object’s
+        namespace.
+
+    Properties
+
+      property arg_name -> str                *syntax.NamedSyntaxItem.arg_name*
+        A suitable name when used as an argument.
+
+      property name -> str                        *syntax.NamedSyntaxItem.name*
+        The base name of this item, without the Sytntax ojbect’s prefix.
+
+      property qual_name -> str              *syntax.NamedSyntaxItem.qual_name*
+        The qualified name of this item.
+
+        It this was created with std=True then this is the same as the |name|.
+        Otherwise the parent Syntax object’s namespace is assed to |name| as a
+        prefix.
+
+  class syntax.NextGroup(group: 'Group')                     *syntax.NextGroup*
+    A nextgroup option.
+
+  class syntax.Option                                  *Option* *syntax.Option*
+    Base class for the syntax command options.
+
+    Methods
+
+      vim_fmt() -> str                                  *syntax.Option.vim_fmt*
+        Format the option as a string for use in a :syntax command.
+
+                                                               *syntax.Pattern*
+  class syntax.Pattern(pat, *pats, lidx=None, lrange=None, **options)
+    A syntax pattern.
+
+    Parameters
+
+      pat
+        The first part of the regular expression string.
+
+      pats
+        Additional expression strings. These are concatenated with pat to form
+        the complete regular expression.
+
+      lidx
+        The index of a line to tie the match to.
+
+      lrange
+        A range of lines to tie the match to.
+
+      options
+        Additional options, including pattern offsets.
+
+    Methods
+
+      arg_str() -> str                                 *syntax.Pattern.arg_str*
+        Format pattern as an argument to a ayntax command.
+
+                                                       *Region* *syntax.Region*
+  class syntax.Region(syn: 'Syntax', syn_cmd: Callable, name: str, **options)
+    A context manager for adding a region  to a group.
+
+    Parameters
+
+      syn
+        The |Syntax| instance that created this item.
+
+      syn_cmd
+        The syntax command function.
+
+      name
+        A name for the item.
+
+      options
+        Named options for the region command.
+
+    Methods
+
+      end(pat: str, *pats: str, **kwargs) -> |Region|       *syntax.Region.end*
+        Define an end pattern
+
+        Parameters
+
+          pat: str
+            The first part of the regular expression string.
+
+          pats: str
+            Additional expression strings. These are concatenated with pat to
+            form the complete regular expression.
+
+          kwargs
+            Additional options for the region skip.
+
+      matchgroup(group: |Group| | None)              *syntax.Region.matchgroup*
+        Add or remove a matchgroup directive for this region.
+
+      skip(pat: str, *pats: str, **kwargs) -> |Region|     *syntax.Region.skip*
+        Define a skip pattern
+
+        Parameters
+
+          pat: str
+            The first part of the regular expression string.
+
+          pats: str
+            Additional expression strings. These are concatenated with pat to
+            form the complete regular expression.
+
+          kwargs
+            Additional options for the region skip.
+
+                                                          *syntax.Region.start*
+      start(pat: str, *pats: str, **kwargs) -> |Region|
+        Define a start pattern
+
+        Parameters
+
+          pat: str
+            The first part of the regular expression string.
+
+          pats: str
+            Additional expression strings. These are concatenated with pat to
+            form the complete regular expression.
+
+          kwargs
+            Additional options for the region start.
+
+  class syntax.SimpleOption(name: str, value: bool)       *syntax.SimpleOption*
+    A simple syntax option.
+
+    Parameters
+
+      name
+        The option’s name.
+
+      value
+        If true then the option is enabled.
+
+    Methods
+
+      vim_fmt() -> str                            *syntax.SimpleOption.vim_fmt*
+        Format the option as a string for use in a :syntax command.
+
+                                                                  *syntax.Skip*
+  class syntax.Skip(pat, *pats, lidx=None, lrange=None, **options)
+    A skip pattern.
+
+                                                                 *syntax.Start*
+  class syntax.Start(pat, *pats, lidx=None, lrange=None, **options)
+    A start pattern.
+
+  class syntax.StdCluster(syn, name)                        *syntax.StdCluster*
+    A cluster of groups, not in a |Syntax| object’s namespace.
+
+    Properties
+
+      property arg_name                            *syntax.StdCluster.arg_name*
+        A suitable name when used as an argument.
+
+    Methods
+
+      invoke() -> None                               *syntax.StdCluster.invoke*
+        Null operation implementation.
+
+                                                             *syntax.SyncGroup*
+  class syntax.SyncGroup(syn, name, std=False, contained=False)
+    A group use for synchronisation.
+
+                                                       *Syntax* *syntax.Syntax*
+  class syntax.Syntax(group_prefix, clear: bool = True)
+    Context manager for defining syntax highlighting.
+
+    This stores a sequence of syntax highlighting directives. The directives
+    are executed (as syntax and highlight commands) when the context is exited.
+
+    Parameters
+
+      group_prefix
+        A prefix added to the name of all groups created using this Syntax
+        instance.
+
+      clear
+        Whether to clear any previous syntax for the current buffer. This is
+        True by default.
+
+                                                     *syntax.Syntax.group_type*
+    class group_type(syn, name, std=False, contained=False)
+      A named syntax group.
+
+      Parameters
+
+        syn
+          The |Syntax| instance that created this item.
+
+        name
+          A name for the item.
+
+        std
+          If true then the group is treated as not in the Syntax object’s
+          namespace.
+
+        contained
+          If true then all matches, keywords and regions this creates
+          automtically have the contained option set.
+
+                                         *syntax.Syntax.group_type.region_type*
+      class region_type(syn: 'Syntax', syn_cmd: Callable, name: str, **options)
+        A context manager for adding a region  to a group.
+
+        Parameters
+
+          syn
+            The |Syntax| instance that created this item.
+
+          syn_cmd
+            The syntax command function.
+
+          name
+            A name for the item.
+
+          options
+            Named options for the region command.
+
+        Methods
+
+                                     *syntax.Syntax.group_type.region_type.end*
+          end(pat: str, *pats: str, **kwargs) -> |Region|
+            Define an end pattern
+
+            Parameters
+
+              pat: str
+                The first part of the regular expression string.
+
+              pats: str
+                Additional expression strings. These are concatenated with pat
+                to form the complete regular expression.
+
+              kwargs
+                Additional options for the region skip.
+
+                              *syntax.Syntax.group_type.region_type.matchgroup*
+          matchgroup(group: |Group| | None)
+            Add or remove a matchgroup directive for this region.
+
+                                    *syntax.Syntax.group_type.region_type.skip*
+          skip(pat: str, *pats: str, **kwargs) -> |Region|
+            Define a skip pattern
+
+            Parameters
+
+              pat: str
+                The first part of the regular expression string.
+
+              pats: str
+                Additional expression strings. These are concatenated with pat
+                to form the complete regular expression.
+
+              kwargs
+                Additional options for the region skip.
+
+                                   *syntax.Syntax.group_type.region_type.start*
+          start(pat: str, *pats: str, **kwargs) -> |Region|
+            Define a start pattern
+
+            Parameters
+
+              pat: str
+                The first part of the regular expression string.
+
+              pats: str
+                Additional expression strings. These are concatenated with pat
+                to form the complete regular expression.
+
+              kwargs
+                Additional options for the region start.
+
+      Methods
+
+                                         *syntax.Syntax.group_type.add_keyword*
+        add_keyword(keyword, *keywords, **options)
+          Add one or more keywords to this syntax group.
+
+          Parameters
+
+            keyword
+              The first tkeyword to add.
+
+            keywords
+              Additional tkeywords to add.
+
+            options
+              Options for the set of keywords.
+
+        add_links(*groups)                 *syntax.Syntax.group_type.add_links*
+          Add groups to the set that link to this group.
+
+        add_match(...)                     *syntax.Syntax.group_type.add_match*
+            >
+            add_match(
+                    pat: str,
+                    *pats: str,
+                    lidx: Optional[int] = None,
+                    lrange: Optional[Tuple[int, int]] = None,
+<
+          Add a syntax match for this group.
+
+          Parameters
+
+            pat: str
+              The first part of the regular expression string.
+
+            pats: str
+              Additional expression strings. These are concatenated with pat to
+              form the complete regular expression.
+
+            lidx: Optional
+              The index of a line to tie the match to.
+
+            lrange: Optional
+              A range of lines to tie the match to.
+
+            options
+              Additional options for the match.
+
+                                          *syntax.Syntax.group_type.add_region*
+        add_region(start: str, end: str, skip: str | None = None, **options)
+          Add a syntax region for this group.
+
+          This is only suitable for simple region definitions. Only a single
+          start, skip and end pattern can be added. For more complex cases use
+          a |region| context.
+
+          Parameters
+
+            start: str
+              The start pattern.
+
+            end: str
+              The end pattern.
+
+            skip: Optional
+              Optional skip pattern.
+
+            options
+              Additional options for the region.
+
+        highlight(**kwargs)                *syntax.Syntax.group_type.highlight*
+          Define highlighting for this group.
+
+          Parameters
+
+            kwargs
+              These are the same as for |vpe.highlight|, except that group and
+              clear should not be  used.
+
+        invoke(file=None) -> None             *syntax.Syntax.group_type.invoke*
+          Invoke any pending syntax commands.
+
+          This is only intended to be used by a |Syntax| instance.
+
+        region(**options)                     *syntax.Syntax.group_type.region*
+          Create a region context manager.
+
+          This supports regions with multiple start, skip and end patterns.
+
+          Parameters
+
+            options
+              Additional options for the region.
+
+        set_highlight(file=None)       *syntax.Syntax.group_type.set_highlight*
+          Set up highlight definition for this group.
+
+                                                *syntax.Syntax.sync_group_type*
+    class sync_group_type(syn, name, std=False, contained=False)
+      A group use for synchronisation.
+
+    Methods
+
+      cluster(name, *add_groups)                        *syntax.Syntax.cluster*
+        Create a cluster within this |syntax| object’s namespace.
+
+        Parameters
+
+          name
+            The cluster’s name.
+
+      fmt_group(name: str) -> str                     *syntax.Syntax.fmt_group*
+        Format the name of a group, adding the Syntax object’s prefix.
+
+        Parameters
+
+          name: str
+            The name of the group.
+
+      group(name, link_to=None, **options)                *syntax.Syntax.group*
+        Create a group within this |syntax| object’s namespace.
+
+        Parameters
+
+          name
+            The group’s name.
+
+          link_to
+            The full name of a group to link to.
+
+          options
+            Options for the group.
+
+      include(name)                                     *syntax.Syntax.include*
+        Do a simple include of syntax file.
+
+        The command executed is: runtime syntax/name.vim
+
+        Parameters
+
+          name
+            The syntax name.
+
+      preview_last() -> str                        *syntax.Syntax.preview_last*
+        Generate preview string of the last scheduled command.
+
+        This can be useful during debugging a new syntax.
+
+      schedule(func, *args, **kwargs)                  *syntax.Syntax.schedule*
+        Add a syntax command to those scheduled for later execution.
+
+        Parameters
+
+          func
+            The syntax command function.
+
+          args
+            Positional arguments for the command.
+
+          kwargs
+            Keyword arguments for the command.
+
+      std_cluster(name)                             *syntax.Syntax.std_cluster*
+        Create a standard (externally defined) cluster.
+
+        Parameters
+
+          name
+            The cluster’s full name.
+
+      std_group(name)                                 *syntax.Syntax.std_group*
+        Create a standard (externally defined) group.
+
+        Parameters
+
+          name
+            The group’s full name.
+
+      sync_group(name, **options)                    *syntax.Syntax.sync_group*
+        Create a sync group within this |syntax| object’s namespace.
+
+        Parameters
+
+          name
+            The group’s name.
+
+          options
+            Options for the group.
+
+  class syntax.SyntaxBase                                   *syntax.SyntaxBase*
+    Base class for various syntax support classes.
+
+    Static methods
+
+      static get_offsets(...)                   *syntax.SyntaxBase.get_offsets*
+          >
+          get_offsets(
+                  options: dict,
+                  offset_names: Iterable[str]
+<
+        Extract the offset arguments from keyword options.
+
+        Parameters
+
+          options: dict
+            A dictionary of options.
+
+          offset_names: Iterable
+            The offset option names to extract.
+
+        Return value
+
+        A tuple of the extracted offsets and the remaining options. The offsets
+        value is a string of the form name=value[,…], ready to use in the Vim
+        syntax command.
+
+
+    3.21.1. convert_syntax_options~                *vpe.convert-syntax-options*
+
+                                                *syntax.convert_syntax_options*
+    syntax.convert_syntax_options(syn, options) -> dict
+      Convert values in a dictionary of option to |Option| instances.
+
+      Parameters
+
+        options
+          The dictionary containing keyword defined options.
+
+      Return value
+
+      The same (modified in place) dictionary.
+
+
+    3.21.2. deliminate~                                        *vpe.deliminate*
+
+    syntax.deliminate(pat: str) -> str                      *syntax.deliminate*
+      Put deliminators around a syntax expression.
+
+      If reasonably sensible, a deliminator that is not part of the pattern is
+      used. If this is not possible then the double quote character is used and
+      any double quotes within the pattern are escaped with a backslash.
+
+      Parameters
+
+        pat: str
+          The pattern to be deliminated.
+
+
+    3.21.3. extract_keys~                                    *vpe.extract-keys*
+
+                                                          *syntax.extract_keys*
+    syntax.extract_keys(source_dict: dict, *keys: Any) -> dict
+      Extract a set of named items from a dictionary.
+
+      Any item in source_dict that has a key contained in keys is moved to a
+      new dictionary.
+
+      Parameters
+
+        source_dict: dict
+          The dictionary from which to extract the items.
+
+        keys: Any
+          The keys for the items to extract.
+
+      Return value
+
+      A new dictionary containing the items remove from the source_dict.
+
+  -----------------------------------------------------------------------------~
+  3.22. Module vpe.ui~                      *vpe.module-ui* *vpe.module-vpe-ui*
+
+  User interface components.
+
+  This is still being developed. The API and behaviour is likely to change.
+
+  class ui.BoolField(...)                                        *ui.BoolField*
+      >
+      BoolField(
+              lidx,
+              cidx,
+              prefix='',
+              suffix='',
+              prefix_width=0,
+              suffix_width=0,
+              value_width=6,
+              opt_var=None,
+<
+    A field displaying a boolean value.
+
+    Methods
+
+      increment(_step: int) -> bool                    *ui.BoolField.increment*
+        Increment this field’s value by a given step.
+
+  class ui.ChoiceField(_values=(), opt_var=None, **kwargs)     *ui.ChoiceField*
+    A field holding one of a list of choices.
+
+    ::values: A sequence of permitted values for the field. This is ignored.
+
+    Methods
+
+      increment(step: int)                           *ui.ChoiceField.increment*
+        Increment this field’s value by a given step.
+
+  class ui.ConfigPanel(fields)                   *ConfigPanel* *ui.ConfigPanel*
+    A panel that displays configuration values.
+
+    Parameters
+
+      fields
+        The fields within this panel. A mapping from name to |Field|.
+
+    Attributes
+
+      fields                                            *ui.ConfigPanel.fields*
+        The fields within this panel. A mapping from name to |Field|.
+
+      first_field_idx                          *ui.ConfigPanel.first_field_idx*
+        The global index of the first field in this panel.
+
+      selectable_fields                      *ui.ConfigPanel.selectable_fields*
+        A mapping from global field index to |Field| instance.
+
+    Methods
+
+      apply_syntax()                              *ui.ConfigPanel.apply_syntax*
+        Apply syntax highlighting for this panel.
+
+        This is only called when the panel’s |start_lidx| is correctly set.
+
+      get_field_by_idx(index: int)            *ui.ConfigPanel.get_field_by_idx*
+        Get the editable field with a given index.
+
+      index_fields(start_idx: int)                *ui.ConfigPanel.index_fields*
+        Set up the mapping from field index to field.
+
+      on_format_contents()                  *ui.ConfigPanel.on_format_contents*
+        Refresh to formatted lines for this panel.
+
+      select_field(index: int)                    *ui.ConfigPanel.select_field*
+        Select a specific field.
+
+  class ui.ConfigPanelBuffer(*args, **kwargs)            *ui.ConfigPanelBuffer*
+    A |PanelViewBuffer| thats supports configuration panels.
+
+    This tracks instances of |ConfigPanel| and sets up key mappings to navigate
+    and modify the fields within them.
+
+    Methods
+
+                                           *ui.ConfigPanelBuffer.config_panels*
+      config_panels() -> Iterator[|ConfigPanel|]
+        Interate over all the configuration panels.
+
+      edit_field()                            *ui.ConfigPanelBuffer.edit_field*
+        Allow the user to edit the value of a field.
+
+      get_field_by_idx(index: int)      *ui.ConfigPanelBuffer.get_field_by_idx*
+        Get the editable field with a given index.
+
+      inc_field(step: int)                     *ui.ConfigPanelBuffer.inc_field*
+        Increment the value in a field.
+
+        Parameters
+
+          step: int
+            Value to change the field by. May be a negative value.
+
+      move_field(step: int = 0)               *ui.ConfigPanelBuffer.move_field*
+        Move to a different field.
+
+        Parameters
+
+          step: int
+            Increment for the field index.
+
+      on_change()                              *ui.ConfigPanelBuffer.on_change*
+        Perform common processing when value is changed.
+
+        This is intended to be over-ridden by subclasses.
+
+      on_reindex()                            *ui.ConfigPanelBuffer.on_reindex*
+        Perform special processing when line reindexing has occurred.
+
+                                *ui.ConfigPanelBuffer.on_selected_field_change*
+      on_selected_field_change()
+        Perform common processing when the selecetd field is changed.
+
+        This is intended to be over-ridden by subclasses.
+
+                                      *ui.ConfigPanelBuffer.on_updates_applied*
+      on_updates_applied(changes_occurred: bool)
+        Perform special processing when buffer has been refreshed.
+
+        When this is invoked, this buffer may not be in the active window and
+        my even be hidden.
+
+  class ui.CurPrev(value)                                          *ui.CurPrev*
+    An value that knows its previous value.
+
+    Properties
+
+      property changed -> bool                             *ui.CurPrev.changed*
+        Whether this value has been changed.
+
+      property value                                         *ui.CurPrev.value*
+        The current value.
+
+    Methods
+
+      restore_prev()                                  *ui.CurPrev.restore_prev*
+        Restore this to its previous value..
+
+  class ui.Field(...)                                        *Field* *ui.Field*
+      >
+      Field(
+              lidx,
+              cidx,
+              prefix='',
+              suffix='',
+              prefix_width=0,
+              suffix_width=0,
+              value_width=6,
+              opt_var=None,
+<
+    Base class for a field within a |ConfigPanel|.
+
+    A field consists of 3 parts; prefix, value and suffix. They are laid out
+    like this (in this example the prefix and value are left justified and the
+    suffix is right justified).
+      >
+      |        prefix      value          suffix
+      |        :          ::        ::         :
+      |        :          ::        :<--------->  suffix_fmt_width
+      |        <---------->:        :          :  prefix_fmt_width
+      |        :           <-------->          :  val_extent[1] / value_width
+      |        <------------------------------->  full_width
+       ^       ^           ^
+       :       :           `--------------------  val_extent[0]
+       :       `--------------------------------  cidx
+       `----------------------------------------  <buffer column zero>
+<
+    Note that full_width == prefix_fmt_width + value_width + suffix_fmt_width.
+
+    Parameters
+
+      lidx
+        The line index within the panel.
+
+      cidx
+        The column index within the panel.
+
+      prefix
+        The label displayed before the field.
+
+      suffix
+        The label displayed after the field.
+
+      prefix_width
+        The width spec for the prefix. If not provided then this defaults to
+        the width of the prefix + 1. If set to a negative number, the prefix is
+        right justified.
+
+      suffix_width
+        The width spec for the prefix. It follows the same pattern as the
+        prefix_width.
+
+      value_width
+        The width spec for the value. It follows the same pattern as the
+        prefix_width.
+
+    Attributes
+
+      cidx                                                      *ui.Field.cidx*
+        The column index within the panel.
+
+      lidx                                                      *ui.Field.lidx*
+        The line index within the panel.
+
+      prefix                                                  *ui.Field.prefix*
+        The label displayed before the field.
+
+      prefix_width                                      *ui.Field.prefix_width*
+        The width spec for the prefix. If not provided then this defaults to
+        the width of the prefix + 1. If set to a negative number, the prefix is
+        right justified.
+
+      suffix                                                  *ui.Field.suffix*
+        The label displayed after the field.
+
+      suffix_width                                      *ui.Field.suffix_width*
+        The width spec for the prefix. It follows the same pattern as the
+        prefix_width.
+
+    Properties
+
+      property column_range -> Tuple[int, int]          *ui.Field.column_range*
+        The range of columns occupied by this field.
+
+      property full_width -> int                          *ui.Field.full_width*
+        The full width occupied by this field.
+
+      property prefix_fmt_width -> int              *ui.Field.prefix_fmt_width*
+        The width of this field’s formatted prefix.
+
+      property suffix_fmt_width -> int              *ui.Field.suffix_fmt_width*
+        The width of this field’s formatted suffix.
+
+      property val_extent -> Tuple[int, int]              *ui.Field.val_extent*
+        The extent of this field’s value.
+
+        A tuple of cnum, width.
+
+      property value -> Any                                    *ui.Field.value*
+        The field’s current value.
+
+      property value_fmt_width -> int                *ui.Field.value_fmt_width*
+        The width of this field’s formatted value.
+
+      property value_str                                   *ui.Field.value_str*
+        Format the value as a string.
+
+      property value_width -> int                        *ui.Field.value_width*
+        The width used to display the field’s value.
+
+    Methods
+
+      edit_value() -> bool                                *ui.Field.edit_value*
+        Allow the user to edit the value of a field.
+
+        This typically needs to be over-ridden by subclasses.
+
+        Return value
+
+        True if the value was modified.
+
+      increment(_step: int) -> bool                        *ui.Field.increment*
+        Increment this field’s value by a given step.
+
+        This typically needs to be over-ridden by subclasses.
+
+        Return value
+
+        True if the value was modified.
+
+      text() -> str                                             *ui.Field.text*
+        Format the full text of the field.
+
+  class ui.FieldVar(_var)                                         *ui.FieldVar*
+    A value that is displayed by a Field.
+
+    This class defines the protocol that a |Field| uses to access its
+    underlying value.
+
+    Properties
+
+      property value                                        *ui.FieldVar.value*
+        “The current value for this variable.
+
+    Methods
+
+      __init__(_var)                                     *ui.FieldVar.__init__*
+        Initialisation.
+
+      set(_value: Any) -> str                                 *ui.FieldVar.set*
+        Try to set this option’s value.
+
+        Return value
+
+        A string describing why the attempt failed. An empty string if the
+        value was set. This basic wrapper always returns an empty string.
+
+      values() -> List[Any]                                *ui.FieldVar.values*
+        Return a set of the valid values for this field.
+
+        Return value
+
+        A list of the valid values. An empty list means that this field’s range
+        of values is not defined using a set.
+
+  class ui.IntField(...)                                          *ui.IntField*
+      >
+      IntField(
+              lidx,
+              cidx,
+              prefix='',
+              suffix='',
+              prefix_width=0,
+              suffix_width=0,
+              value_width=6,
+              opt_var=None,
+<
+    A field displaying an integer value.
+
+    Methods
+
+      edit_value() -> bool                             *ui.IntField.edit_value*
+        Allow the user to edit the value of a field.
+
+        Return value
+
+        True if the value was modified.
+
+
+    3.22.1. format_str~                                        *vpe.format-str*
+
+    ui.format_str(s: str, width: int) -> str                    *ui.format_str*
+      Format a string within a given field width.
+
+      The string is truncated (if necessary) to the width and then left or
+      right justified within the width. A width of zero results in an empty
+      string.
+
+      Parameters
+
+        s: str
+          The string to justify.
+
+        width: int
+          The field width. Postive values mean left justified, negative mean
+          right justified.
+
+  -----------------------------------------------------------------------------~
+  3.23. Module vpe.windows~       *vpe.module-windows* *vpe.module-vpe-windows*
+
+  Window specific support.
+
+  This provides support for working with Vim window layouts. The intended way
+  to use this is to use |windows.LayoutElement.create_from_vim_layout|. For
+  example:
+    >
+    layout = LayoutElement.create_from_vim_layout(vim.winlayout())
+<
+  The returned value will be a |LayoutRow|, |LayoutColumn| or |LayoutWindow|
+  window instance. Use the |type_name| class attribute when it is necessary to
+  know the actual type.
+
+                                          *LayoutColumn* *windows.LayoutColumn*
+  class windows.LayoutColumn(elements: List)
+    Details of a column in a window layout.
+
+    Parameters
+
+      row
+        A list of Vim row or leaf specs.
+
+    Properties
+
+      property width                               *windows.LayoutColumn.width*
+        The width of this column.
+
+    Methods
+
+      adjust_width(tot_width: int)          *windows.LayoutColumn.adjust_width*
+        Adjust widths of children to match a new total width.
+
+                                        *LayoutElement* *windows.LayoutElement*
+  class windows.LayoutElement(elements: List)
+    An element in a window layout.
+
+    Each element is either a LayoutRow, LayoutColumn or a LayoutWindow.
+
+    Attributes
+
+      type_name                   *type_name* *windows.LayoutElement.type_name*
+        A class attribute used to identify the type of element.
+
+    Methods
+
+      apply_sizes()                         *windows.LayoutElement.apply_sizes*
+        Apply this layout’s sizes to the actual Vim window layout.
+
+      describe(level=0)                        *windows.LayoutElement.describe*
+        Generate a description as a sequence of lines.
+
+        The description is intended to be user friendly. It is best not to rely
+        on its format because it may change in future releases.
+
+      iter_windows()                       *windows.LayoutElement.iter_windows*
+        Iterate throught the leaf windows.
+
+                                 *windows.LayoutElement.set_widths_from_layout*
+      set_widths_from_layout(layout: |LayoutElement|)
+        Update the widths using another layour element.
+
+        Parameters
+
+          layout: LayoutElement
+            The |LayoutElement| to copy from.
+
+    Class methods
+
+                                 *windows.LayoutElement.create_from_vim_layout*
+      classmethod create_from_vim_layout(layout)
+        Create LayoutElement from the result of a winlayout() call.
+
+  class windows.LayoutRow(elements: List)       *LayoutRow* *windows.LayoutRow*
+    Details of a row in a window layout.
+
+    Parameters
+
+      row
+        A list of Vim column or leaf specs.
+
+    Properties
+
+      property width                                  *windows.LayoutRow.width*
+        The width of this row.
+
+    Methods
+
+      adjust_width(tot_width: int)             *windows.LayoutRow.adjust_width*
+        Adjust widths of children to match a new total width.
+
+                                          *LayoutWindow* *windows.LayoutWindow*
+  class windows.LayoutWindow(win_id: int)
+    Details of a window in a window layout.
+
+    Parameters
+
+      wid
+        The unique ID of the window.
+
+    Properties
+
+      property width                               *windows.LayoutWindow.width*
+        The width of this window.
+
+    Methods
+
+      adjust_width(tot_width: int)          *windows.LayoutWindow.adjust_width*
+        Adjust width of this window.
+
+      describe(level=0)                         *windows.LayoutWindow.describe*
+        Generate a description as a sequence of lines.
+
+  -----------------------------------------------------------------------------~
+                                *vpe.module-wrappers* *vpe.module-vpe-wrappers*
+  3.24. Module vpe.wrappers~
+
+  Wrappers around the built-in Vim Python types.
+
+  You should not normally need to import this module directly.
+
+                                                 *Commands* *wrappers.Commands*
+  class wrappers.Commands(modifiers: dict[str, bool] = None)
+    A namespace for the set of Vim commands.
+
+    A single instance of this class is made available as |vpe.commands|.
+
+    This class provides functions for a majority of Vim’s commands, often
+    providing a cleaner mechanism compared to |python-command|. For example:
+      >
+      from vpe import commands
+      commands.edit('README.txt')       # Start editing README.txt
+      commands.print(a=10, b=20)        # Print lines 1 to 20
+      commands.print(lrange=(10, 20))   # Print lines 1 to 20
+      commands.write(bang=True)         # Same as :w!
+      commands.split(vertical=True)     # Split current window vertically
+<
+    Each command function is actually an instance of the Command class. See its
+    description for details of the arguments.
+
+    Most commands that can be entered at the colon prompt are supported.
+    Structural parts of vim-script (such as function, while, try, etc) are
+    excluded.
+
+    The vpe, vpe.mapping and vpe.syntax modules provides some functions and
+    classes as alternatives for some commands. You are encouraged to use these
+    alternatives in preference to the equivalent functions provided here. The
+    following is a summary of the alternatives.
+
+      |AutoCmdGroup|
+        A replacement for augroup and autocmd.
+
+      |vpe.highlight|
+        Provides keyword style arguments. See also the |syntax| module.
+
+      |error_msg|
+        Writes a message with error highlightling, but does not raise a
+        vim.error.
+
+      |mapping|
+        This provides functions to make key mappings that are handled by Python
+        functions.
+
+      |syntax|
+        Provides a set of classes, functions and context managers to help
+        define syntax highlighting.
+
+    See also: |vpe.pedit|.
+
+    Parameters
+
+      modifiers
+        A dictionary of the default modifier flags for generated Command
+        instances. This is only intended to be used by the |with_modifiers|
+        class method.
+
+    Class methods
+
+                            *with_modifiers* *wrappers.Commands.with_modifiers*
+      classmethod with_modifiers(**modifiers)
+        Return a version of Commands that always applies modifiers.
+
+        For example:
+          >
+          silent = vpe.commands.modified(silent=True)
+          silent.tabonly()
+<
+        Is equivalent to:
+          >
+          vpe.commands.tabonly(silent=True)
+<
+
+                                                            *wrappers.Function*
+  class wrappers.Function(name: str, args: ListType[Any] | None = None)
+    Wrapper around a vim.Function.
+
+    This provides some wrapping or decoding of return types.
+
+vim:tw=78:ts=8:noet:ft=help:norl:cole=0:

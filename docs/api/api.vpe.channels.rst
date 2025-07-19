@@ -1,14 +1,14 @@
 Module vpe.channels
 ===================
 
-.. py:module:: vpe.channels
 
-Development of channel support.
+.. py:module:: channels
 
-Channel
--------
+Pythonic wrappers for Vim's channels.
 
-.. py:class:: vpe.channels.Channel(...)
+.. rubric:: Channel
+
+.. py:class:: Channel(...)
 
     .. code::
 
@@ -50,30 +50,29 @@ Channel
 
     **Properties**
 
-        .. py:method:: is_open() -> bool
-            :property:
+        .. py:property:: is_open() -> bool
 
             Test whether the channel is open.
 
     **Methods**
 
-        .. py:method:: vpe.channels.Channel.close() -> None
+        .. py:method:: close() -> None
 
             Close the channel.
 
             Related vim function = :vim:`ch_close`.
 
-        .. py:method:: vpe.channels.Channel.close_in() -> None
+        .. py:method:: close_in() -> None
 
             Close the input part of the channel.
 
             Related vim function = :vim:`ch_info`.
 
-        .. py:method:: vpe.channels.Channel.connect()
+        .. py:method:: connect()
 
             If necessary, try to connect.
 
-        .. py:method:: vpe.channels.Channel.getbufnr(what: str) -> int
+        .. py:method:: getbufnr(what: str) -> int
 
             Get the number of the buffer thas is being used for *what*.
 
@@ -86,7 +85,7 @@ Channel
                 *what*: str
                     The type of use. One of 'err', 'out' or an empty string.
 
-        .. py:method:: vpe.channels.Channel.info() -> dict
+        .. py:method:: info() -> dict
 
             Get information about the channel.
 
@@ -98,7 +97,7 @@ Channel
 
                 A dictionary of information.
 
-        .. py:method:: vpe.channels.Channel.log(msg: str) -> None
+        .. py:method:: log(msg: str) -> None
 
             Write a message to the channel log file (if open).
 
@@ -112,7 +111,7 @@ Channel
                 *msg*: str
                     The message to add to the log file.
 
-        .. py:method:: vpe.channels.Channel.on_close()
+        .. py:method:: on_close()
 
             Handler for when channel is closed.
 
@@ -120,13 +119,13 @@ Channel
 
             Needs to be over-ridden in a subclass.
 
-        .. py:method:: vpe.channels.Channel.on_connect()
+        .. py:method:: on_connect()
 
             Handler for a new outgoing connection.
 
             May be over-ridden in a subclass.
 
-        .. py:method:: vpe.channels.Channel.on_message(message: str)
+        .. py:method:: on_message(message: str)
 
             Handler for messages not explicitly handled by read methods.
 
@@ -146,11 +145,11 @@ Channel
                     channels. Vim replaces any NUL chracters with newlines, so pure
                     binary messages cannot be handled using on_message.
 
-        .. py:method:: vpe.channels.Channel.read(timeout_ms: Optional[int] = None)
+        .. py:method:: read(timeout_ms: Optional[int] = None)
 
             Read any available input.
 
-        .. py:method:: vpe.channels.Channel.send(message: Union[str, bytes]) -> None
+        .. py:method:: send(message: Union[str, bytes]) -> None
 
             Send a message to the server.
 
@@ -160,11 +159,11 @@ Channel
 
             .. container:: parameters itemdetails
 
-                *message*: typing.Union[str, bytes]
+                *message*: Union
                     The message to send to the server. A bytes value is converted
                     to a Latin-1 string before sending.
 
-        .. py:method:: vpe.channels.Channel.settimeout(timeout_ms: Optional[int] = None)
+        .. py:method:: settimeout(timeout_ms: Optional[int] = None)
 
             Set the default teimout for the channel.
 
@@ -174,10 +173,10 @@ Channel
 
             .. container:: parameters itemdetails
 
-                *timeout_ms*: typing.Optional[int]
+                *timeout_ms*: Optional
                     Time to wait for blocking request.
 
-        .. py:method:: vpe.channels.Channel.status(part: Optional[str] = None) -> str
+        .. py:method:: status(part: Optional[str] = None) -> str
 
             Get information about the channel.
 
@@ -187,7 +186,7 @@ Channel
 
             .. container:: parameters itemdetails
 
-                *part*: typing.Optional[str]
+                *part*: Optional
                     Which part of the channel to query; 'err' or 'out'.
 
             **Return value**
@@ -196,10 +195,9 @@ Channel
 
                 One of the strings 'fail', 'open', 'buffered' or 'closed'.
 
-JSChannel
----------
+.. rubric:: JSChannel
 
-.. py:class:: vpe.channels.JSChannel(...)
+.. py:class:: JSChannel(...)
 
     .. code::
 
@@ -211,10 +209,9 @@ JSChannel
 
     Pythonic wrapper around a Vim channel in javascript mode.
 
-JsonChannel
------------
+.. rubric:: JsonChannel
 
-.. py:class:: vpe.channels.JsonChannel(...)
+.. py:class:: JsonChannel(...)
 
     .. code::
 
@@ -226,10 +223,9 @@ JsonChannel
 
     Pythonic wrapper around a Vim channel in json mode.
 
-NLChannel
----------
+.. rubric:: NLChannel
 
-.. py:class:: vpe.channels.NLChannel(...)
+.. py:class:: NLChannel(...)
 
     .. code::
 
@@ -241,10 +237,9 @@ NLChannel
 
     Pythonic wrapper for a newline based channel.
 
-RawChannel
-----------
+.. rubric:: RawChannel
 
-.. py:class:: vpe.channels.RawChannel(...)
+.. py:class:: RawChannel(...)
 
     .. code::
 
@@ -256,10 +251,9 @@ RawChannel
 
     Pythonic wrapper for a raw channel.
 
-SyncChannel
------------
+.. rubric:: SyncChannel
 
-.. py:class:: vpe.channels.SyncChannel(...)
+.. py:class:: SyncChannel(...)
 
     .. code::
 
@@ -273,7 +267,7 @@ SyncChannel
 
     **Methods**
 
-        .. py:method:: vpe.channels.SyncChannel.evalexpr(expr: Any,timeout_ms: Optional[int] = None) -> Any
+        .. py:method:: evalexpr(expr: Any,timeout_ms: Optional[int] = None) -> Any
 
             Evaluate an expression on the server.
 
@@ -283,13 +277,13 @@ SyncChannel
 
             .. container:: parameters itemdetails
 
-                *expr*: typing.Any
+                *expr*: Any
                     The expression to send to the server for evaluation.
-                *timeout_ms*: typing.Optional[int]
+                *timeout_ms*: Optional
                     Max time to wait for a response. This overrides the
                     *timeout_ms* given at construction time.
 
-        .. py:method:: vpe.channels.SyncChannel.sendexpr(...)
+        .. py:method:: sendexpr(...)
 
             .. code::
 
@@ -304,13 +298,12 @@ SyncChannel
 
             .. container:: parameters itemdetails
 
-                *expr*: typing.Union[NoneType, int, float, str, bool, typing.List[typing.Any], typing.Dict[str, typing.Any]]
+                *expr*: Union
                     The expression to send to the server.
 
-VimChannel
-----------
+.. rubric:: VimChannel
 
-.. py:class:: vpe.channels.VimChannel(varname: str)
+.. py:class:: VimChannel(varname: str)
 
     Simple proxy for a :vim:`Channel`.
 
@@ -335,23 +328,20 @@ VimChannel
 
     **Properties**
 
-        .. py:method:: chid()
-            :property:
+        .. py:property:: chid()
 
             The ID for this channel.
 
-        .. py:method:: closed()
-            :property:
+        .. py:property:: closed()
 
             True of the channel could not be opened or has been closed.
 
-        .. py:method:: info()
-            :property:
+        .. py:property:: info()
 
             Get the information for a channel.
 
     **Methods**
 
-        .. py:method:: vpe.channels.VimChannel.close()
+        .. py:method:: close()
 
             Mark as closed and release the underlying reference variable.

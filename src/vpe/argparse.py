@@ -72,10 +72,9 @@ class HelpAction(argparse.Action):
             help=help)
 
     def __call__(self, parser, namespace, values, option_string=None):
-        print(f'HI: {namespace=} {values=} {option_string=}')
         common.call_soon(parser.print_help)
         parser.result = 'displayed_help'
-        raise Stop()
+        parser.stop_processing = True
 
 
 class SubcommandAction(argparse.Action):
@@ -99,7 +98,7 @@ class SubcommandAction(argparse.Action):
             name: value[1] for name, value in subcommands_table.items()}
 
     def __call__(self, parser, namespace, values, option_string=None) -> None:
-        parser.stop_collecting = True
+        parser.stop_processing = True
         setattr(namespace, '__subcommand__', values[0])
 
 
@@ -139,7 +138,7 @@ class ArgumentParser(argparse.ArgumentParser):
         self.result: str = ''
         self.popup: core.Popup | None = None
         self.register('action', 'help', HelpAction)
-        self.stop_collecting = False
+        self._stop_processing = False
         self.subcommands_table = {}
 
         # Add the help option only after we have been able to install our own
@@ -150,6 +149,20 @@ class ArgumentParser(argparse.ArgumentParser):
                 action='help', default=argparse.SUPPRESS,
                 help='show this help message and exit')
             self.add_help = True
+
+    @property
+    def stop_processing(self) -> bool:
+        """This is True if command processing should be stopped.
+
+        It is set when, for example, help has been displayed.
+        """
+        return self._stop_processing
+
+    @stop_processing.setter
+    def stop_processing(self, value) -> bool:
+        self._stop_processing = value
+        if self.parent:
+            self.parent.stop_processing = True
 
     # TODO: Should this be supported?
     def parse_args(self, args: Sequence[str]):
@@ -168,7 +181,7 @@ class ArgumentParser(argparse.ArgumentParser):
         As of Python 3.9.3, the exit_on_error initialisation argument does not
         work correctly.
         """
-        self.stop_collecting = False
+        self.stop_processing = False
         self._parsing_in_progress += 1
         try:
             return self.do_parse_known_args(args=args)
@@ -284,7 +297,8 @@ class ArgumentParser(argparse.ArgumentParser):
 
             # Get the optional identified at this index.
             option_tuple = option_string_indices[start_index]
-            action, option_string, explicit_arg = option_tuple
+            print("HI PAUL", option_tuple)
+            action, option_string, explicit_arg, *_ = option_tuple
 
             # Identify additional optionals in the same arg string (e.g. -xyz
             # is the same as -x -y -z if no args are required)
@@ -408,9 +422,9 @@ class ArgumentParser(argparse.ArgumentParser):
 
                 start_index = positionals_end_index
 
-            # If the stop_collecting flag is set then all remaining aruments
+            # If the stop_processing flag is set then all remaining aruments
             # are extras.
-            if self.stop_collecting:
+            if self.stop_processing:
                 break
 
             # If we consumed all the positionals we could and we're not at the
@@ -495,7 +509,6 @@ class ArgumentParser(argparse.ArgumentParser):
         if usage is not None:
             if self.parent is not None:
                 usage = f'{self.parent.usage_prefix} {usage}'
-        print("HI", usage)
         formatter = self._get_formatter()
         formatter.add_usage(
             usage, self._actions, self._mutually_exclusive_groups)
@@ -616,7 +629,6 @@ class SubcommandParser(ArgumentParser):
             self, command_name: str, subcommands_table: SubcommandsTable,
             *args, parent: ArgumentParser | None = None, **kwargs,
         ):
-        print('New SubcommandParser', args, kwargs)
         super().__init__(
             command_name=command_name, parent=parent, *args, **kwargs)
         self.sub_parsers = {}
@@ -790,6 +802,9 @@ class SubCommandBase(CommandBase):
 
     def handle_sub_command(self, subcommand: str, args: Namespace):
         """Execute a specific sub-command."""
+        if self.parent_parser.stop_processing:
+            return
+
         if subcommand not in self.cmd_vector:
             error_msg('Invalid command')
             return
@@ -846,6 +861,8 @@ class TopLevelSubCommandHandler(SubCommandBase):
         """Parse and execute the main command."""
         sub_cmd, args = self.sub_command_parser.parse_args(cmd_args[1:])
         if sub_cmd == '':
+            return
+        if self.sub_command_parser.stop_processing:
             return
         self.handle_sub_command(sub_cmd, args)
 

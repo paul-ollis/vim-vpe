@@ -1,14 +1,14 @@
 Module vpe.syntax
 =================
 
-.. py:module:: vpe.syntax
+
+.. py:module:: syntax
 
 A pythonic API for creating syntax highlighting definitions.
 
-Cluster
--------
+.. rubric:: Cluster
 
-.. py:class:: vpe.syntax.Cluster(syn,name)
+.. py:class:: Cluster(syn,name)
 
     A cluster of groups.
 
@@ -24,12 +24,7 @@ Cluster
 
     **Methods**
 
-        .. py:method:: vpe.syntax.Cluster.add(...)
-
-            .. code::
-
-                add(
-                        group1: Union[vpe.syntax.Group, str],
+        .. py:method:: add(group1: Union[Group, str],*groups: Union[Group, str])
 
             Add groups to the cluster.
 
@@ -40,12 +35,12 @@ Cluster
 
             .. container:: parameters itemdetails
 
-                *group1*: typing.Union[vpe.syntax.Group, str]
+                *group1*: Union
                     The first group to be added.
-                *groups*: typing.Union[vpe.syntax.Group, str]
+                *groups*: Union
                     Additional groups to be added.
 
-        .. py:method:: vpe.syntax.Cluster.group(name,**options)
+        .. py:method:: group(name,**options)
 
             Create and add a new group.
 
@@ -66,7 +61,7 @@ Cluster
                 *options*
                     Options for the group.
 
-        .. py:method:: vpe.syntax.Cluster.include(path_name)
+        .. py:method:: include(path_name)
 
             Include Vim syntax file, adding its groups to this cluster.
 
@@ -81,16 +76,21 @@ Cluster
                     a relative path, the file is searched for within the
                     ::vim:`runtimepath`.
 
-        .. py:method:: vpe.syntax.Cluster.invoke() -> None
+        .. py:method:: invoke(file=None) -> None
 
             Invoke any pending syntax commands.
 
             This is only intended to be used by a `Syntax` instance.
 
-Contains
---------
+.. rubric:: ContainedIn
 
-.. py:class:: vpe.syntax.Contains(*groups: Group)
+.. py:class:: ContainedIn(group: 'Group')
+
+    A containedin option.
+
+.. rubric:: Contains
+
+.. py:class:: Contains(*groups: 'Group')
 
     Store for the syntax contains option.
 
@@ -99,20 +99,18 @@ Contains
 
     .. container:: parameters itemdetails
 
-        *groups*: typing.List[vpe.syntax.Group]
+        *groups*: list
             This can optionally be initialised with one or more groups.
 
-End
----
+.. rubric:: End
 
-.. py:class:: vpe.syntax.End(pat,*pats,lidx=None,lrange=None,**options)
+.. py:class:: End(pat,*pats,lidx=None,lrange=None,**options)
 
     An end pattern.
 
-Group
------
+.. rubric:: Group
 
-.. py:class:: vpe.syntax.Group(syn,name,std=False,contained=False)
+.. py:class:: Group(syn,name,std=False,contained=False)
 
     A named syntax group.
 
@@ -132,7 +130,7 @@ Group
             If true then all matches, keywords and regions this creates
             automtically have the contained option set.
 
-    .. py:class:: vpe.syntax.Group.region_type(syn: Syntax,syn_cmd: Callable,name: str,**options)
+    .. py:class:: region_type(syn: 'Syntax',syn_cmd: Callable,name: str,**options)
 
         A context manager for adding a region  to a group.
 
@@ -152,7 +150,7 @@ Group
 
         **Methods**
 
-            .. py:method:: vpe.syntax.Group.region_type.end(pat: str,*pats: str,**kwargs) -> Region
+            .. py:method:: end(pat: str,*pats: str,**kwargs) -> Region
 
                 Define an end pattern
 
@@ -169,7 +167,11 @@ Group
                     *kwargs*
                         Additional options for the region skip.
 
-            .. py:method:: vpe.syntax.Group.region_type.skip(pat: str,*pats: str,**kwargs) -> Region
+            .. py:method:: matchgroup(group: Group | None)
+
+                Add or remove a matchgroup directive for this region.
+
+            .. py:method:: skip(pat: str,*pats: str,**kwargs) -> Region
 
                 Define a skip pattern
 
@@ -186,7 +188,7 @@ Group
                     *kwargs*
                         Additional options for the region skip.
 
-            .. py:method:: vpe.syntax.Group.region_type.start(pat: str,*pats: str,**kwargs) -> Region
+            .. py:method:: start(pat: str,*pats: str,**kwargs) -> Region
 
                 Define a start pattern
 
@@ -205,7 +207,7 @@ Group
 
     **Methods**
 
-        .. py:method:: vpe.syntax.Group.add_keyword(keyword,*keywords,**options)
+        .. py:method:: add_keyword(keyword,*keywords,**options)
 
             Add one or more keywords to this syntax group.
 
@@ -221,11 +223,11 @@ Group
                 *options*
                     Options for the set of keywords.
 
-        .. py:method:: vpe.syntax.Group.add_links(*groups)
+        .. py:method:: add_links(*groups)
 
             Add groups to the set that link to this group.
 
-        .. py:method:: vpe.syntax.Group.add_match(...)
+        .. py:method:: add_match(...)
 
             .. code::
 
@@ -247,14 +249,14 @@ Group
                 *pats*: str
                     Additional expression strings. These are concatenated with
                     *pat* to form the complete regular expression.
-                *lidx*: typing.Optional[int]
+                *lidx*: Optional
                     The index of a line to tie the match to.
-                *lrange*: typing.Optional[typing.Tuple[int, int]]
+                *lrange*: Optional
                     A range of lines to tie the match to.
                 *options*
                     Additional options for the match.
 
-        .. py:method:: vpe.syntax.Group.add_region(start: str,end: str,skip: Optional[str] = None,**options)
+        .. py:method:: add_region(start: str,end: str,skip: Optional[str] = None,**options)
 
             Add a syntax region for this group.
 
@@ -270,12 +272,12 @@ Group
                     The start pattern.
                 *end*: str
                     The end pattern.
-                *skip*: typing.Optional[str]
+                *skip*: Optional
                     Optional skip pattern.
                 *options*
                     Additional options for the region.
 
-        .. py:method:: vpe.syntax.Group.highlight(**kwargs)
+        .. py:method:: highlight(**kwargs)
 
             Define highlighting for this group.
 
@@ -288,13 +290,13 @@ Group
                     These are the same as for `vpe.highlight`, except that ``group``
                     and ``clear`` should not be  used.
 
-        .. py:method:: vpe.syntax.Group.invoke() -> None
+        .. py:method:: invoke(file=None) -> None
 
             Invoke any pending syntax commands.
 
             This is only intended to be used by a `Syntax` instance.
 
-        .. py:method:: vpe.syntax.Group.region(**options)
+        .. py:method:: region(**options)
 
             Create a region context manager.
 
@@ -307,14 +309,13 @@ Group
                 *options*
                     Additional options for the region.
 
-        .. py:method:: vpe.syntax.Group.set_highlight()
+        .. py:method:: set_highlight(file=None)
 
             Set up highlight definition for this group.
 
-GroupOption
------------
+.. rubric:: GroupOption
 
-.. py:class:: vpe.syntax.GroupOption(group: Group)
+.. py:class:: GroupOption(group: 'Group')
 
     Base class for group options.
 
@@ -326,10 +327,9 @@ GroupOption
         *group*
             A group instance.
 
-LocationGroup
--------------
+.. rubric:: LocationGroup
 
-.. py:class:: vpe.syntax.LocationGroup(name,group)
+.. py:class:: LocationGroup(name,group)
 
     A grouphere or groupthere option.
 
@@ -343,17 +343,27 @@ LocationGroup
         *group*
             A group instance.
 
-MatchGroup
-----------
+.. rubric:: MatchGorup
 
-.. py:class:: vpe.syntax.MatchGroup(group: Group)
+.. py:class:: MatchGorup(group: Group | None)
+
+    A matchgroup directive for a region.
+
+    **Methods**
+
+        .. py:method:: arg_str() -> str
+
+            Format matchgroup as an directove in a region command.
+
+.. rubric:: MatchGroup
+
+.. py:class:: MatchGroup(group: 'Group')
 
     A matchgroup option.
 
-NamedSyntaxItem
----------------
+.. rubric:: NamedSyntaxItem
 
-.. py:class:: vpe.syntax.NamedSyntaxItem(syn: Syntax,name: str,std=False)
+.. py:class:: NamedSyntaxItem(syn: 'Syntax',name: str,std=False)
 
     A syntax item with an assigned name.
 
@@ -372,18 +382,15 @@ NamedSyntaxItem
 
     **Properties**
 
-        .. py:method:: arg_name() -> str
-            :property:
+        .. py:property:: arg_name() -> str
 
             A suitable name when used as an argument.
 
-        .. py:method:: name() -> str
-            :property:
+        .. py:property:: name() -> str
 
             The base name of this item, without the Sytntax ojbect's prefix.
 
-        .. py:method:: qual_name() -> str
-            :property:
+        .. py:property:: qual_name() -> str
 
             The qualified name of this item.
 
@@ -391,30 +398,27 @@ NamedSyntaxItem
             Otherwise the parent Syntax object's namespace is assed to `name` as a
             prefix.
 
-NextGroup
----------
+.. rubric:: NextGroup
 
-.. py:class:: vpe.syntax.NextGroup(group: Group)
+.. py:class:: NextGroup(group: 'Group')
 
     A nextgroup option.
 
-Option
-------
+.. rubric:: Option
 
-.. py:class:: vpe.syntax.Option
+.. py:class:: Option
 
     Base class for the syntax command options.
 
     **Methods**
 
-        .. py:method:: vpe.syntax.Option.vim_fmt() -> str
+        .. py:method:: vim_fmt() -> str
 
             Format the option as a string for use in a :syntax command.
 
-Pattern
--------
+.. rubric:: Pattern
 
-.. py:class:: vpe.syntax.Pattern(pat,*pats,lidx=None,lrange=None,**options)
+.. py:class:: Pattern(pat,*pats,lidx=None,lrange=None,**options)
 
     A syntax pattern.
 
@@ -437,14 +441,13 @@ Pattern
 
     **Methods**
 
-        .. py:method:: vpe.syntax.Pattern.arg_str() -> str
+        .. py:method:: arg_str() -> str
 
             Format pattern as an argument to a ayntax command.
 
-Region
-------
+.. rubric:: Region
 
-.. py:class:: vpe.syntax.Region(syn: Syntax,syn_cmd: Callable,name: str,**options)
+.. py:class:: Region(syn: 'Syntax',syn_cmd: Callable,name: str,**options)
 
     A context manager for adding a region  to a group.
 
@@ -464,7 +467,7 @@ Region
 
     **Methods**
 
-        .. py:method:: vpe.syntax.Region.end(pat: str,*pats: str,**kwargs) -> Region
+        .. py:method:: end(pat: str,*pats: str,**kwargs) -> Region
 
             Define an end pattern
 
@@ -481,7 +484,11 @@ Region
                 *kwargs*
                     Additional options for the region skip.
 
-        .. py:method:: vpe.syntax.Region.skip(pat: str,*pats: str,**kwargs) -> Region
+        .. py:method:: matchgroup(group: Group | None)
+
+            Add or remove a matchgroup directive for this region.
+
+        .. py:method:: skip(pat: str,*pats: str,**kwargs) -> Region
 
             Define a skip pattern
 
@@ -498,7 +505,7 @@ Region
                 *kwargs*
                     Additional options for the region skip.
 
-        .. py:method:: vpe.syntax.Region.start(pat: str,*pats: str,**kwargs) -> Region
+        .. py:method:: start(pat: str,*pats: str,**kwargs) -> Region
 
             Define a start pattern
 
@@ -515,10 +522,9 @@ Region
                 *kwargs*
                     Additional options for the region start.
 
-SimpleOption
-------------
+.. rubric:: SimpleOption
 
-.. py:class:: vpe.syntax.SimpleOption(name: str,value: bool)
+.. py:class:: SimpleOption(name: str,value: bool)
 
     A simple syntax option.
 
@@ -534,55 +540,49 @@ SimpleOption
 
     **Methods**
 
-        .. py:method:: vpe.syntax.SimpleOption.vim_fmt() -> str
+        .. py:method:: vim_fmt() -> str
 
             Format the option as a string for use in a :syntax command.
 
-Skip
-----
+.. rubric:: Skip
 
-.. py:class:: vpe.syntax.Skip(pat,*pats,lidx=None,lrange=None,**options)
+.. py:class:: Skip(pat,*pats,lidx=None,lrange=None,**options)
 
     A skip pattern.
 
-Start
------
+.. rubric:: Start
 
-.. py:class:: vpe.syntax.Start(pat,*pats,lidx=None,lrange=None,**options)
+.. py:class:: Start(pat,*pats,lidx=None,lrange=None,**options)
 
     A start pattern.
 
-StdCluster
-----------
+.. rubric:: StdCluster
 
-.. py:class:: vpe.syntax.StdCluster(syn,name)
+.. py:class:: StdCluster(syn,name)
 
     A cluster of groups, not in a `Syntax` object's namespace.
 
     **Properties**
 
-        .. py:method:: arg_name()
-            :property:
+        .. py:property:: arg_name()
 
             A suitable name when used as an argument.
 
     **Methods**
 
-        .. py:method:: vpe.syntax.StdCluster.invoke() -> None
+        .. py:method:: invoke() -> None
 
             Null operation implementation.
 
-SyncGroup
----------
+.. rubric:: SyncGroup
 
-.. py:class:: vpe.syntax.SyncGroup(syn,name,std=False,contained=False)
+.. py:class:: SyncGroup(syn,name,std=False,contained=False)
 
     A group use for synchronisation.
 
-Syntax
-------
+.. rubric:: Syntax
 
-.. py:class:: vpe.syntax.Syntax(group_prefix,clear: bool = True)
+.. py:class:: Syntax(group_prefix,clear: bool = True)
 
     Context manager for defining syntax highlighting.
 
@@ -600,7 +600,7 @@ Syntax
             Whether to clear any previous syntax for the current buffer.
             This is ``True`` by default.
 
-    .. py:class:: vpe.syntax.Syntax.group_type(syn,name,std=False,contained=False)
+    .. py:class:: group_type(syn,name,std=False,contained=False)
 
         A named syntax group.
 
@@ -620,7 +620,7 @@ Syntax
                 If true then all matches, keywords and regions this creates
                 automtically have the contained option set.
 
-        .. py:class:: vpe.syntax.Syntax.group_type.region_type(syn: Syntax,syn_cmd: Callable,name: str,**options)
+        .. py:class:: region_type(syn: 'Syntax',syn_cmd: Callable,name: str,**options)
 
             A context manager for adding a region  to a group.
 
@@ -640,7 +640,7 @@ Syntax
 
             **Methods**
 
-                .. py:method:: vpe.syntax.Syntax.group_type.region_type.end(pat: str,*pats: str,**kwargs) -> Region
+                .. py:method:: end(pat: str,*pats: str,**kwargs) -> Region
 
                     Define an end pattern
 
@@ -657,7 +657,11 @@ Syntax
                         *kwargs*
                             Additional options for the region skip.
 
-                .. py:method:: vpe.syntax.Syntax.group_type.region_type.skip(pat: str,*pats: str,**kwargs) -> Region
+                .. py:method:: matchgroup(group: Group | None)
+
+                    Add or remove a matchgroup directive for this region.
+
+                .. py:method:: skip(pat: str,*pats: str,**kwargs) -> Region
 
                     Define a skip pattern
 
@@ -674,7 +678,7 @@ Syntax
                         *kwargs*
                             Additional options for the region skip.
 
-                .. py:method:: vpe.syntax.Syntax.group_type.region_type.start(pat: str,*pats: str,**kwargs) -> Region
+                .. py:method:: start(pat: str,*pats: str,**kwargs) -> Region
 
                     Define a start pattern
 
@@ -693,7 +697,7 @@ Syntax
 
         **Methods**
 
-            .. py:method:: vpe.syntax.Syntax.group_type.add_keyword(keyword,*keywords,**options)
+            .. py:method:: add_keyword(keyword,*keywords,**options)
 
                 Add one or more keywords to this syntax group.
 
@@ -709,11 +713,11 @@ Syntax
                     *options*
                         Options for the set of keywords.
 
-            .. py:method:: vpe.syntax.Syntax.group_type.add_links(*groups)
+            .. py:method:: add_links(*groups)
 
                 Add groups to the set that link to this group.
 
-            .. py:method:: vpe.syntax.Syntax.group_type.add_match(...)
+            .. py:method:: add_match(...)
 
                 .. code::
 
@@ -735,14 +739,14 @@ Syntax
                     *pats*: str
                         Additional expression strings. These are concatenated with
                         *pat* to form the complete regular expression.
-                    *lidx*: typing.Optional[int]
+                    *lidx*: Optional
                         The index of a line to tie the match to.
-                    *lrange*: typing.Optional[typing.Tuple[int, int]]
+                    *lrange*: Optional
                         A range of lines to tie the match to.
                     *options*
                         Additional options for the match.
 
-            .. py:method:: vpe.syntax.Syntax.group_type.add_region(start: str,end: str,skip: Optional[str] = None,**options)
+            .. py:method:: add_region(start: str,end: str,skip: Optional[str] = None,**options)
 
                 Add a syntax region for this group.
 
@@ -758,12 +762,12 @@ Syntax
                         The start pattern.
                     *end*: str
                         The end pattern.
-                    *skip*: typing.Optional[str]
+                    *skip*: Optional
                         Optional skip pattern.
                     *options*
                         Additional options for the region.
 
-            .. py:method:: vpe.syntax.Syntax.group_type.highlight(**kwargs)
+            .. py:method:: highlight(**kwargs)
 
                 Define highlighting for this group.
 
@@ -776,13 +780,13 @@ Syntax
                         These are the same as for `vpe.highlight`, except that ``group``
                         and ``clear`` should not be  used.
 
-            .. py:method:: vpe.syntax.Syntax.group_type.invoke() -> None
+            .. py:method:: invoke(file=None) -> None
 
                 Invoke any pending syntax commands.
 
                 This is only intended to be used by a `Syntax` instance.
 
-            .. py:method:: vpe.syntax.Syntax.group_type.region(**options)
+            .. py:method:: region(**options)
 
                 Create a region context manager.
 
@@ -795,17 +799,17 @@ Syntax
                     *options*
                         Additional options for the region.
 
-            .. py:method:: vpe.syntax.Syntax.group_type.set_highlight()
+            .. py:method:: set_highlight(file=None)
 
                 Set up highlight definition for this group.
 
-    .. py:class:: vpe.syntax.Syntax.sync_group_type(syn,name,std=False,contained=False)
+    .. py:class:: sync_group_type(syn,name,std=False,contained=False)
 
         A group use for synchronisation.
 
     **Methods**
 
-        .. py:method:: vpe.syntax.Syntax.cluster(name,*add_groups)
+        .. py:method:: cluster(name,*add_groups)
 
             Create a cluster within this `syntax` object's namespace.
 
@@ -817,7 +821,7 @@ Syntax
                 *name*
                     The cluster's name.
 
-        .. py:method:: vpe.syntax.Syntax.fmt_group(name: str) -> str
+        .. py:method:: fmt_group(name: str) -> str
 
             Format the name of a group, adding the Syntax object's prefix.
 
@@ -829,7 +833,7 @@ Syntax
                 *name*: str
                     The name of the group.
 
-        .. py:method:: vpe.syntax.Syntax.group(name,link_to=None,**options)
+        .. py:method:: group(name,link_to=None,**options)
 
             Create a group within this `syntax` object's namespace.
 
@@ -845,7 +849,7 @@ Syntax
                 *options*
                     Options for the group.
 
-        .. py:method:: vpe.syntax.Syntax.include(name)
+        .. py:method:: include(name)
 
             Do a simple include of syntax file.
 
@@ -858,13 +862,13 @@ Syntax
                 *name*
                     The syntax name.
 
-        .. py:method:: vpe.syntax.Syntax.preview_last() -> str
+        .. py:method:: preview_last() -> str
 
             Generate preview string of the last scheduled command.
 
             This can be useful during debugging a new syntax.
 
-        .. py:method:: vpe.syntax.Syntax.schedule(func,*args,**kwargs)
+        .. py:method:: schedule(func,*args,**kwargs)
 
             Add a syntax command to those scheduled for later execution.
 
@@ -880,7 +884,7 @@ Syntax
                 *kwargs*
                     Keyword arguments for the command.
 
-        .. py:method:: vpe.syntax.Syntax.std_cluster(name)
+        .. py:method:: std_cluster(name)
 
             Create a standard (externally defined) cluster.
 
@@ -892,7 +896,7 @@ Syntax
                 *name*
                     The cluster's full name.
 
-        .. py:method:: vpe.syntax.Syntax.std_group(name)
+        .. py:method:: std_group(name)
 
             Create a standard (externally defined) group.
 
@@ -904,7 +908,7 @@ Syntax
                 *name*
                     The group's full name.
 
-        .. py:method:: vpe.syntax.Syntax.sync_group(name,**options)
+        .. py:method:: sync_group(name,**options)
 
             Create a sync group within this `syntax` object's namespace.
 
@@ -918,16 +922,15 @@ Syntax
                 *options*
                     Options for the group.
 
-SyntaxBase
-----------
+.. rubric:: SyntaxBase
 
-.. py:class:: vpe.syntax.SyntaxBase
+.. py:class:: SyntaxBase
 
     Base class for various syntax support classes.
 
     **Static methods**
 
-        .. py:staticmethod:: vpe.syntax.SyntaxBase.get_offsets(...)
+        .. py:staticmethod:: get_offsets(...)
 
             .. code::
 
@@ -944,7 +947,7 @@ SyntaxBase
 
                 *options*: dict
                     A dictionary of options.
-                *offset_names*: typing.Iterable[str]
+                *offset_names*: Iterable
                     The offset option names to extract.
 
             **Return value**
@@ -958,7 +961,7 @@ SyntaxBase
 convert_syntax_options
 ----------------------
 
-.. py:function:: vpe.syntax.convert_syntax_options(options) -> dict
+.. py:function:: convert_syntax_options(syn,options) -> dict
 
     Convert values in a dictionary of option to `Option` instances.
 
@@ -979,7 +982,7 @@ convert_syntax_options
 deliminate
 ----------
 
-.. py:function:: vpe.syntax.deliminate(pat: str) -> str
+.. py:function:: deliminate(pat: str) -> str
 
     Put deliminators around a syntax expression.
 
@@ -997,7 +1000,7 @@ deliminate
 extract_keys
 ------------
 
-.. py:function:: vpe.syntax.extract_keys(source_dict: dict,*keys: Any) -> dict
+.. py:function:: extract_keys(source_dict: dict,*keys: Any) -> dict
 
     Extract a set of named items from a dictionary.
 
@@ -1010,7 +1013,7 @@ extract_keys
 
         *source_dict*: dict
             The dictionary from which to extract the items.
-        *keys*: typing.Any
+        *keys*: Any
             The keys for the items to extract.
 
     **Return value**

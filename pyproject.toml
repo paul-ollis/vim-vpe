@@ -1,0 +1,113 @@
+[project]
+name = 'vpe'
+version = '0.8.0-alpha'
+authors = [
+  { name='Paul Ollis', email='paul@cleversheep.org' },
+]
+description = 'The Vim Python Extensions (VPE)'
+requires-python = '>=3.11,<3.14'
+readme = 'README.rst'
+classifiers = [
+    'Development Status :: 3 - Alpha',
+    # 'Operating System :: Microsoft :: Windows',
+    'Operating System :: POSIX :: Linux',
+    'Programming Language :: Python :: 3',
+    'Programming Language :: Python :: 3.11',
+    'Environment :: Console',
+    'Topic :: Education',
+]
+dependencies = [
+]
+license = "MIT"
+license-files = ["LICENCE"]
+
+[project.optional-dependencies]
+test = [
+    'cleversheep3@git+https://github.com/paul-ollis/cleversheep3.git',
+]
+docs = [
+    'sphinx_rtd_theme',
+]
+
+[tool.setuptools.package-data]
+'vpe.resources' = ['000-vpe.vim', 'vpe-help.txt']
+
+[project.scripts]
+
+[project.urls]
+'Homepage' =    'https://github.com/paul-ollis/vim-vpe'
+'Bug Tracker' = 'https://github.com/paul-ollis/vim-vpe/issues'
+'Documentation' = 'https://vim-vpe.readthedocs.io'
+
+[build-system]
+requires = ['setuptools>=61.0']
+build-backend = 'setuptools.build_meta'
+
+[tool.pytest.ini_options]
+
+[tool.ruff]
+target-version = 'py311'
+line-length = 79
+
+[tool.ruff.lint]
+per-file-ignores = {}
+select = ['ALL', 'E', 'F', 'B', 'D', 'PL']
+ignore = [
+    'ANN204',  # Missing __init__ return type.
+    'B905',    # Do not require strict argument for zip().
+    'B009',    # Allow getattr(obj, 'literal_name').
+    'D105',    # Do not require docstring for dunder methods.
+    'D107',    # Do not require docstring for __init__().
+               # The class docstring should provide details of construction.
+    'D204',    # Because space should not be required after multi-line
+               # docstring.
+    'FIX002',  # A 'todo' in the line.
+    'I001',    # Unsorted imports.
+               # I think I can re-enable this if Ruff starts to support the
+               # multi-line-output option.
+    'N818',    # Silly rule about exception names ending in 'Error'.
+    'PLC1901', # Do not compare equal to empty string.
+    'PLW2901', # Allow over-writing of a for loop variable.
+    'R401',    # Allow Any for kwargs,
+    'RET505',  # Unnecessary else after return.
+    'S603',    # General subprocess security warning.
+    'SIM108',  # Use <expr> if <bool-expr> else <expr>
+    'T20',     # Allow the print function to be used.
+
+    # A bunch of warnings about logging, for which Ruff uses heruistics.
+    # 'R010',    # Use of 'warn' instead of 'warning'.
+    'G004',    # Ruff uses dumb heuristics and rules for logging.
+
+    # Apparently not used any more.
+    #'TC06',    # Allow plain types in calls to cast(...).
+
+    # Below are checks I wish to re-enable, once the code is cleaner.
+    # 'ANN001',  # Missing return type argument.
+    # 'ANN002',  # Missing return type for *args.
+    # 'ANN003',  # Missing return type for **kwargs.
+    # 'ANN201',  # Missing return type for public method/function.
+    # 'ANN202',  # Missing return type for private method/function.
+    # 'ANN205',  # Missing return type for static method.
+    # 'ANN206',  # Missing return type for class method.
+    # 'ARG002',  # Unused argument.
+    #            # Also pylint:unused-argument. If I can prevent this when the
+    #            # API demands the (keyword) argument then I will re-enable.
+
+    # Checks that can be enabled once this is in Github.
+    'TD002',   # Author missing for 'todo'
+    'TD003',   # Issue ref missing for 'todo'
+]
+
+# Allow unused variables when underscore-prefixed.
+dummy-variable-rgx = '^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$'
+
+[tool.ruff.lint.mccabe]
+# Unlike Flake8, default to a complexity level of 10.
+max-complexity = 10
+
+[tool.ruff.lint.pydocstyle]
+convention = 'pep257'
+
+[tool.ruff.lint.flake8-quotes]
+inline-quotes = 'single'
+multiline-quotes = 'single'

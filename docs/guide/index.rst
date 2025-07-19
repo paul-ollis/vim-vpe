@@ -1,7 +1,7 @@
 Introduction
 ============
 
-.. include:: ../intro.txt
+.. include:: ../guide-intro.txt
 
 
 Requirements

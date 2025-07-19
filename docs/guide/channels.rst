@@ -6,8 +6,8 @@ Channels
 
 .. |callback| replace:: :vim:`channel-callback`
 .. |call_soon| replace:: vpe.call_soon`
-.. |Channel| replace:: `vpe.channels.Channel`
-.. |channels| replace:: `vpe.channels`
+.. |Channel| replace:: `channels.Channel`
+.. |channels| replace:: :py:obj:`wrappers.channels`
 .. |ch_canread| replace:: :vim:`ch_canread()`
 .. |ch_close_in| replace:: :vim:`ch_close_in()`
 .. |ch_close| replace:: :vim:`ch_close()`
@@ -33,15 +33,15 @@ Channels
 .. |evalexpr| replace:: vpe.SyncChannel.evalexpr`
 .. |getbufnr| replace:: vpe.Channel.getbufnr`
 .. |info| replace:: vpe.Channel.info`
-.. |JSChannel| replace:: `vpe.channels.JSChannel`
-.. |JsonChannel| replace:: `vpe.channels.JsonChannel`
+.. |JSChannel| replace:: `channels.JSChannel`
+.. |JsonChannel| replace:: `channels.JsonChannel`
 .. |log| replace:: vpe.Channel.log`
-.. |NLChannel| replace:: `vpe.channels.NLChannel`
+.. |NLChannel| replace:: `channels.NLChannel`
 .. |on_close| replace:: vpe.Channel.on_close`
 .. |on_connect| replace:: vpe.Channel.on_connect`
 .. |on_message| replace:: vpe.Channel.on_message`
 .. |open| replace:: vpe.Channel.open`
-.. |RawChannel| replace:: `vpe.channels.RawChannel`
+.. |RawChannel| replace:: `channels.RawChannel`
 .. |read| replace:: vpe.Channel.read`
 .. |sendexpr| replace:: vpe.SyncChannel.sendexpr`
 .. |send| replace:: vpe.Channel.send`

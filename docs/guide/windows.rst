@@ -2,11 +2,11 @@
 Using Windows
 =============
 
-.. |close()| replace:: `close<Window.close>`
-.. |goto()| replace:: `goto<Window.goto>`
-.. |id| replace:: `id<Window.id>`
-.. |temp_options()| replace:: `temp_options<Window.temp_options>`
-.. |visible_line_range()| replace:: `visible_line_range<Window.visible_line_range>`
+.. |close()| replace:: :py:obj:`close<Window.close>`
+.. |goto()| replace:: :py:obj:`goto<Window.goto>`
+.. |id| replace:: :py:obj:`id<Window.id>`
+.. |temp_options()| replace:: :py:obj:`temp_options<Window.temp_options>`
+.. |visible_line_range()| replace:: :py:obj:`visible_line_range<vpe.Window.visible_line_range>`
 
 
 Basics

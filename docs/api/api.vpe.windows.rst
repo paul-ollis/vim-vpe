@@ -1,7 +1,8 @@
 Module vpe.windows
 ==================
 
-.. py:module:: vpe.windows
+
+.. py:module:: windows
 
 Window specific support.
 
@@ -16,10 +17,9 @@ The returned value will be a `LayoutRow`, `LayoutColumn` or `LayoutWindow`
 window instance. Use the `type_name` class attribute when it is necessary to
 know the actual type.
 
-LayoutColumn
-------------
+.. rubric:: LayoutColumn
 
-.. py:class:: vpe.windows.LayoutColumn(elements: List)
+.. py:class:: LayoutColumn(elements: List)
 
     Details of a column in a window layout.
 
@@ -33,21 +33,19 @@ LayoutColumn
 
     **Properties**
 
-        .. py:method:: width()
-            :property:
+        .. py:property:: width()
 
             The width of this column.
 
     **Methods**
 
-        .. py:method:: vpe.windows.LayoutColumn.adjust_width(tot_width: int)
+        .. py:method:: adjust_width(tot_width: int)
 
             Adjust widths of children to match a new total width.
 
-LayoutElement
--------------
+.. rubric:: LayoutElement
 
-.. py:class:: vpe.windows.LayoutElement(elements: List)
+.. py:class:: LayoutElement(elements: List)
 
     An element in a window layout.
 
@@ -61,22 +59,22 @@ LayoutElement
 
     **Methods**
 
-        .. py:method:: vpe.windows.LayoutElement.apply_sizes()
+        .. py:method:: apply_sizes()
 
             Apply this layout's sizes to the actual Vim window layout.
 
-        .. py:method:: vpe.windows.LayoutElement.describe(level=0)
+        .. py:method:: describe(level=0)
 
             Generate a description as a sequence of lines.
 
             The description is intended to be user friendly. It is best not to rely
             on its format because it may change in future releases.
 
-        .. py:method:: vpe.windows.LayoutElement.iter_windows()
+        .. py:method:: iter_windows()
 
             Iterate throught the leaf windows.
 
-        .. py:method:: vpe.windows.LayoutElement.set_widths_from_layout(layout: LayoutElement)
+        .. py:method:: set_widths_from_layout(layout: LayoutElement)
 
             Update the widths using another layour element.
 
@@ -90,14 +88,13 @@ LayoutElement
 
     **Class methods**
 
-        .. py:classmethod:: vpe.windows.LayoutElement.create_from_vim_layout(layout)
+        .. py:classmethod:: create_from_vim_layout(layout)
 
             Create LayoutElement from the result of a winlayout() call.
 
-LayoutRow
----------
+.. rubric:: LayoutRow
 
-.. py:class:: vpe.windows.LayoutRow(elements: List)
+.. py:class:: LayoutRow(elements: List)
 
     Details of a row in a window layout.
 
@@ -111,21 +108,19 @@ LayoutRow
 
     **Properties**
 
-        .. py:method:: width()
-            :property:
+        .. py:property:: width()
 
             The width of this row.
 
     **Methods**
 
-        .. py:method:: vpe.windows.LayoutRow.adjust_width(tot_width: int)
+        .. py:method:: adjust_width(tot_width: int)
 
             Adjust widths of children to match a new total width.
 
-LayoutWindow
-------------
+.. rubric:: LayoutWindow
 
-.. py:class:: vpe.windows.LayoutWindow(win_id: int)
+.. py:class:: LayoutWindow(win_id: int)
 
     Details of a window in a window layout.
 
@@ -139,17 +134,16 @@ LayoutWindow
 
     **Properties**
 
-        .. py:method:: width()
-            :property:
+        .. py:property:: width()
 
             The width of this window.
 
     **Methods**
 
-        .. py:method:: vpe.windows.LayoutWindow.adjust_width(tot_width: int)
+        .. py:method:: adjust_width(tot_width: int)
 
             Adjust width of this window.
 
-        .. py:method:: vpe.windows.LayoutWindow.describe(level=0)
+        .. py:method:: describe(level=0)
 
             Generate a description as a sequence of lines.

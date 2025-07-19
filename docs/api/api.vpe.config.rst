@@ -1,7 +1,8 @@
 Module vpe.config
 =================
 
-.. py:module:: vpe.config
+
+.. py:module:: config
 
 Support for managing configuration information.
 
@@ -13,10 +14,9 @@ The `Config` class groups a set options together. It supports storage of option
 values in an INI style configuration file and makes option values available as
 (pseudo) instance attributes.
 
-Bool
-----
+.. rubric:: Bool
 
-.. py:class:: vpe.config.Bool(name,default_value=False,description='')
+.. py:class:: Bool(name,default_value=False,description='')
 
     A boolean `config.Option`.
 
@@ -24,7 +24,7 @@ Bool
 
     **Methods**
 
-        .. py:method:: vpe.config.Bool.set(value: Union[int, str, bool]) -> str
+        .. py:method:: set(value: Union[int, str, bool]) -> str
 
             Try to set this option's value.
 
@@ -35,10 +35,9 @@ Bool
 
                 A string describing why the attempt failed.
 
-Choice
-------
+.. rubric:: Choice
 
-.. py:class:: vpe.config.Choice(name,choices=(),default_value=None,description='')
+.. py:class:: Choice(name,choices=(),default_value=None,description='')
 
     A `config.Option` that can take one of a set of values.
 
@@ -58,11 +57,11 @@ Choice
 
     **Methods**
 
-        .. py:method:: vpe.config.Choice.index() -> int
+        .. py:method:: index() -> int
 
             Get the index for the current value.
 
-        .. py:method:: vpe.config.Choice.set(value: Union[int, str, bool]) -> str
+        .. py:method:: set(value: Union[int, str, bool]) -> str
 
             Try to set this option's value.
 
@@ -73,16 +72,15 @@ Choice
 
                 A string describing why the attempt failed.
 
-        .. py:method:: vpe.config.Choice.values() -> List[Any]
+        .. py:method:: values() -> List[Any]
 
             Get the list of choices.
 
             This supports the protocol required by a `Field`.
 
-Config
-------
+.. rubric:: Config
 
-.. py:class:: vpe.config.Config(name: str)
+.. py:class:: Config(name: str)
 
     A collection of options forming a configuration.
 
@@ -107,7 +105,7 @@ Config
 
     **Methods**
 
-        .. py:method:: vpe.config.Config.add_(option)
+        .. py:method:: add_(option)
 
             Add an option to this configuration.
 
@@ -119,7 +117,7 @@ Config
                 *option*
                     The `config.Option` to add.
 
-        .. py:method:: vpe.config.Config.get_(name)
+        .. py:method:: get_(name)
 
             Get the option with a given name.
 
@@ -131,11 +129,11 @@ Config
                 *KeyError*
                     if the option does not exist.
 
-        .. py:method:: vpe.config.Config.ini_path_() -> pathlib.Path
+        .. py:method:: ini_path_() -> pathlib.Path
 
             Get the INI file path.
 
-        .. py:method:: vpe.config.Config.load_()
+        .. py:method:: load_()
 
             Load options from an INI file.
 
@@ -144,11 +142,11 @@ Config
             not found in the file are left unchanged. Any value in the file that
             does not match a defined otion is simply ignored.
 
-        .. py:method:: vpe.config.Config.options_() -> Dict[str, vpe.config.Option]
+        .. py:method:: options_() -> Dict[str, vpe.config.Option]
 
             Get the dictionary of options.
 
-        .. py:method:: vpe.config.Config.save_()
+        .. py:method:: save_()
 
             Save options to an INI file.
 
@@ -156,10 +154,9 @@ Config
             ~/.vim/config.d/omega.ini will be written. All previous contents of the
             file will be lost.
 
-Int
----
+.. rubric:: Int
 
-.. py:class:: vpe.config.Int(...)
+.. py:class:: Int(...)
 
     .. code::
 
@@ -189,7 +186,7 @@ Int
 
     **Methods**
 
-        .. py:method:: vpe.config.Int.set(value: Union[int, str, bool]) -> str
+        .. py:method:: set(value: Union[int, str, bool]) -> str
 
             Try to set this option's value.
 
@@ -200,10 +197,9 @@ Int
 
                 A string describing why the attempt failed.
 
-Option
-------
+.. rubric:: Option
 
-.. py:class:: vpe.config.Option(name,default_value,description='')
+.. py:class:: Option(name,default_value,description='')
 
     Details about a given option value.
 
@@ -235,28 +231,25 @@ Option
 
     **Properties**
 
-        .. py:method:: store_repr()
-            :property:
+        .. py:property:: store_repr()
 
             "The representation of the `store_value`.
 
-        .. py:method:: store_value()
-            :property:
+        .. py:property:: store_value()
 
             "The value for this option that will be store in the config file.
 
-        .. py:method:: value()
-            :property:
+        .. py:property:: value()
 
             "The current value for this option.
 
     **Methods**
 
-        .. py:method:: vpe.config.Option.copy_to_store()
+        .. py:method:: copy_to_store()
 
             Copy this value to the persistent layer.
 
-        .. py:method:: vpe.config.Option.set(_value: Union[int, str, bool]) -> str
+        .. py:method:: set(_value: Union[int, str, bool]) -> str
 
             Try to set this option's value.
 
@@ -268,27 +261,28 @@ Option
 
                 A string describing why the attempt failed.
 
-        .. py:method:: vpe.config.Option.simple_field_args() -> Dict[str, Any]
+        .. py:method:: simple_field_args() -> Dict[str, Any]
 
             Generate keyword arguments for a simple UI field.
 
             This may be extended in subclasses.
 
-        .. py:method:: vpe.config.Option.values() -> List[Any]
+    **Static methods**
+
+        .. py:staticmethod:: values() -> List[Any]
 
             Get the list of choices.
 
             This supports the protocol required for Tab completion support.
 
-String
-------
+.. rubric:: String
 
-.. py:class:: vpe.config.String(name,default_value='',description='')
+.. py:class:: String(name,default_value='',description='')
 
     A string value option.
 
     **Methods**
 
-        .. py:method:: vpe.config.String.set(value: str) -> str
+        .. py:method:: set(value: str) -> str
 
             Try to set this option's value.

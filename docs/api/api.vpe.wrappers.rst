@@ -1,80 +1,16 @@
 Module vpe.wrappers
 ===================
 
-.. py:module:: vpe.wrappers
+
+.. py:module:: wrappers
 
 Wrappers around the built-in Vim Python types.
 
 You should not normally need to import this module directly.
 
-Command
--------
+.. rubric:: Commands
 
-.. py:class:: vpe.wrappers.Command(name)
-
-    Wrapper to invoke a Vim command as a function.
-
-    The `Commands` creates instances of this; direct instantiation by users is
-    not intended.
-
-    Invocation takes the form of:
-
-    ::
-
-        func(arg[, arg[, arg...]], [bang=<flag>], [a=<start>], [b=<end>],
-             [modifiers])
-        func(arg[, arg[, arg...]], [bang=<flag>], [lrange=<range>],
-             [modifiers])
-
-    The command is invoked with the arguments separated by spaces. Each
-    argument is formatted as by repr(). If the *bang* keyword argument is true
-    then a '!' is appended to the command. A range of lines may be set using
-    the *a* and *b* arguments or *lrange*. The *a* and *b* arguments are used
-    in preference to the lrange argument. If only *b* is supplied then *a* is
-    set to '.' (the current line). Additional *modifiers* keyword arguments,
-    such as 'vertical' are also supported; see details below.
-
-    The *a* and *b* values may be strings or numbers. The *lrange*
-    argument may be a string (*e.g.* '2,7',a vim.Range object, a standard
-    Python range object or a tuple.
-
-    **Parameters**
-
-    .. container:: parameters itemdetails
-
-        *args*
-            All non-keyword arguments form plain arguments to the command.
-        *bang*
-            If set then append '!' to the command.
-        *lrange*
-            This may be a 2-tuple/list (specifying to (a, b)), a Python
-            range object (specifying range(a - 1, b)) or a simple string
-            range 'a,b'. This argument is ignored if either *a* or *b* is
-            provided.
-        *a*
-            The start line.
-        *b*
-            The end line (forming a range with *a*).
-        *vertical*
-            Run with the vertical command modifier.
-        *aboveleft*
-            Run with the aboveleft command modifier.
-        *belowright*
-            Run with the belowright command modifier.
-        *topleft*
-            Run with the topleft command modifier.
-        *botright*
-            Run with the botright command modifier.
-        *keepalt*
-            Run with the keepalt command modifier. Default = True.
-        *preview*
-            For debugging. Do not execute the command, but return what
-            would be passed to vim.command.
-
-Commands
---------
-
-.. py:class:: vpe.wrappers.Commands
+.. py:class:: Commands(modifiers: dict[str, bool] = None)
 
     A namespace for the set of Vim commands.
 
@@ -93,31 +29,70 @@ Commands
         commands.write(bang=True)         # Same as :w!
         commands.split(vertical=True)     # Split current window vertically
 
-    Each command function is actually an instance of the `Command` class. See
-    its description for details of the arguments.
+    Each command function is actually an instance of the :py:obj:`Command`
+    class. See its description for details of the arguments.
 
     Most commands that can be entered at the colon prompt are supported.
     Structural parts of vim-script (such as function, while, try, *etc*) are
     excluded.
 
     The vpe, vpe.mapping and vpe.syntax modules provides some functions and
-    classes provide alternatives for some commands. You are encouraged to use
-    these alternatives in preference to the equivalent functions provided here.
-    The following is a summary of the alternatives.
+    classes as alternatives for some commands. You are encouraged to use these
+    alternatives in preference to the equivalent functions provided here. The
+    following is a summary of the alternatives.
 
     `vpe.AutoCmdGroup`
         A replacement for augroup and autocmd.
 
     `vpe.highlight`
-        Provides keyword style arguments. See also the `vpe.syntax` module.
+        Provides keyword style arguments. See also the `syntax` module.
+
     `vpe.error_msg`
         Writes a message with error highlightling, but does not raise a
         vim.error.
-    `vpe.mapping`
+
+    `mapping`
         This provides functions to make key mappings that are handled by Python
         functions.
-    `vpe.syntax`
+
+    `syntax`
         Provides a set of classes, functions and context managers to help
         define syntax highlighting.
 
     See also: `vpe.pedit`.
+
+    **Parameters**
+
+    .. container:: parameters itemdetails
+
+        *modifiers*
+            A dictionary of the default modifier flags for generated
+            :py:obj:`Command` instances. This is only intended to be used by the
+            `with_modifiers` class method.
+
+    **Class methods**
+
+        .. py:classmethod:: with_modifiers(**modifiers)
+
+            Return a version of ``Commands`` that always applies modifiers.
+
+            For example:
+
+            .. code-block:: py
+
+                silent = vpe.commands.modified(silent=True)
+                silent.tabonly()
+
+            Is equivalent to:
+
+            .. code-block:: py
+
+                vpe.commands.tabonly(silent=True)
+
+.. rubric:: Function
+
+.. py:class:: Function(name: str,args: Optional[ListType[Any]] = None)
+
+    Wrapper around a vim.Function.
+
+    This provides some wrapping or decoding of return types.

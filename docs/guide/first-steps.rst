@@ -1,6 +1,13 @@
 Getting started
 ===============
 
+.. |Commands| replace:: :py:obj:`Commands<wrappers.Commands>`
+.. |vars| replace:: :py:obj:`vars<vpe.Vim.vars>`
+.. |vvars| replace:: :py:obj:`vvars<vpe.Vim.vvars>`
+
+
+.. _switching_from_vim:
+
 Switching from the ``vim`` module
 ---------------------------------
 
@@ -77,7 +84,7 @@ lot of code.
     import vim
     import vpe
 
-    vim.options['keywordprg']             # b'man -s'
+    vim.options['keywordprg']             # b'man -s', not a Python string!
 
     vpe.vim.options['keywordprg']         # 'man -s'
     vpe.vim.options.keywordprg            # 'man -s'
@@ -101,16 +108,16 @@ attribute style option access.
 
 .. code-block:: python
 
-    # Make path = .,/usr/include
+    # Set path = .,/usr/include
     vpe.vim.options.path = '.,/usr/include'
 
-    # Make path = .,/usr/include,/usr/local/include,/usr/opt/include
+    # Set path = .,/usr/include,/usr/local/include,/usr/opt/include
     vpe.vim.options.path += '/usr/local/include,/usr/opt/include'
 
     # Remove two components leaving path = .,/usr/local/include
     vpe.vim.options.path -= '/usr/include,/usr/opt/include'
 
-If the values within an option should not be repeated, VPE automaticlly
+If the values within an option should not be repeated, VPE automatically
 suppresses duplication.
 
 .. code-block:: python
@@ -149,7 +156,7 @@ default Vim value (like ``:set cpoptions&vim`` in vim script).
 Vim vars and vvars
 ------------------
 
-The `Vim.vvars` and `Vim.vars` properties allow Vim variables to be accessed as
+The |vvars| and |vars| properties allow Vim variables to be accessed as
 attributes in addition to dictionary style lookup. In addition, it is possible
 to set modifiable ``vvars`` using attribute access. The built in module
 ``vvars`` object only allows reading of variables.
@@ -225,7 +232,7 @@ methods. This is typically much easier and more Pythonic that using
 
     from vpe import commands
 
-    # This is equivalent to vim.vim().command('edit myfile.py')
+    # This is equivalent to vim.command('edit myfile.py')
     commands.edit('myfile.py')
 
 Executing commands this way makes it much easier to use non-strings, values
@@ -233,7 +240,7 @@ stored in variables and avoids many cases where ``vim.command`` required
 special characters to be escaped.
 
 The `commands` methods provide mechanisms to support other features of Vim
-commands, such as adding a '!'. See `vpe.wrappers.Commands` for details.
+commands, such as adding a '!'. See |Commands| for details.
 
 The Vim commands that are really just part of the Vim scripting language
 (``if``, ``try``, ``throw``, *etc.* are not exposed as commands methods.

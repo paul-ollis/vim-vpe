@@ -21,8 +21,6 @@ import weakref
 from functools import partial
 from typing import Callable, TextIO, Type
 
-from rich.traceback import install as install_rich_traceback
-
 import vim as _vim
 
 import vpe

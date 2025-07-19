@@ -1,17 +1,110 @@
-The VPE directory tree is structured as a package with a single plugin.
-Assuming your Vim files are in the "~/.vim" directory, add a "pack"
-sub-directory and install VPE into the "~/.vim/pack" directory. One way to do
-this is by simply cloning the VPE repository.
-::
+Starting with version 0.8, VPE is a standard Python package, which should make
+it easier to install and upgrade in the future. If you are a user of a pre 0.8
+version, then first remove that version, see :ref:`remove_pre_08`.
 
-    $ cd ~/.vim/pack
-    $ git clone https://github.com/paul-ollis/vim-vpe.git
+.. rubric:: Basic installation
 
-or just unzip vim-vpe.zip.
-::
+VPE can be installed with ``pip`` as follows. A user installation is recommended:
 
-    $ cd ~/.vim/pack
-    $ unzip vim-vpe.zip
+.. code-block:: bash
 
-The package includes a "vim-vpe/start/vpe/plugin/vpe.vim" startup script that
-updates the Python path so that the *vpe* package can be imported.
+    python -m pip install --user git+https://github.com/paul-ollis/vim-vpe.git
+
+On some systems you may see a message that starts::
+
+    error: externally-managed-environment
+
+    × This environment is externally managed...
+
+The typical advice found on the internet suggests that you use a virtual
+environment, but that is not a practical solution for Vim plugin code. So in
+this case you will need to add the option ``--break-system-packages``. This
+option is deliberately named to find frightening, but in this case it should be
+safe to use.
+
+.. code-block:: bash
+
+    python -m pip install --break-system-packages --user git+https://github.com/paul-ollis/vim-vpe.git
+
+.. sidebar:: Non-pip users.
+
+    Users of other Python management systems should find it fairly easy to
+    adapt the pip instructions.
+
+After the installation completes, you can check the basic installation by
+trying to import `vpe` within a new Vim session and checking the version.
+
+.. code-block:: vim
+
+    py3 import vpe
+    py3 print(vpe.version)
+
+
+.. rubric:: Vim init code installation
+
+.. sidebar:: 000-vpe.vim
+
+    The reason for using the name 000-vpe.vim it to make sure that VPE is
+    fully initialised *very* early on. This means that other Vim plugins can
+    make use of VPE if desired.
+
+The basic installation provides the ``vpe`` package, but to be fully functional
+you really need additional Vim initialisation code, in the form of a small Vim
+plugin. This typically resides in::
+
+    $HOME/.vim/plugin/000-vpe.vim
+
+VPE can install this plugin for you. From within Vim run:
+
+.. code-block:: vim
+
+    py3 import vpe.install
+    py3 vpe.install.run()
+
+This will also install a Vim help file for VPE, which provides limited
+more documentation than the HTML version.
+
+.. rubric:: If your Vim uses a different Python version
+
+It may be that your Vim installation uses a different version of Python to
+the default for your operating system, in which case the basic installation will
+work, the `vpe` module will not be importable within Vim.
+
+To fix this run the following within Vim to find the correct Python executable
+and version for your Vim installation.
+
+.. code-block:: vim
+
+    py3 import sys
+    py3 print(sys.executable)
+    py3 print(sys.version)
+
+Then run the above pip command with the correct Python version. For example, if
+the above commands printed something like::
+
+    /usr/local/bin/python3
+    3.11.3 (tags/v3.11.3:f3909b8bc8, Apr 20 2023, 18:55:17) [GCC 11.3.0]
+
+Then you would run:
+
+.. code-block:: bash
+
+    /usr/local/bin/python3.11 -m pip install --user git+https://github.com/paul-ollis/vim-vpe.git
+
+
+.. _remove_pre_08:
+
+.. rubric:: Removing pre 0.8 VPE
+
+This section is only relevant if you have a pre 0.8 version of VPE installed.
+
+Your pre-0.8 VPE is probably installed in::
+
+    $ $HOME/.vim/pack/vim-vpe
+
+But you may have chosen to a slightly different location.
+
+Remove the ``vim-vpe`` directory to uninstall.
+
+You may also want to review your $HOME/.vim/vimrc and similar files in case you
+have initialisation that makes assumptions about your VPE installation.

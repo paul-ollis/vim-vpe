@@ -1,7 +1,10 @@
 """Types involved in tracking changes."""
 from __future__ import annotations
 
-from collections.abc import MutableSequence
+import warnings
+
+from collections.abc import Iterator, MutableSequence
+from typing import Literal
 
 from typing import ClassVar
 
@@ -103,18 +106,19 @@ class Operation:
         elif key == 'end':
             return self.b + 1
         elif key == 'added':
-            return self._count
+            return self.count
         elif key == 'col':
             return self.col + 1
         else:
             raise KeyError(key)
 
-    def items(self) -> Iterator[Tuple[str, int]]:            # pragma: no cover
+    def items(self) -> Iterator[tuple[str, int]]:            # pragma: no cover
         """Emulation of Vim's buffer modification operation dictionary.
 
         This is provided to avoid breaking the VPE 0.6 API too much, but using
         this is deprecated.
         """
+        # pylint: disable=unnecessary-dunder-call
         warnings.warn(
             f'Dictionary access to {self.__class__.__name__} is deprecated'
             ' and is scheduled for removal in version 0.9.'

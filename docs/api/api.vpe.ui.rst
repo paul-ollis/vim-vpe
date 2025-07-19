@@ -1,16 +1,16 @@
 Module vpe.ui
 =============
 
-.. py:module:: vpe.ui
+
+.. py:module:: ui
 
 User interface components.
 
 This is still being developed. The API and behaviour is likely to change.
 
-BoolField
----------
+.. rubric:: BoolField
 
-.. py:class:: vpe.ui.BoolField(...)
+.. py:class:: BoolField(...)
 
     .. code::
 
@@ -28,14 +28,13 @@ BoolField
 
     **Methods**
 
-        .. py:method:: vpe.ui.BoolField.increment(_step: int) -> bool
+        .. py:method:: increment(_step: int) -> bool
 
             Increment this field's value by a given step.
 
-ChoiceField
------------
+.. rubric:: ChoiceField
 
-.. py:class:: vpe.ui.ChoiceField(_values=(),opt_var=None,**kwargs)
+.. py:class:: ChoiceField(_values=(),opt_var=None,**kwargs)
 
     A field holding one of a list of choices.
 
@@ -43,14 +42,13 @@ ChoiceField
 
     **Methods**
 
-        .. py:method:: vpe.ui.ChoiceField.increment(step: int)
+        .. py:method:: increment(step: int)
 
             Increment this field's value by a given step.
 
-ConfigPanel
------------
+.. rubric:: ConfigPanel
 
-.. py:class:: vpe.ui.ConfigPanel(fields)
+.. py:class:: ConfigPanel(fields)
 
     A panel that displays configuration values.
 
@@ -80,32 +78,31 @@ ConfigPanel
 
     **Methods**
 
-        .. py:method:: vpe.ui.ConfigPanel.apply_syntax()
+        .. py:method:: apply_syntax()
 
             Apply syntax highlighting for this panel.
 
             This is only called when the panel's `start_lidx` is correctly set.
 
-        .. py:method:: vpe.ui.ConfigPanel.get_field_by_idx(index: int)
+        .. py:method:: get_field_by_idx(index: int)
 
             Get the editable field with a given index.
 
-        .. py:method:: vpe.ui.ConfigPanel.index_fields(start_idx: int)
+        .. py:method:: index_fields(start_idx: int)
 
             Set up the mapping from field index to field.
 
-        .. py:method:: vpe.ui.ConfigPanel.on_format_contents()
+        .. py:method:: on_format_contents()
 
             Refresh to formatted lines for this panel.
 
-        .. py:method:: vpe.ui.ConfigPanel.select_field(index: int)
+        .. py:method:: select_field(index: int)
 
             Select a specific field.
 
-ConfigPanelBuffer
------------------
+.. rubric:: ConfigPanelBuffer
 
-.. py:class:: vpe.ui.ConfigPanelBuffer(*args,**kwargs)
+.. py:class:: ConfigPanelBuffer(*args,**kwargs)
 
     A `PanelViewBuffer` thats supports configuration panels.
 
@@ -114,19 +111,19 @@ ConfigPanelBuffer
 
     **Methods**
 
-        .. py:method:: vpe.ui.ConfigPanelBuffer.config_panels() -> Iterator[ConfigPanel]
+        .. py:method:: config_panels() -> Iterator[ConfigPanel]
 
             Interate over all the configuration panels.
 
-        .. py:method:: vpe.ui.ConfigPanelBuffer.edit_field()
+        .. py:method:: edit_field()
 
             Allow the user to edit the value of a field.
 
-        .. py:method:: vpe.ui.ConfigPanelBuffer.get_field_by_idx(index: int)
+        .. py:method:: get_field_by_idx(index: int)
 
             Get the editable field with a given index.
 
-        .. py:method:: vpe.ui.ConfigPanelBuffer.inc_field(step: int)
+        .. py:method:: inc_field(step: int)
 
             Increment the value in a field.
 
@@ -138,7 +135,7 @@ ConfigPanelBuffer
                 *step*: int
                     Value to change the field by. May be a negative value.
 
-        .. py:method:: vpe.ui.ConfigPanelBuffer.move_field(step: int = 0)
+        .. py:method:: move_field(step: int = 0)
 
             Move to a different field.
 
@@ -150,58 +147,54 @@ ConfigPanelBuffer
                 *step*: int
                     Increment for the field index.
 
-        .. py:method:: vpe.ui.ConfigPanelBuffer.on_change()
+        .. py:method:: on_change()
 
             Perform common processing when value is changed.
 
             This is intended to be over-ridden by subclasses.
 
-        .. py:method:: vpe.ui.ConfigPanelBuffer.on_reindex()
+        .. py:method:: on_reindex()
 
             Perform special processing when line reindexing has occurred.
 
-        .. py:method:: vpe.ui.ConfigPanelBuffer.on_selected_field_change()
+        .. py:method:: on_selected_field_change()
 
             Perform common processing when the selecetd field is changed.
 
             This is intended to be over-ridden by subclasses.
 
-        .. py:method:: vpe.ui.ConfigPanelBuffer.on_updates_applied(changes_occurred: bool)
+        .. py:method:: on_updates_applied(changes_occurred: bool)
 
             Perform special processing when buffer has been refreshed.
 
             When this is invoked, this buffer may not be in the active window
             and my even be hidden.
 
-CurPrev
--------
+.. rubric:: CurPrev
 
-.. py:class:: vpe.ui.CurPrev(value)
+.. py:class:: CurPrev(value)
 
     An value that knows its previous value.
 
     **Properties**
 
-        .. py:method:: changed() -> bool
-            :property:
+        .. py:property:: changed() -> bool
 
             Whether this value has been changed.
 
-        .. py:method:: value()
-            :property:
+        .. py:property:: value()
 
             The current value.
 
     **Methods**
 
-        .. py:method:: vpe.ui.CurPrev.restore_prev()
+        .. py:method:: restore_prev()
 
             Restore this to its previous value..
 
-Field
------
+.. rubric:: Field
 
-.. py:class:: vpe.ui.Field(...)
+.. py:class:: Field(...)
 
     .. code::
 
@@ -290,62 +283,47 @@ Field
 
     **Properties**
 
-        .. py:method:: column_range() -> Tuple[int, int]
-            :property:
+        .. py:property:: column_range() -> Tuple[int, int]
 
             The range of columns occupied by this field.
 
-        .. py:method:: full_width() -> int
-            :property:
+        .. py:property:: full_width() -> int
 
             The full width occupied by this field.
 
-        .. py:method:: prefix_fmt_width() -> int
-            :property:
+        .. py:property:: prefix_fmt_width() -> int
 
             The width of this field's formatted prefix.
 
-        .. py:method:: suffix_fmt_width() -> int
-            :property:
+        .. py:property:: suffix_fmt_width() -> int
 
             The width of this field's formatted suffix.
 
-        .. py:method:: val_extent() -> Tuple[int, int]
-            :property:
+        .. py:property:: val_extent() -> Tuple[int, int]
 
             The extent of this field's value.
 
             :return: A tuple of cnum, width.
 
-        .. py:method:: value() -> Any
-            :property:
+        .. py:property:: value() -> Any
 
             The field's current value.
 
-        .. py:method:: value_fmt_width() -> int
-            :property:
+        .. py:property:: value_fmt_width() -> int
 
             The width of this field's formatted value.
 
-        .. py:method:: value_str()
-            :property:
+        .. py:property:: value_str()
 
             Format the value as a string.
 
-        .. py:method:: value_width() -> int
-            :property:
+        .. py:property:: value_width() -> int
 
             The width used to display the field's value.
 
     **Methods**
 
-        .. py:method:: vpe.ui.Field.text() -> str
-
-            Format the full text of the field.
-
-    **Static methods**
-
-        .. py:staticmethod:: vpe.ui.Field.edit_value() -> bool
+        .. py:method:: edit_value() -> bool
 
             Allow the user to edit the value of a field.
 
@@ -357,7 +335,7 @@ Field
 
                 True if the value was modified.
 
-        .. py:staticmethod:: vpe.ui.Field.increment(_step: int) -> bool
+        .. py:method:: increment(_step: int) -> bool
 
             Increment this field's value by a given step.
 
@@ -369,10 +347,13 @@ Field
 
                 True if the value was modified.
 
-FieldVar
---------
+        .. py:method:: text() -> str
 
-.. py:class:: vpe.ui.FieldVar(_var)
+            Format the full text of the field.
+
+.. rubric:: FieldVar
+
+.. py:class:: FieldVar(_var)
 
     A value that is displayed by a Field.
 
@@ -381,18 +362,17 @@ FieldVar
 
     **Properties**
 
-        .. py:method:: value()
-            :property:
+        .. py:property:: value()
 
             "The current value for this variable.
 
     **Methods**
 
-        .. py:method:: vpe.ui.FieldVar.__init__(_var)
+        .. py:method:: __init__(_var)
 
             Initialisation.
 
-        .. py:method:: vpe.ui.FieldVar.set(_value: Any) -> str
+        .. py:method:: set(_value: Any) -> str
 
             Try to set this option's value.
 
@@ -405,7 +385,7 @@ FieldVar
                 if the value was set. This basic wrapper always returns an
                 empty string.
 
-        .. py:method:: vpe.ui.FieldVar.values() -> List[Any]
+        .. py:method:: values() -> List[Any]
 
             Return a set of the valid values for this field.
 
@@ -417,10 +397,9 @@ FieldVar
                 A list of the valid values. An empty list means that this
                 field's range of values is not defined using a set.
 
-IntField
---------
+.. rubric:: IntField
 
-.. py:class:: vpe.ui.IntField(...)
+.. py:class:: IntField(...)
 
     .. code::
 
@@ -438,7 +417,7 @@ IntField
 
     **Methods**
 
-        .. py:method:: vpe.ui.IntField.edit_value() -> bool
+        .. py:method:: edit_value() -> bool
 
             Allow the user to edit the value of a field.
 
@@ -452,7 +431,7 @@ IntField
 format_str
 ----------
 
-.. py:function:: vpe.ui.format_str(s: str,width: int) -> str
+.. py:function:: format_str(s: str,width: int) -> str
 
     Format a string within a given field width.
 

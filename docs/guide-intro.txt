@@ -14,12 +14,12 @@ extend ``Vim`` using modern Pythonic code. Its key features are:
   includes extended capabilities.
 
   This makes it relatively easy to convert existing Python based Vim extensions
-  in order to take advantage of the `Vim` class's extra features.
+  in order to take advantage of the `Vim` class's extra features. See
+  :ref:`switching_from_vim` for how to do this.
 
 - The `vpe` package, containing additional modules and classes which provide:
 
   - More pythonic APIs for some Vim features.
   - Extension modules and classes to help in writing plugins in Python.
 
-- A Pythonic plugin mechanism for writing plugins, based on Python's own
-  standardised plugin mechanisms.
+- Support for plugins, using on Python's standard library entry-point mechanism.

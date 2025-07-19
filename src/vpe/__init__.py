@@ -64,7 +64,10 @@ from importlib.metadata import entry_points
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Tuple, Union
 
-import vim as _vim                                                 # noqa: F401
+import vim as _vim
+
+# Add rich support if available.
+from vpe import rich_support
 
 # Make sure that 'common' and 'core' exported names are imported first. Later
 # imports depend on this to some extent - which is why the imports are not in
@@ -75,13 +78,12 @@ from vpe.core import *
 from vpe.wrappers import Vim, vim
 
 # pylint: disable=wrong-import-position
-from vpe import channels, mapping, syntax
+from vpe import channels, mapping, syntax, vpe_commands as _vpe_commands
 from vpe.mapping import MapCallback
 from vpe.wrappers import (
     Buffer, Buffers, Current, GlobalOptions, Options, Range, Registers, Struct,
     TabPage, TabPages, VIM_DEFAULT, VI_DEFAULT, Variables, Window, Windows,
     commands, suppress_vim_invocation_errors)
-from vpe import vpe_commands as _vpe_commands
 
 __api__ = [
     'AutoCmdGroup', 'Timer', 'Popup', 'PopupAtCursor', 'PopupBeval',
@@ -104,6 +106,9 @@ __api__ = [
     'Range', 'Struct', 'ScratchBuffer', 'VI_DEFAULT', 'VIM_DEFAULT',
     'CommandHandler', 'EventHandler', 'BufEventHandler',
 ]
+__version_tuple__ = 0, 8, 0
+__release__ = '-alpha'
+version = f'{".".join(str(p) for p in __version_tuple__)}{__release__}'
 
 PLUGIN_SUBDIR = 'vpe_plugins'
 
@@ -140,15 +145,6 @@ class Finish(Exception):
     def __init__(self, reason: str):
         # pylint: disable=useless-super-delegation
         super().__init__(reason)
-
-
-def version() -> Tuple[int, int, int]:
-    """The current VPE version as a 3 part tuple.
-
-    The tuple follows the conventions of semantic versioning 2.0
-    (https://semver.org/); *i.e.* (major, minor, patch).
-    """
-    return 0, 6, 0
 
 
 def dot_vim_dir() -> str:

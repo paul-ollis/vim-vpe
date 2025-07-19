@@ -20,8 +20,8 @@ from vpe.vpe_lib import diffs, resources
 
 __all__ = ('tabpages', 'TabPage', 'Vim', 'Registers', 'vim',
            'Function', 'windows', 'Window',
-           'buffers', 'Buffer', 'Range', 'Struct', 'VI_DEFAULT', 'VI_DEFAULT')
-__api__ = ('Commands', 'Command')
+           'buffers', 'Buffer', 'Range', 'Struct', 'VI_DEFAULT')
+__api__ = ('Function', 'Commands')
 
 # Type aliases
 ListenerCallbackFunc = Callable[[int, int, int, int, list[dict]], None]
@@ -775,7 +775,7 @@ class Buffer(common.MutableSequenceProxy):
                 A list of diffs.BufOperation instances with details about the
                 changes.
         :return:
-            A `BufListener' object.
+            A :py:obj:`BufListener` object.
         """
         inst = getattr(func, '__self__', None)
         p_buf = weakref.proxy(self)
@@ -826,7 +826,8 @@ class Buffer(common.MutableSequenceProxy):
 
         :kwargs:
             The same parameters used for vim.prop_type_add's props argument;
-            namely:
+            namely::
+
                 highlight: str
                 priority: int
                 combine: bool
@@ -1382,39 +1383,42 @@ class Commands:
         commands.write(bang=True)         # Same as :w!
         commands.split(vertical=True)     # Split current window vertically
 
-    Each command function is actually an instance of the `Command` class. See
-    its description for details of the arguments.
+    Each command function is actually an instance of the :py:obj:`Command`
+    class. See its description for details of the arguments.
 
     Most commands that can be entered at the colon prompt are supported.
     Structural parts of vim-script (such as function, while, try, *etc*) are
     excluded.
 
     The vpe, vpe.mapping and vpe.syntax modules provides some functions and
-    classes provide alternatives for some commands. You are encouraged to use
-    these alternatives in preference to the equivalent functions provided here.
-    The following is a summary of the alternatives.
+    classes as alternatives for some commands. You are encouraged to use these
+    alternatives in preference to the equivalent functions provided here. The
+    following is a summary of the alternatives.
 
     `vpe.AutoCmdGroup`
         A replacement for augroup and autocmd.
 
     `vpe.highlight`
-        Provides keyword style arguments. See also the `vpe.syntax` module.
+        Provides keyword style arguments. See also the `syntax` module.
+
     `vpe.error_msg`
         Writes a message with error highlightling, but does not raise a
         vim.error.
-    `vpe.mapping`
+
+    `mapping`
         This provides functions to make key mappings that are handled by Python
         functions.
-    `vpe.syntax`
+
+    `syntax`
         Provides a set of classes, functions and context managers to help
         define syntax highlighting.
 
     See also: `vpe.pedit`.
 
     :modifiers:
-        A dictionary of the default modifier flags for generated `Command`
-        instances. This is only intended to be used by the `with_modifiers`
-        class method.
+        A dictionary of the default modifier flags for generated
+        :py:obj:`Command` instances. This is only intended to be used by the
+        `with_modifiers` class method.
     """
     # pylint: disable=too-few-public-methods
 

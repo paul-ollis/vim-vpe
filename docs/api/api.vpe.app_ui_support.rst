@@ -1,16 +1,16 @@
 Module vpe.app_ui_support
 =========================
 
-.. py:module:: vpe.app_ui_support
+
+.. py:module:: app_ui_support
 
 Application level user interface support.
 
 Currently this only works on X.Org based desktops.
 
-AppWin
-------
+.. rubric:: AppWin
 
-.. py:class:: vpe.app_ui_support.AppWin(dims_pixels,dims_cells,corners,borders,cell_size)
+.. py:class:: AppWin(dims_pixels,dims_cells,corners,borders,cell_size)
 
     Information about Vim's application window.
 
@@ -68,22 +68,19 @@ AppWin
 
     **Properties**
 
-        .. py:method:: columns() -> Optional[int]
-            :property:
+        .. py:property:: columns() -> Optional[int]
 
             The calculated number of columns for this window.
 
             This should be the same as the columns option value.
 
-        .. py:method:: decor_dims() -> Tuple[int, int]
-            :property:
+        .. py:property:: decor_dims() -> Tuple[int, int]
 
             The windows dimension in pixels including window decoration.
 
-Display
--------
+.. rubric:: Display
 
-.. py:class:: vpe.app_ui_support.Display(w,h,x,y)
+.. py:class:: Display(w,h,x,y)
 
     Information about a single display (physical screen).
 
@@ -121,14 +118,13 @@ Display
 
     **Methods**
 
-        .. py:method:: vpe.app_ui_support.Display.contains_window(w) -> bool
+        .. py:method:: contains_window(w) -> bool
 
             Test whether a window is fully contained by this display.
 
-Displays
---------
+.. rubric:: Displays
 
-.. py:class:: vpe.app_ui_support.Displays
+.. py:class:: Displays
 
     Information about the available displays (physical screens).
 
@@ -141,11 +137,11 @@ Displays
 
     **Methods**
 
-        .. py:method:: vpe.app_ui_support.Displays.add(display)
+        .. py:method:: add(display)
 
             Add a display.
 
-        .. py:method:: vpe.app_ui_support.Displays.find_display_for_window(w: AppWin) -> Optional[Display]
+        .. py:method:: find_display_for_window(w: AppWin) -> Optional[Display]
 
             Find which display a given `Window` is on.
 
@@ -162,7 +158,7 @@ Displays
 attach_vars
 -----------
 
-.. py:function:: vpe.app_ui_support.attach_vars(**kwargs)
+.. py:function:: attach_vars(**kwargs)
 
     Decorator to attach variables to a function.
 
@@ -177,13 +173,13 @@ attach_vars
 get_app_win_info
 ----------------
 
-.. py:function:: vpe.app_ui_support.get_app_win_info() -> Optional[AppWin]
+.. py:function:: get_app_win_info() -> Optional[AppWin]
 
     Get information about the Vim application window.
 
 get_display_info
 ----------------
 
-.. py:function:: vpe.app_ui_support.get_display_info() -> Displays
+.. py:function:: get_display_info() -> Displays
 
     Get information about the displays (screens).

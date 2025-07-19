@@ -2,14 +2,14 @@ Mapping key sequences
 ---------------------
 
 .. |end_cursor| replace:: :ref:`end_cursor<info_attrs>`
-.. |imap| replace:: `imap<vpe.mapping.nmap>`
-.. |MappingInfo| replace:: `MappingInfo<vpe.mapping.MappingInfo>`
-.. |map| replace:: `map<vpe.mapping.nmap>`
-.. |nmap| replace:: `nmap<vpe.mapping.nmap>`
-.. |omap| replace:: `omap<vpe.mapping.nmap>`
+.. |imap| replace:: :py:obj:`imap<vpe.mapping.imap>`
+.. |MappingInfo| replace:: :py:obj:`MappingInfo<vpe.mapping.MappingInfo>`
+.. |map| replace:: :py:obj:`map<vpe.mapping.nmap>`
+.. |nmap| replace:: :py:obj:`nmap<vpe.mapping.nmap>`
+.. |omap| replace:: :py:obj:`omap<vpe.mapping.omap>`
 .. |start_cursor| replace:: :ref:`start_cursor<info_attrs>`
 .. |vmode| replace:: :ref:`vmode<info_attrs>`
-.. |xmap| replace:: `xmap<vpe.mapping.nmap>`
+.. |xmap| replace:: :py:obj:`xmap<mapping.xmap>`
 
 
 VPE provides the following mode specific functions that can be used to defined

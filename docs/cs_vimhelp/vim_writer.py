@@ -25,6 +25,8 @@ _source_path = None
 _uc_open_quote = chr(8216)
 _uc_close_quote = chr(8217)
 
+used_ref_ids: set[str] = set()
+
 
 class PushBackIterator:
     """An iterator that supports pushing items back.
@@ -458,6 +460,11 @@ class VimWriter(writers.Writer):
                 self.put_desc_content(nodes, level, node)
 
     def format_refids(self, node, prefix=''):
+        def add_refid(refid: str):
+            if refid not in self._used_refids:
+                refids.append(refid)
+                self._used_refids.add(refid)
+
         refids = []
         ref_map = self.builder.config.vim_link_map
         for refid in node.attributes.get('ids', []):
@@ -466,15 +473,11 @@ class VimWriter(writers.Writer):
                 continue
             ref = self.full_ref_to_ref_text.get(refid)
             ref = ref_map.get(ref, ref)
-            if ref and ref not in refids:
-                if ref not in self._used_refids:
-                    self._used_refids.add(ref)
-                    refids.append(f'{prefix}{ref}')
+            if ref:
+                add_refid(f'{prefix}{ref}')
             refid = ref_map.get(refid, refid)
-            if refid not in refids:
-                if refid not in self._used_refids:
-                    self._used_refids.add(refid)
-                    refids.append(f'{prefix}{refid}')
+            if refid:
+                add_refid(f'{prefix}{refid}')
 
         if refids:
             return ' '.join(f'*{refid}*' for refid in refids)
@@ -606,20 +609,28 @@ class VimWriter(writers.Writer):
             put('-' * (79 - Indent.ind) + '~')
         else:
             put()
+        Q = f'{this_level}'
 
-        refs = self.format_refids(node, prefix='vpe.')
-        for level, node in iter_level(nodes, this_level):
-            if node.tagname == 'section':
+        for level, n_node in iter_level(nodes, this_level):
+            refs = self.format_refids(node, prefix='vpe.')
+            if n_node.tagname == 'section':
                 nums[-1] += 1
                 with Indent(2):
-                    self.put_section(nodes, level, node, nums=nums)
-            elif node.tagname == 'title':
+                    self.put_section(nodes, level, n_node, nums=nums)
+            elif n_node.tagname == 'title':
                 secnum = '.'.join(str(i) for i in nums[:-1])
-                self.put_ref_item(f'{secnum}. {node.astext()}~', refs)
-            elif node.tagname == 'hlist':
+                self.put_ref_item(f'{secnum}. {n_node.astext()}~', refs)
+            elif n_node.tagname == 'hlist':
                 skip_over(nodes, level)
             else:
-                self.dispatch(nodes, level, node)
+                self.dispatch(nodes, level, n_node)
+
+    def put_sidebar(self, nodes, this_level, node):
+        return
+        with Indent(20):
+            put(f'{node.astext()}~')
+            #for level, n_node in iter_level(nodes, this_level):
+            #    self.dispatch(nodes, this_level, n_node)
 
     def put_top_section(self, nodes):
         for level, node in nodes:

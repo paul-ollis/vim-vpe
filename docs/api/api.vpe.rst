@@ -14,6 +14,7 @@ Module vpe
     api.vpe.ui
     api.vpe.windows
     api.vpe.wrappers
+
 .. py:module:: vpe
 
 Enhanced module for using Python3 in Vim.
@@ -76,10 +77,9 @@ _vpe_args_
         This is in instance of the `Vim` class.
 
 
-AutoCmdGroup
-------------
+.. rubric:: AutoCmdGroup
 
-.. py:class:: vpe.AutoCmdGroup(name)
+.. py:class:: AutoCmdGroup(name)
 
     A Pythonic way to define auto commands.
 
@@ -113,7 +113,7 @@ AutoCmdGroup
 
     **Static methods**
 
-        .. py:staticmethod:: vpe.AutoCmdGroup.add(...)
+        .. py:staticmethod:: add(...)
 
             .. code::
 
@@ -147,79 +147,22 @@ AutoCmdGroup
                 *kwargs*
                     Additional keyword arguments to be passed the *func*.
 
-        .. py:staticmethod:: vpe.AutoCmdGroup.delete_all()
+        .. py:staticmethod:: delete_all()
 
             Delete all entries in the group.
 
-BufEventHandler
----------------
+.. rubric:: BufEventHandler
 
-.. py:class:: vpe.BufEventHandler
+.. py:class:: BufEventHandler
 
     Mix-in to support mapping events to methods for buffers.
 
     This differs from EventHandler by the use of ``self`` as the default
     pattern.
 
-BufListener
------------
+.. rubric:: Buffer
 
-.. py:class:: vpe.BufListener(func,buf,is_method: bool)
-
-    A Pythonic wrapping of Vim's listener... functions.
-
-    One of these is created `Buffer.add_listener`. Direct instantiation of this
-    class is not recommended or supported.
-
-    **Parameters**
-
-    .. container:: parameters itemdetails
-
-        *func*
-            The Python function or method to be called back.
-        *buf*
-            The `Buffer` instance.
-
-
-    **Attributes**
-
-        .. py:attribute:: listen_id
-            :type: int:
-
-            The unique ID from a :vim:`listener_add` invocation.
-
-    **Methods**
-
-        .. py:method:: vpe.BufListener.flush()
-
-            Request that any pending callbacks are invoked for this listener.
-
-        .. py:method:: vpe.BufListener.invoke_self(vpe_args)
-
-            Invoke this Callback.
-
-            This extends the `Callback.invoke_self` method.
-
-            The vpe_args['args'] are (From Vim's docs):
-
-            bufnr
-                the buffer that was changed
-            start
-                first changed line number
-            end
-                first line number below the change
-            added
-                number of lines added, negative if lines were deleted
-            changes
-                a List of items with details about the changes
-
-            The ``bufnr`` is ignored, since this is just self.buf.number. The start
-            and end are adjusted so they form a Python range.
-
-Buffer
-------
-
-.. py:class:: vpe.Buffer(buffer)
+.. py:class:: Buffer(buffer)
 
     Wrapper around a :vim:`python-buffer`.
 
@@ -239,53 +182,44 @@ Buffer
 
     **Properties**
 
-        .. py:method:: bufnr() -> int
-            :property:
+        .. py:property:: bufnr() -> int
 
             The same as the `number` attribute.
 
             This exists as a side effect of providing :vim:`getbufinfo()` values as
             properties. It is more  efficient to use the `number` attribute.
 
-        .. py:method:: changed() -> int
-            :property:
+        .. py:property:: changed() -> int
 
             Modified flag; 0=unchanged, 1=changed.
 
-        .. py:method:: changedtick() -> int
-            :property:
+        .. py:property:: changedtick() -> int
 
             Same as :vim:`changetick`.
 
-        .. py:method:: hidden() -> int
-            :property:
+        .. py:property:: hidden() -> int
 
             Hidden flag; 0=buffer visible in a window, 1=buffer hidden.
 
-        .. py:method:: lastused() -> int
-            :property:
+        .. py:property:: lastused() -> int
 
             Time (in seconds) when buffer was last used.
 
             This is a time in seconds as returned by :vim:`localtime()`.
 
-        .. py:method:: linecount() -> int
-            :property:
+        .. py:property:: linecount() -> int
 
             The number of lines in the buffer.
 
-        .. py:method:: lnum() -> int
-            :property:
+        .. py:property:: lnum() -> int
 
             The current line number for the buffer.
 
-        .. py:method:: loaded() -> int
-            :property:
+        .. py:property:: loaded() -> int
 
             Buffer loaded flag; 0=not loaded, 1=buffer loaded.
 
-        .. py:method:: location() -> str
-            :property:
+        .. py:property:: location() -> str
 
             The location of the file loaded in this buffer.
 
@@ -293,25 +227,21 @@ Buffer
                 If the buffer is not associated with a file then an empty string.
                 Otherwise the absolute directory part of the file's name.
 
-        .. py:method:: long_display_name() -> str
-            :property:
+        .. py:property:: long_display_name() -> str
 
             A long-form name for display purposes.
 
-        .. py:method:: number()
-            :property:
+        .. py:property:: number()
 
             The number of this buffer.
 
-        .. py:method:: popups() -> List[int]
-            :property:
+        .. py:property:: popups() -> list[int]
 
             A list of window IDs for popups that are displaying this buffer.
 
             Each entry is a :vim:`window-ID`.
 
-        .. py:method:: short_description() -> str
-            :property:
+        .. py:property:: short_description() -> str
 
             A short description for the buffer.
 
@@ -320,42 +250,36 @@ Buffer
                 is the buffer's name. For other types that are associated with a
                 file the `location` property is provided.
 
-        .. py:method:: short_display_name() -> str
-            :property:
+        .. py:property:: short_display_name() -> str
 
             A short-form name for display purposes.
 
-        .. py:method:: type() -> str
-            :property:
+        .. py:property:: type() -> str
 
             The type name of this buffer.
 
             This is similar to the :vim:`'buftype'` option, but normal buffers
             have the type 'normal'.
 
-        .. py:method:: valid() -> bool
-            :property:
+        .. py:property:: valid() -> bool
 
             Test of this buffer is valid.
 
             A buffer can become invalid if, for example, the underlying Vim buffer
             has been wiped out.
 
-        .. py:method:: variables() -> Variables
-            :property:
+        .. py:property:: variables() -> Variables
 
             The same as the `vars` attribute.
 
             This exists as a side effect of providing :vim:`getbufinfo()` values as
             properties. It is more  efficient to use the `vars` attribute.
 
-        .. py:method:: vars() -> Variables
-            :property:
+        .. py:property:: vars() -> Variables
 
             The buffar vars wrapped as a `Variables` instance.
 
-        .. py:method:: windows() -> List[int]
-            :property:
+        .. py:property:: windows() -> list[int]
 
             A list of window IDs for windows that are displaying this buffer.
 
@@ -363,22 +287,18 @@ Buffer
 
     **Methods**
 
-        .. py:method:: vpe.Buffer.__getattr__(name)
+        .. py:method:: __getattr__(name)
 
             Make the values from getbufinfo() available as attributes.
 
             This extends the base class implementation.
 
-        .. py:method:: vpe.Buffer.add_listener(...)
+        .. py:method:: add_listener(...)
 
             .. code::
 
                 add_listener(
-                    func: Union[
-                        Callable[[int, int, int, int, List[Dict]], None],
-                        Callable[[int, int, int, List[Dict]], None],
-                    ]
-                ) -> BufListener:
+                        func: ListenerCallbackFunc | ListenerCallbackMethod
 
             Add a callback for changes to this buffer.
 
@@ -388,24 +308,30 @@ Buffer
 
             .. container:: parameters itemdetails
 
-                *func*: typing.Union[typing.Callable[[int, int, int, int, typing.List[typing.Dict]], NoneType], typing.Callable[[int, int, int, typing.List[typing.Dict]], NoneType]]
-                    The callback function which is invoked the following arguments:
+                *func*: Union
+                    The callback function which is invoked with the following
+                    arguments:
 
-                    :buf:     The buffer that was changed. Only present if *func* is
-                              not a bound method of this instance.
-                    :start:   Start of the range of modified lines (zero based).
-                    :end:     End of the range of modified lines.
-                    :added:   Number of lines added, negative if lines were deleted.
-                    :changed: A List of items with details about the changes.
+                    :buf:
+                        The buffer that was changed. Only present if *func* is not a
+                        bound method of this instance.
+                    :start:
+                        Start of the range of modified lines (zero based).
+                    :end:
+                        End of the range of modified lines.
+                    :added:
+                        Number of lines added, negative if lines were deleted.
+                    :changed:
+                        A list of diffs.BufOperation instances with details about the
+                        changes.
 
             **Return value**
 
             .. container:: returnvalue itemdetails
 
-                The unique ID for this callback, as provided by
-                :vim:`listener_add()`.
+                A :py:obj:`BufListener` object.
 
-        .. py:method:: vpe.Buffer.append(line_or_lines,nr=None)
+        .. py:method:: append(line_or_lines,nr=None)
 
             Append one or more lines to the buffer.
 
@@ -420,7 +346,11 @@ Buffer
                 *nr*
                     If present then append after this line number.
 
-        .. py:method:: vpe.Buffer.find_active_windows(all_tabpages=False) -> List[ForwardRef('Window')]
+        .. py:method:: clear_props()
+
+            Remove all properties from all line in this buffer.
+
+        .. py:method:: find_active_windows(all_tabpages=False) -> list['Window']
 
             Find windows where this buffer is active.
 
@@ -442,7 +372,7 @@ Buffer
 
                 A list of the windows found.
 
-        .. py:method:: vpe.Buffer.find_best_active_window(all_tabpages=False) -> Optional[ForwardRef('Window')]
+        .. py:method:: find_best_active_window(all_tabpages=False) -> Optional['Window']
 
             Find the best choice for a window where this buffer is active.
 
@@ -462,7 +392,7 @@ Buffer
 
                 The window or None.
 
-        .. py:method:: vpe.Buffer.goto_active_window(all_tabpages=False) -> Optional[ForwardRef('Window')]
+        .. py:method:: goto_active_window(all_tabpages=False) -> Optional['Window']
 
             Goto the best choice window where this buffer is active.
 
@@ -482,11 +412,11 @@ Buffer
 
                 The window that was chosen or None.
 
-        .. py:method:: vpe.Buffer.is_active()
+        .. py:method:: is_active()
 
             Test whether the current window is showing this buffer.
 
-        .. py:method:: vpe.Buffer.list()
+        .. py:method:: list()
 
             A sequence context for efficient buffer modification.
 
@@ -506,7 +436,13 @@ Buffer
 
             This will update the buffer, even if 'modifiable' is not set.
 
-        .. py:method:: vpe.Buffer.range(a: int,b: int) -> Range
+        .. py:method:: marker_set(name: str)
+
+            Get the marker set with a given name.
+
+            The marker set for a given name is created on demand.
+
+        .. py:method:: range(a: int,b: int) -> Range
 
             Get a `Range` for the buffer.
 
@@ -523,7 +459,68 @@ Buffer
                     The end index of the range. Note that this line is included in
                     the range; *i.e.* the range is inclusive, unlike Python ranges.
 
-        .. py:method:: vpe.Buffer.store(key: Any) -> Struct
+        .. py:method:: retrieve_store(key: Any) -> Struct | None
+
+            Retrive a given buffer store if it exists.
+
+            This is similar to `store`, but no new store is created.
+
+            **Return value**
+
+            .. container:: returnvalue itemdetails
+
+                The requested store `Struct` or ``None`` if it does not exist.
+
+        .. py:method:: set_line_prop(...)
+
+            .. code::
+
+                set_line_prop(
+                        lidx: int,
+                        start_cidx: int,
+                        end_cidx: int,
+                        hl_group: str,
+
+            Set a highlighting property on a single line.
+
+
+            **Parameters**
+
+            .. container:: parameters itemdetails
+
+                *lidx*: int
+                    The index of the line to hold the property.
+                *start_cidx*: int
+                    The index within the line where the property starts.
+                *end_cidx*: int
+                    The index within the line where the property ends.
+                *hl_group*: str
+                    The name of the highlight group to use.
+                *name*: str
+                    An optional name for the property.
+
+        .. py:method:: set_property_type(name: str,**kwargs)
+
+            Register or modify a property type associated with this buffer.
+
+            This is a wrapper around vim.prop_type_add and vim.prop_type_change.
+
+            **Parameters**
+
+            .. container:: parameters itemdetails
+
+                *kwargs*
+                    The same parameters used for vim.prop_type_add's props argument;
+                    namely::
+
+                        highlight: str
+                        priority: int
+                        combine: bool
+                        override: bool
+                        start_incl: bool
+                        end_incl: bool
+
+        .. py:method:: store(key: Any) -> Struct
 
             Return a `Struct` for a give key.
 
@@ -544,7 +541,7 @@ Buffer
             for a given :vim:`python-buffer` so this effectively allows you to
             associated meta-data with individual Vim buffers.
 
-        .. py:method:: vpe.Buffer.temp_options(**presets) -> TemporaryOptions
+        .. py:method:: temp_options(**presets) -> TemporaryOptions
 
             Context used to temporarily change options.
 
@@ -580,7 +577,7 @@ Buffer
 
     **Class methods**
 
-        .. py:classmethod:: vpe.Buffer.get_known(buffer: Any) -> Optional[ForwardRef('Buffer')]
+        .. py:classmethod:: get_known(buffer: Any) -> Optional['Buffer']
 
             Get the Buffer instance for a given vim.buffer.
 
@@ -590,23 +587,21 @@ Buffer
 
             .. container:: parameters itemdetails
 
-                *buffer*: typing.Any
+                *buffer*: Any
                     A standard :vim:`python-buffer`.
 
-Buffers
--------
+.. rubric:: Buffers
 
-.. py:class:: vpe.Buffers(obj=None)
+.. py:class:: Buffers(obj=None)
 
     Wrapper around the built-in vim.buffers.
 
     User code should not directly instantiate this class. VPE creates and
     manages instances of this class as required.
 
-Callback
---------
+.. rubric:: Callback
 
-.. py:class:: vpe.Callback(...)
+.. py:class:: Callback(...)
 
     .. code::
 
@@ -697,40 +692,40 @@ Callback
 
     **Methods**
 
-        .. py:method:: vpe.Callback.as_call()
+        .. py:method:: as_call()
 
             Format a command of the form 'call VPE_xxx(...)'
 
             The result can be used as a colon prompt command.
 
-        .. py:method:: vpe.Callback.as_invocation()
+        .. py:method:: as_invocation()
 
             Format a command of the form 'VPE_xxx(...)'
 
             The result is a valid Vim script expression.
 
-        .. py:method:: vpe.Callback.as_vim_function()
+        .. py:method:: as_vim_function()
 
             Create a vim.Function that will route to this callback.
 
-        .. py:method:: vpe.Callback.format_call_fail_message()
+        .. py:method:: format_call_fail_message()
 
             Generate a message to give details of a failed callback invocation.
 
             This is used when the `Callback` instance exists, but the call raised
             an exception.
 
-        .. py:method:: vpe.Callback.get_call_args(_vpe_args: Dict[str, Any])
+        .. py:method:: get_call_args(_vpe_args: Dict[str, Any])
 
             Get the Python positional and keyword arguments.
 
             This may be over-ridden by subclasses.
 
-        .. py:method:: vpe.Callback.invoke_self(vpe_args)
+        .. py:method:: invoke_self(vpe_args)
 
             Invoke this Callback.
 
-            This is invoked on the `Callback` instance found by `do_invoke`. The
+            This is invoked on the `Callback` instance found by `invoke`. The
             callback is invoked with as:
 
             .. code-block:: py
@@ -753,15 +748,21 @@ Callback
                     args
                         Any additional arguments passed to the callback by Vim.
 
-        .. py:method:: vpe.Callback.on_del(ref)
+        .. py:method:: on_del(ref)
 
             "Handle deletion of weak reference to method's instance.
 
     **Class methods**
 
-        .. py:classmethod:: vpe.Callback.do_invoke()
+        .. py:classmethod:: invoke() -> Any
 
-            Find the Callback instance bing invoked and invoke its function.
+            Invoke a particular callback function instance.
+
+            This is invoked from the 'Vim World' by VPE_Call. The global Vim
+            dictionary variable _vpe_args_ will have been set up to contain 'uid'
+            and 'args' entries. The 'uid' is used to find the actual `Callback`
+            instance and the 'args' is a sequence of Vim values, which are passed
+            to the callback as positional arguments.
 
             The details are store in the Vim global variable ``_vpe_args_``, which
             is a dictionary containing:
@@ -774,32 +775,41 @@ Callback
             It is possible that there is no instance for the given `uid`. In that
             case a message is logged, but no other action taken.
 
-        .. py:classmethod:: vpe.Callback.invoke()
+            **Return value**
 
-            Invoke a particular callback function instance.
+            .. container:: returnvalue itemdetails
 
-            This is invoked from the 'Vim World' by VPE_Call. The global Vim
-            dictionary variable _vpe_args_ will have been set up to contain 'uid'
-            and 'args' entries. The 'uid' is used to find the actual `Callback`
-            instance and the 'args' is a sequence of Vim values, which are passed
-            to the callback as positional arguments.
+                Normally the return value of the invoked function. If the callback
+                is dead then the value is zero and if an exception is raised then
+                the value is -1.
 
-CommandHandler
---------------
+.. rubric:: CommandHandler
 
-.. py:class:: vpe.CommandHandler
+.. py:class:: CommandHandler
 
     Mix-in to support mapping user commands to methods.
 
+    To use this do the following:
+
+    - Make your class inherit from this class.
+
+    - Decorate methods that implement commands using the `command` class
+      method. A decorated method expect to be invoked with multiple positional
+      parameters, one per command line argument.
+
+    - In your init function, invoke ``self.auto_define_commands()``.
+
+    Your code should only create a single instance of the class.
+
     **Methods**
 
-        .. py:method:: vpe.CommandHandler.auto_define_commands()
+        .. py:method:: auto_define_commands()
 
             Set up mappings for command methods.
 
     **Static methods**
 
-        .. py:staticmethod:: vpe.CommandHandler.command(name: str,**kwargs) -> Callable[[Callable], Callable]
+        .. py:staticmethod:: command(name: str,**kwargs) -> Callable[[Callable], Callable]
 
             Decorator to make a user command invoke a method.
 
@@ -813,10 +823,9 @@ CommandHandler
                 *kwargs*
                     See `vpe.define_command` for the supported values.
 
-CommandInfo
------------
+.. rubric:: CommandInfo
 
-.. py:class:: vpe.CommandInfo(...)
+.. py:class:: CommandInfo(...)
 
     .. code::
 
@@ -862,17 +871,15 @@ CommandInfo
 
             The optional register, if provided.
 
-Current
--------
+.. rubric:: Current
 
-.. py:class:: vpe.Current(obj=None)
+.. py:class:: Current(obj=None)
 
     Wrapper around the built-in vim.current attribute.
 
-EventHandler
-------------
+.. rubric:: EventHandler
 
-.. py:class:: vpe.EventHandler
+.. py:class:: EventHandler
 
     Mix-in to support mapping events to methods.
 
@@ -882,7 +889,7 @@ EventHandler
 
     **Methods**
 
-        .. py:method:: vpe.EventHandler.auto_define_event_handlers(group_name: str,delete_all=False)
+        .. py:method:: auto_define_event_handlers(group_name: str,delete_all=False)
 
             Set up mappings for event handling methods.
 
@@ -900,7 +907,7 @@ EventHandler
 
     **Static methods**
 
-        .. py:staticmethod:: vpe.EventHandler.handle(name: str,**kwargs) -> Callable[[Callable], Callable]
+        .. py:staticmethod:: handle(name: str,**kwargs) -> Callable[[Callable], Callable]
 
             Decorator to make an event invoke a method.
 
@@ -916,10 +923,9 @@ EventHandler
                     Note that the ``pat`` argument defaults to '*', not
                     '<buffer>'.
 
-Finish
-------
+.. rubric:: Finish
 
-.. py:class:: vpe.Finish(reason: str)
+.. py:class:: Finish(reason: str)
 
     Used by plugin's to abort installation.
 
@@ -933,20 +939,18 @@ Finish
         *reason*
             A string providing the reason for aborting.
 
-GlobalOptions
--------------
+.. rubric:: GlobalOptions
 
-.. py:class:: vpe.GlobalOptions(vim_options)
+.. py:class:: GlobalOptions(vim_options)
 
     Wrapper for vim.options, *etc.*
 
     This extends the behaviour so that options appear as attributes. The
     standard dictionary style access still works.
 
-Log
----
+.. rubric:: Log
 
-.. py:class:: vpe.Log(name,maxlen=500)
+.. py:class:: Log(name: str,maxlen: int = 500,timestamps: bool = True)
 
     Support for logging to a display buffer.
 
@@ -981,6 +985,8 @@ Log
             A name that maps to the corresponding display buffer.
         *maxlen*
             The maximum number of lines to store.
+        *timestamps*
+            Set this to ``False`` to prevent the addition of timestamps.
 
 
     **Attributes**
@@ -994,9 +1000,15 @@ Log
 
             A name that maps to the corresponding display buffer.
 
+    **Properties**
+
+        .. py:property:: maxlen() -> int
+
+            The current maximum length.
+
     **Methods**
 
-        .. py:method:: vpe.Log.__call__(*args)
+        .. py:method:: __call__(*args)
 
             Write to the log.
 
@@ -1010,21 +1022,25 @@ Log
                 *args*
                     The same as for Python's print function.
 
-        .. py:method:: vpe.Log.clear() -> None
+        .. py:method:: clear() -> None
 
             Clear all lines from the log.
 
             The FIFO is cleared and the corresponding buffer updated.
 
-        .. py:method:: vpe.Log.flush()
+        .. py:method:: flush()
 
             File like I/O support.
 
-        .. py:method:: vpe.Log.redirect()
+        .. py:method:: hide() -> None
+
+            Hide the log buffer, if showing.
+
+        .. py:method:: redirect()
 
             Redirect stdout/stderr to the log.
 
-        .. py:method:: vpe.Log.set_maxlen(maxlen: int) -> None
+        .. py:method:: set_maxlen(maxlen: int) -> None
 
             Set the maximum length of the log's FIFO.
 
@@ -1037,7 +1053,7 @@ Log
                 *maxlen*: int
                     How many lines to store in the FIFO.
 
-        .. py:method:: vpe.Log.show() -> None
+        .. py:method:: show() -> None
 
             Make sure the buffer is visible.
 
@@ -1046,11 +1062,11 @@ Log
             - Split the current window.
             - Create a buffer and show it in the new split.
 
-        .. py:method:: vpe.Log.unredirect()
+        .. py:method:: unredirect()
 
-            Undo most recent redirection.
+            Disable stdout/stderr redirection.
 
-        .. py:method:: vpe.Log.write(s)
+        .. py:method:: write(s)
 
             Write a string to the log buffer.
 
@@ -1062,20 +1078,18 @@ Log
                 *s*
                     The string to write.
 
-Options
--------
+.. rubric:: Options
 
-.. py:class:: vpe.Options(vim_options)
+.. py:class:: Options(vim_options)
 
     Wrapper for buffer.options, *etc.*
 
     This extends the behaviour so that options appear as attributes. The
     standard dictionary style access still works.
 
-Popup
------
+.. rubric:: Popup
 
-.. py:class:: vpe.Popup(content,**p_options)
+.. py:class:: Popup(content,name: str = '',**p_options)
 
     A Pythonic way to use Vim's popup windows.
 
@@ -1111,30 +1125,29 @@ Popup
 
         *content*
             The content for the window.
-        *p_options*
-            Nearly all the standard popup_create options (line, col, pos
+        *name*
+            An optional name for the Popup. If provided then a named
+            `ScratchBuffer` is used for the content rather than letting Vim
             *etc*.) can be provided as keyword arguments. The exceptions
             are filter and callback. Over ride the `on_key` and `on_close`
             methods instead.
 
     **Properties**
 
-        .. py:method:: buffer() -> Optional[`Buffer`]
-            :property:
+        .. py:property:: buffer() -> vpe.wrappers.Buffer | None
 
             The buffer holding the window's content.
 
             :return:
                 A `Buffer` or ``None``.
 
-        .. py:method:: id() -> int
-            :property:
+        .. py:property:: id() -> int
 
             The ID of the Vim popup window.
 
     **Methods**
 
-        .. py:method:: vpe.Popup.close(result: int = 0) -> None
+        .. py:method:: close(result: int = 0) -> None
 
             Close the popup.
 
@@ -1146,18 +1159,18 @@ Popup
                 *result*: int
                     The result value that will be forwarded to on_close.
 
-        .. py:method:: vpe.Popup.hide() -> None
+        .. py:method:: hide() -> None
 
             Hide the popup.
 
-        .. py:method:: vpe.Popup.move(**p_options) -> None
+        .. py:method:: move(**p_options) -> None
 
             Set a number of move options at once.
 
             An efficient way to set multiple options that affect the popup's
             position.
 
-        .. py:method:: vpe.Popup.on_close(result: int) -> None
+        .. py:method:: on_close(result: int) -> None
 
             Invoked when the popup is closed.
 
@@ -1172,7 +1185,7 @@ Popup
                     The value passed to `close`. This will be -1 if the user
                     forcefully closed the popup.
 
-        .. py:method:: vpe.Popup.on_key(key: str,byte_seq: bytes) -> bool
+        .. py:method:: on_key(key: str,byte_seq: bytes) -> bool
 
             Invoked when the popup receives a keypress.
 
@@ -1210,7 +1223,7 @@ Popup
 
                 True if the key should be considered consumed.
 
-        .. py:method:: vpe.Popup.setoptions(**p_options) -> None
+        .. py:method:: setoptions(**p_options) -> None
 
             Set a number of options at once.
 
@@ -1218,17 +1231,17 @@ Popup
             separately set. For example 'textpropid' cannot be set unless
             'textprop' is set in the same popup_setoptions call.
 
-        .. py:method:: vpe.Popup.settext(content) -> None
+        .. py:method:: settext(content) -> None
 
             Set the text of the popup.
 
-        .. py:method:: vpe.Popup.show() -> None
+        .. py:method:: show() -> None
 
             Show the popup.
 
     **Class methods**
 
-        .. py:classmethod:: vpe.Popup.clear(force: bool) -> None
+        .. py:classmethod:: clear(force: bool) -> None
 
             Clear all popups from display.
 
@@ -1243,28 +1256,25 @@ Popup
                     If true then if the current window is a popup, it will also be
                     closed.
 
-PopupAtCursor
--------------
+.. rubric:: PopupAtCursor
 
-.. py:class:: vpe.PopupAtCursor(content,**p_options)
+.. py:class:: PopupAtCursor(content,name: str = '',**p_options)
 
     Popup configured to appear near the cursor.
 
     This creates the popup using popup_atcursor().
 
-PopupBeval
-----------
+.. rubric:: PopupBeval
 
-.. py:class:: vpe.PopupBeval(content,**p_options)
+.. py:class:: PopupBeval(content,name: str = '',**p_options)
 
     Popup configured to appear near (v:beval_line, v:beval_col).
 
     This creates the popup using popup_beval().
 
-PopupDialog
------------
+.. rubric:: PopupDialog
 
-.. py:class:: vpe.PopupDialog(content,**p_options)
+.. py:class:: PopupDialog(content,name: str = '',**p_options)
 
     Popup configured as a dialogue.
 
@@ -1273,14 +1283,13 @@ PopupDialog
 
     **Methods**
 
-        .. py:method:: vpe.PopupDialog.on_key(key,byte_seq)
+        .. py:method:: on_key(key,byte_seq)
 
             Invoke popup_filter_yesno to handle keys for this popup.
 
-PopupMenu
----------
+.. rubric:: PopupMenu
 
-.. py:class:: vpe.PopupMenu(content,**p_options)
+.. py:class:: PopupMenu(content,name: str = '',**p_options)
 
     Popup configured as a menu.
 
@@ -1289,23 +1298,26 @@ PopupMenu
 
     **Methods**
 
-        .. py:method:: vpe.PopupMenu.on_key(key,byte_seq)
+        .. py:method:: on_key(key,byte_seq)
 
             Invoke popup_filter_menu to handle keys for this popup.
 
-PopupNotification
------------------
+.. rubric:: PopupNotification
 
-.. py:class:: vpe.PopupNotification(content,**p_options)
+.. py:class:: PopupNotification(content,name: str = '',**p_options)
 
     Popup configured as a short lived notification (default 3s).
 
-    This creates the popup using popup_notification().
+    This creates the popup in a similar manner to popup_notification.
 
-Range
------
+    Note that popup_notification cannot be used because because callback
+    invocation fails rather wierdly if the popup closes due to a timeout. The
+    main `Popup` class provides its own timeout mechanism., which does not
+    suffer from this problem.
 
-.. py:class:: vpe.Range(obj=None)
+.. rubric:: Range
+
+.. py:class:: Range(obj=None)
 
     Wrapper around the built-in vim.Range type.
 
@@ -1313,7 +1325,7 @@ Range
 
     **Methods**
 
-        .. py:method:: vpe.Range.append(line_or_lines,nr=None)
+        .. py:method:: append(line_or_lines,nr=None)
 
             Append one or more lines to the range.
 
@@ -1328,10 +1340,9 @@ Range
                 *nr*
                     If present then append after this line number.
 
-Registers
----------
+.. rubric:: Registers
 
-.. py:class:: vpe.Registers
+.. py:class:: Registers
 
     Dictionary like access to the Vim registers.
 
@@ -1350,22 +1361,21 @@ Registers
 
     **Methods**
 
-        .. py:method:: vpe.Registers.__getitem__(reg_name: Union[str, int]) -> Any
+        .. py:method:: __getitem__(reg_name: str | int) -> Any
 
             Allow reading registers as dictionary entries.
 
             The reg_name may also be an integer value in the range 0-9.
 
-        .. py:method:: vpe.Registers.__setitem__(reg_name: Union[str, int],value: Any)
+        .. py:method:: __setitem__(reg_name: str | int,value: Any)
 
             Allow setting registers as dictionary entries.
 
             The reg_name may also be an integer value in the range 0-9.
 
-ScratchBuffer
--------------
+.. rubric:: ScratchBuffer
 
-.. py:class:: vpe.ScratchBuffer(name,buffer,simple_name=None)
+.. py:class:: ScratchBuffer(name,buffer,simple_name=None)
 
     A scratch buffer.
 
@@ -1403,19 +1413,17 @@ ScratchBuffer
 
     **Properties**
 
-        .. py:method:: auto_grp_name()
-            :property:
+        .. py:property:: auto_grp_name()
 
             A suitable name for auto commands for this buffer.
 
-        .. py:method:: syntax_prefix()
-            :property:
+        .. py:property:: syntax_prefix()
 
             A suitable prefix for syntax items in this buffer.
 
     **Methods**
 
-        .. py:method:: vpe.ScratchBuffer.init_options()
+        .. py:method:: init_options()
 
             Initialise the scratch buffer specific options.
 
@@ -1424,17 +1432,17 @@ ScratchBuffer
 
             Subclasses may over-ride this.
 
-        .. py:method:: vpe.ScratchBuffer.modifiable() -> TemporaryOptions
+        .. py:method:: modifiable() -> TemporaryOptions
 
             Create a context that allows the buffer to be modified.
 
-        .. py:method:: vpe.ScratchBuffer.on_first_showing()
+        .. py:method:: on_first_showing()
 
             Invoked when the buffer is first, successfully displayed.
 
             This is expected to be extended (possibly over-ridden) by subclasses.
 
-        .. py:method:: vpe.ScratchBuffer.set_ext_name(name)
+        .. py:method:: set_ext_name(name)
 
             Set the extension name for this buffer.
 
@@ -1446,7 +1454,7 @@ ScratchBuffer
                 *name*
                     The extension part of the name
 
-        .. py:method:: vpe.ScratchBuffer.show(splitlines: int = 0,splitcols: int = 0) -> bool
+        .. py:method:: show(splitlines: int = 0,splitcols: int = 0) -> bool
 
             Make this buffer visible.
 
@@ -1474,10 +1482,9 @@ ScratchBuffer
 
                 True if the window is successfully shown.
 
-Struct
-------
+.. rubric:: Struct
 
-.. py:class:: vpe.Struct
+.. py:class:: Struct
 
     A basic data storage structure.
 
@@ -1489,18 +1496,17 @@ Struct
 
     **Methods**
 
-        .. py:method:: vpe.Struct.__getstate__()
+        .. py:method:: __getstate__()
 
             Support pickling - only intended for testing.
 
-        .. py:method:: vpe.Struct.__setstate__(state)
+        .. py:method:: __setstate__(state)
 
             Support pickling - only intended for testing.
 
-TabPage
--------
+.. rubric:: TabPage
 
-.. py:class:: vpe.TabPage(obj=None)
+.. py:class:: TabPage(obj=None)
 
     Wrapper around a :vim:`python-tabpage`.
 
@@ -1511,15 +1517,13 @@ TabPage
 
     **Properties**
 
-        .. py:method:: vars()
-            :property:
+        .. py:property:: vars()
 
             The buffar vars wrapped as a `Variables` instance.
 
-TabPages
---------
+.. rubric:: TabPages
 
-.. py:class:: vpe.TabPages(obj=None)
+.. py:class:: TabPages(obj=None)
 
     Wrapper around the built-in vim.tabpages.
 
@@ -1530,7 +1534,7 @@ TabPages
 
     **Static methods**
 
-        .. py:staticmethod:: vpe.TabPages.new(position='after')
+        .. py:staticmethod:: new(position='after')
 
             Create a new tab page.
 
@@ -1551,10 +1555,9 @@ TabPages
 
                     This defaults to 'after'.
 
-Timer
------
+.. rubric:: Timer
 
-.. py:class:: vpe.Timer(...)
+.. py:class:: Timer(...)
 
     .. code::
 
@@ -1645,56 +1648,51 @@ Timer
 
     **Properties**
 
-        .. py:method:: id() -> int
-            :property:
+        .. py:property:: id() -> int
 
             The ID of the underlying vim timer.
 
-        .. py:method:: paused() -> bool
-            :property:
+        .. py:property:: paused() -> bool
 
             True if the timer is currently paused.
 
-        .. py:method:: remaining() -> int
-            :property:
+        .. py:property:: remaining() -> int
 
             The time remaining (ms) until the timer will next fire.
 
-        .. py:method:: repeat() -> int
-            :property:
+        .. py:property:: repeat() -> int
 
             The number of times the timer will still fire.
 
             Note that this is 1, during the final callback - not zero.
 
-        .. py:method:: time() -> int
-            :property:
+        .. py:property:: time() -> int
 
             The time value used to create the timer.
 
     **Methods**
 
-        .. py:method:: vpe.Timer.finish()
+        .. py:method:: finish()
 
             Take action when a timer is finished.
 
-        .. py:method:: vpe.Timer.on_del(ref)
+        .. py:method:: on_del(ref)
 
             "Handle deletion of weak reference to method's instance.
 
-        .. py:method:: vpe.Timer.pause()
+        .. py:method:: pause()
 
             Pause the timer.
 
             This invokes vim's timer_pause function.
 
-        .. py:method:: vpe.Timer.resume()
+        .. py:method:: resume()
 
             Resume the timer, if paused.
 
             This invokes vim's timer_pause function.
 
-        .. py:method:: vpe.Timer.stop()
+        .. py:method:: stop()
 
             Stop the timer.
 
@@ -1702,30 +1700,28 @@ Timer
 
     **Class methods**
 
-        .. py:classmethod:: vpe.Timer.num_instances() -> int
+        .. py:classmethod:: num_instances() -> int
 
             The number of `Timer` instances.
 
-        .. py:classmethod:: vpe.Timer.stop_all()
+        .. py:classmethod:: stop_all()
 
             Stop all timers and clean up.
 
             Use this in preference to vim.timer_stopall, to ensure that VPE cleans
             up its underlying administrative structures.
 
-Variables
----------
+.. rubric:: Variables
 
-.. py:class:: vpe.Variables(obj=None)
+.. py:class:: Variables(obj=None)
 
     Wrapper around the various vim variable dictionaries.
 
     This allows entries to be modified.
 
-Vim
----
+.. rubric:: Vim
 
-.. py:class:: vpe.Vim(*args,**kwargs)
+.. py:class:: Vim(*args,**kwargs)
 
     A wrapper around and replacement for the *vim* module.
 
@@ -1734,58 +1730,49 @@ Vim
 
     **Properties**
 
-        .. py:method:: buffers() -> Buffers
-            :property:
+        .. py:property:: buffers() -> Buffers
 
             A read-only container of the all the buffers.
 
-        .. py:method:: current() -> Current
-            :property:
+        .. py:property:: current() -> Current
 
             Convenient access to currently active objects.
 
             Note: Does not support assignment to window, buffer or tabpage.
 
-        .. py:method:: error() -> Type[vim.error]
-            :property:
+        .. py:property:: error() -> Type[_vim.error]
 
             The plain built-in Vim exception (:vim:`python-error`).
 
-        .. py:method:: options() -> GlobalOptions
-            :property:
+        .. py:property:: options() -> GlobalOptions
 
             An object providing access to Vim's global options.
 
-        .. py:method:: registers() -> `Registers`
-            :property:
+        .. py:property:: registers() -> Registers
 
             Dictionary like access to Vim's registers.
 
             This returns a `Registers` object.
 
-        .. py:method:: tabpages() -> TabPages
-            :property:
+        .. py:property:: tabpages() -> TabPages
 
             A read-only container of the all the tab pages.
 
-        .. py:method:: vars() -> Variables
-            :property:
+        .. py:property:: vars() -> Variables
 
             An object providing access to global Vim variables.
 
-        .. py:method:: vvars() -> Variables
-            :property:
+        .. py:property:: vvars() -> Variables
 
             An object providing access to Vim (v:) variables.
 
-        .. py:method:: windows() -> Windows
-            :property:
+        .. py:property:: windows() -> Windows
 
             A read-only container of the windows of the current tab page.
 
     **Methods**
 
-        .. py:method:: vpe.Vim.command(cmd: str) -> None
+        .. py:method:: command(cmd: str) -> None
 
             Execute an Ex command.
 
@@ -1805,7 +1792,7 @@ Vim
                 *VimError*
                     A more detailed version vim.error (:vim:`python-error`).
 
-        .. py:method:: vpe.Vim.eval(expr: str) -> Union[dict, list, str]
+        .. py:method:: eval(expr: str) -> dict | list | str
 
             Evaluate a Vim expression.
 
@@ -1823,13 +1810,13 @@ Vim
                 *VimError*
                     A more detailed version vim.error (:vim:`python-error`).
 
-        .. py:method:: vpe.Vim.temp_options(**presets) -> TemporaryOptions
+        .. py:method:: temp_options(**presets) -> TemporaryOptions
 
             Context used to temporarily change options.
 
     **Static methods**
 
-        .. py:staticmethod:: vpe.Vim.__new__(cls,*args,**kwargs)
+        .. py:staticmethod:: __new__(cls,*args,**kwargs)
 
             Ensure only a single Vim instance ever exists.
 
@@ -1841,7 +1828,7 @@ Vim
 
             Will result in the same object as `vpe.vim`.
 
-        .. py:staticmethod:: vpe.Vim.iter_all_windows() -> Iterator[Tuple[vpe.wrappers.TabPage, vpe.wrappers.Window]]
+        .. py:staticmethod:: iter_all_windows() -> Iterator[tuple[TabPage, Window]]
 
             Iterate over all the windows in all tabs.
 
@@ -1853,14 +1840,13 @@ Vim
                 *yield*
                     A tuple of TagPage and Window.
 
-        .. py:staticmethod:: vpe.Vim.vim()
+        .. py:staticmethod:: vim()
 
             Get the underlying built-in vim module.
 
-VimError
---------
+.. rubric:: VimError
 
-.. py:class:: vpe.VimError(error: vim.error)
+.. py:class:: VimError(error: vim.error)
 
     A parsed version of vim.error.
 
@@ -1892,10 +1878,9 @@ VimError
             'Vim' prefix. If parsing completely fails then is simply the
             unparsed message.
 
-Window
-------
+.. rubric:: Window
 
-.. py:class:: vpe.Window(window)
+.. py:class:: Window(window)
 
     Wrapper around a :vim:`python-window`.
 
@@ -1912,13 +1897,11 @@ Window
 
     **Properties**
 
-        .. py:method:: vars() -> Variables
-            :property:
+        .. py:property:: vars() -> Variables
 
             The buffar vars wrapped as a `Variables` instance.
 
-        .. py:method:: visible_line_range() -> Tuple[int, int]
-            :property:
+        .. py:property:: visible_line_range() -> tuple[int, int]
 
             The range of buffer lines visible within this window.
 
@@ -1926,7 +1909,7 @@ Window
 
     **Methods**
 
-        .. py:method:: vpe.Window.close() -> bool
+        .. py:method:: close() -> bool
 
             Close this window, if possible.
 
@@ -1937,7 +1920,7 @@ Window
 
                 True if the window was closed.
 
-        .. py:method:: vpe.Window.goto() -> bool
+        .. py:method:: goto() -> bool
 
             Switch to this window, if possible.
 
@@ -1948,16 +1931,21 @@ Window
 
                 True if the current window was set successfully.
 
-        .. py:method:: vpe.Window.temp_options(**presets) -> TemporaryOptions
+        .. py:method:: temp_options(**presets) -> TemporaryOptions
 
             Context used to temporarily change options.
 
             This does for a window what `Buffer.temp_options` does for buffer.
 
-Windows
--------
+    **Static methods**
 
-.. py:class:: vpe.Windows(obj=None)
+        .. py:staticmethod:: win_id_to_window(win_id: str) -> Window | None
+
+            Return the window corresponding to a given window ID.
+
+.. rubric:: Windows
+
+.. py:class:: Windows(obj=None)
 
     Wrapper around the built-in vim.windows.
 
@@ -1971,24 +1959,21 @@ Windows
         *obj*
             A :vim:`python-windows` object.
 
-saved_current_window
---------------------
+.. rubric:: saved_current_window
 
-.. py:class:: vpe.saved_current_window
+.. py:class:: saved_current_window
 
     Context manager that saves and restores the active window.
 
-saved_winview
--------------
+.. rubric:: saved_winview
 
-.. py:class:: vpe.saved_winview
+.. py:class:: saved_winview
 
     Context manager that saves and restores the current window's view.
 
-temp_active_window
-------------------
+.. rubric:: temp_active_window
 
-.. py:class:: vpe.temp_active_window(win: Window)
+.. py:class:: temp_active_window(win: Window)
 
     Context manager that temporarily changes the active window.
 
@@ -2003,7 +1988,7 @@ temp_active_window
 call_soon
 ---------
 
-.. py:function:: vpe.call_soon(func: Callable,*args: Any,**kwargs: Any)
+.. py:function:: call_soon(func: Callable,*args: Any,**kwargs: Any)
 
     Arrange to call a function 'soon'.
 
@@ -2021,17 +2006,17 @@ call_soon
 
     .. container:: parameters itemdetails
 
-        *func*: typing.Callable
+        *func*: Callable
             The function to be invoked.
-        *args*: typing.Any
+        *args*: Any
             Positional arguments for the callback function.
-        *kwargs*: typing.Any
+        *kwargs*: Any
             Keyword arguments for the callback function.
 
 call_soon_once
 --------------
 
-.. py:function:: vpe.call_soon_once(token: Any,func: Callable,*args: Any,**kwargs: Any)
+.. py:function:: call_soon_once(token: Any,func: Callable,*args: Any,**kwargs: Any)
 
     Arrange to call a function 'soon', but only once.
 
@@ -2043,29 +2028,29 @@ call_soon_once
 
     .. container:: parameters itemdetails
 
-        *token*: typing.Any
+        *token*: Any
             A token that identifies duplicate registered callbacks. This can
             be any object that may be a member of a set, except ``None``.
-        *func*: typing.Callable
+        *func*: Callable
             The function to be invoked.
-        *args*: typing.Any
+        *args*: Any
             Positional arguments for the callback function.
-        *kwargs*: typing.Any
+        *kwargs*: Any
             Keyword arguments for the callback function.
 
 define_command
 --------------
 
-.. py:function:: vpe.define_command(...)
+.. py:function:: define_command(...)
 
     .. code::
 
         define_command(
                 name: str,
                 func: Callable,
-                nargs: Union[int, str] = 0,
+                nargs: int | str = 0,
                 complete: str = '',
-                range: Union[bool, str] = '',
+                range: bool | str = '',
                 count: str = '',
                 addr: str = '',
                 bang: bool = False,
@@ -2095,16 +2080,16 @@ define_command
 
         *name*: str
             The command name; must follow the rules for :vim:`:command`.
-        *func*: typing.Callable
+        *func*: Callable
             The function that implements the command.
-        *nargs*: typing.Union[int, str]
+        *nargs*: int | str
             The number of supported arguments; must follow the rules for
             :vim:`:command-nargs`, except that integer values of 0, 1 are
             permitted.
         *complete*: str
             Argument completion mode (see :vim:`command-complete`). Does
             not currently support 'custom' or 'customlist'.
-        *range*: typing.Union[bool, str]
+        *range*: bool | str
             The permitted type of range; must follow the rules for
             :vim:`:command-range`, except that the N value may be an
             integer.
@@ -2135,13 +2120,13 @@ define_command
             object. Defaults to True.
         *args*
             Additional arguments to pass to the mapped function.
-        *kwargs*: typing.Optional[dict]
+        *kwargs*: dict | None
             Additional keyword arguments to pass to the mapped function.
 
 dot_vim_dir
 -----------
 
-.. py:function:: vpe.dot_vim_dir() -> str
+.. py:function:: dot_vim_dir() -> str
 
     Return the path to the ~/.vim directory or its equivalent.
 
@@ -2155,7 +2140,7 @@ dot_vim_dir
 echo_msg
 --------
 
-.. py:function:: vpe.echo_msg(*args,soon=False)
+.. py:function:: echo_msg(*args,soon=False)
 
     Like `error_msg`, but for information.
 
@@ -2172,7 +2157,7 @@ echo_msg
 error_msg
 ---------
 
-.. py:function:: vpe.error_msg(*args,soon=False)
+.. py:function:: error_msg(*args,soon=False)
 
     A print-like function that writes an error message.
 
@@ -2190,7 +2175,7 @@ error_msg
 find_buffer_by_name
 -------------------
 
-.. py:function:: vpe.find_buffer_by_name(name: str) -> Optional[Buffer]
+.. py:function:: find_buffer_by_name(name: str) -> vpe.wrappers.Buffer | None
 
     Find the buffer with a given name.
 
@@ -2206,7 +2191,7 @@ find_buffer_by_name
 get_display_buffer
 ------------------
 
-.. py:function:: vpe.get_display_buffer(...)
+.. py:function:: get_display_buffer(...)
 
     .. code::
 
@@ -2230,18 +2215,20 @@ get_display_buffer
 highlight
 ---------
 
-.. py:function:: vpe.highlight(...)
+.. py:function:: highlight(...)
 
     .. code::
 
         highlight(
-                group=None,
-                clear=False,
-                default=False,
-                link=None,
-                disable=False,
+                group: str | None = None,
+                clear: bool = False,
+                default: bool = False,
+                link: str | None = None,
+                disable: bool = False,
+                dump: bool = False,
+                file: TextIO = None,
 
-    Python version of the highlight command.
+    Execute a highlight command.
 
     This provides keyword arguments for all the command parameters. These are
     generally taken from the :vim:`:highlight` command's documentation.
@@ -2250,38 +2237,41 @@ highlight
 
     .. container:: parameters itemdetails
 
-        *group*
+        *group*: str | None
             The name of the group being defined. If omitted then all other
             arguments except *clear* are ignored.
 
-        *clear*
+        *clear*: bool
             If set then the command ``highlight clear [<group>]`` is generated. All
             other arguments are ignored.
 
-        *disable*
+        *disable*: bool
             If set then the specified *group* is disabled using the command:
 
                 ``highlight <group> NONE``
 
-        *link*
+        *link*: str | None
             If set then a link command will be generated of the form:
 
                 ``highlight link <group> <link>``.
 
             Other arguments are ignored.
 
-        *default*
+        *default*: bool
             If set then the generated command has the form ``highlight
             default...``.
 
+        *dump*: bool
+            Print the command's arguments, for debugging use.
+
         *kwargs*
-            The remain keyword arguments act like the :vim:`:highlight` command's
-            keyword arguments.
+            The remaining keyword arguments act like the :vim:`:highlight`
+            command's keyword arguments.
 
 pedit
 -----
 
-.. py:function:: vpe.pedit(path: str,silent=True,noerrors=False)
+.. py:function:: pedit(path: str,silent=True,noerrors=False)
 
     Edit file in the preview window.
 
@@ -2300,38 +2290,28 @@ pedit
 popup_clear
 -----------
 
-.. py:function:: vpe.popup_clear(force=False)
+.. py:function:: popup_clear(force=False)
 
     Convenience function that invokes `Popup.clear`.
 
 script_py_path
 --------------
 
-.. py:function:: vpe.script_py_path() -> str
+.. py:function:: script_py_path() -> str
 
     Derive a python script name from the current Vim script name.
 
 timer_stopall
 -------------
 
-.. py:function:: vpe.timer_stopall()
+.. py:function:: timer_stopall()
 
     Convenience function that invokes `Timer.stop_all`.
-
-version
--------
-
-.. py:function:: vpe.version() -> Tuple[int, int, int]
-
-    The current VPE version as a 3 part tuple.
-
-    The tuple follows the conventions of semantic versioning 2.0
-    (https://semver.org/); *i.e.* (major, minor, patch).
 
 warning_msg
 -----------
 
-.. py:function:: vpe.warning_msg(*args,soon=False)
+.. py:function:: warning_msg(*args,soon=False)
 
     A print-like function that writes a warning message.
 
