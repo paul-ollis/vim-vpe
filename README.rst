@@ -8,28 +8,65 @@
 
 
 :status:
+    This is version 0.8.
+
     Although it has not yet reached a version 1.0 release, I make heavy, daily
     use of VPE within my Vim  environment without problems.
 
-    While the API should be considered unstable, it has acttully proven fairly
+    While the API should be considered unstable, it has actually proven fairly
     stable, with only a few, minor incompatible changes since version 0.1.
 
 
 Introduction
 ============
 
-The Vim Python Extensions package aims to make it easier to Python 3 to extend Vim
-using Python 3. It does this by:
+VPE provides a toolkit of modules and classes aimed at making it easier to
+extend ``Vim`` using modern Pythonic code. Its key features are:
 
-- Adding a layer on top of Vim's built-in Python support, providing a highlyly
-  compatible, but more capable replacement for the standard `python-vim
-  <https://vimhelp.org/if_pyth.txt.html#python-vim>`_ module.
+- A ``Vim`` class and corresponding ``vim`` singleton which provides an API
+  that is is extremely compatible with Vim's built-in ``vim`` module, but
+  includes extended capabilities.
 
-- Providing additional functions and classes as part of the ``vpe`` package.
+- The ``vpe`` package, containing additional modules and classes which provide:
+
+  - More pythonic APIs for some Vim features.
+  - Extension modules and classes to help in writing plugins in Python.
+
+- You can extend Vim using much more Pythonic code than is possible using only
+  Vim's built-in ``vim`` module.
+
+- Support for plugins, using Python's standard library entry-point mechanism.
+
+- Buffer based logging support with optional stdout/stderr redirection, which
+  can be invaluable for debugging your code.
 
 
 Quick start
 -----------
+
+This is just a brief introduction. For more complete documentation see the
+`online documentation`_.
+
+Installation
+~~~~~~~~~~~~
+
+.. code-block:: bash
+
+    python -m pip install --user git+https://github.com/paul-ollis/vim-vpe.git
+
+On some systems you may to add the ``--break-system-packages`` option. (VPE does
+not pull in other Python packages, so your system is safe.)
+
+Then install Vim initialisation, support code and Vim help file.
+
+.. code-block:: vim
+
+    py3 import vpe.install
+    py3 vpe.install.run()
+
+
+Using VPE
+~~~~~~~~~
 
 The quickest way to start using VPE is to import the `vim` object:
 
@@ -37,10 +74,9 @@ The quickest way to start using VPE is to import the `vim` object:
 
     from vpe import vim
 
-The `vim` object is an instance of the `Vim` class and is intended to be a drop
-in replacement for Vim's standard `python-vim
-<https://vimhelp.org/if_pyth.txt.html#python-vim>`_ module, but with a number
-of enhancements.
+The `vim``` object is an instance of the `Vim` designed as a drop in
+replacement for Vim's standard `python-vim`_ module, but with a number of
+enhancements.
 
 - Most of Vim's functions appear as members, for example:
 
@@ -52,9 +88,9 @@ of enhancements.
 - The attributes buffers, current, options, tabpages, vars, vvars and windows
   provide enhanced access to the corresponding Vim objects. For example
   vim.current.buffer provides a `Buffer` instance in place of Vim's standard
-  `python-buffer <https://vimhelp.org/if_pyth.txt.html#python-buffer>`_. This
-  supports things like easier access to buffer variables, more efficient buffer
-  modification and per-buffer metadata storage.
+  `python-buffer`_. This supports things like easier access to buffer
+  variables, more efficient buffer modification and per-buffer metadata
+  storage.
 
 - The Vim registers are available using the `registers` attribute.
 
@@ -62,6 +98,10 @@ of enhancements.
   of the error (code and command are available as attributes). This is a
   subclass of `vim.error <https://vimhelp.org/if_pyth.txt.html#python-error>`_
   so existing code that catches vim.error still works.
+
+.. _python-vim: https://vimhelp.org/if_pyth.txt.html#python-vim
+.. _python-buffer: https://vimhelp.org/if_pyth.txt.html#python-buffer
+.. _online documentation: https://vim-vpe.readthedocs.io
 
 
 Features

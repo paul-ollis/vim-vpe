@@ -1,20 +1,21 @@
 """A pythonic API for creating syntax highlighting definitions."""
 from __future__ import annotations
 
-from typing import Dict, Tuple, List, Any, Callable, Optional, Union
-from typing import Set, Iterable
 import functools
 import weakref
+from dataclasses import dataclass
+from typing import (
+    Any, Callable, Dict, Iterable, List, Optional, Set, Tuple, Union)
 
-from . import core
-from . import wrappers
+from . import core, wrappers
 
 delimeter_chars = '"\'/\\+?!=^_:@$%&*;~#,.'
 
 
+@dataclass
 class _Singleton:
     # pylint: disable=too-few-public-methods
-    pass
+    name: str
 
 
 class SyntaxBase:
@@ -39,8 +40,8 @@ class SyntaxBase:
         'transparent': lambda v: '',
     }
     _match_offset_names = set(('ms', 'me', 'hs', 'he'))
-    ALLBUT = _Singleton()
-    ALL = _Singleton()
+    ALLBUT = _Singleton('ALLBUT')
+    ALL = _Singleton('BUT')
 
     @staticmethod
     def get_offsets(
@@ -112,7 +113,9 @@ class Contains(Option):
         args = []
         if Syntax.ALLBUT in self.groups:
             args.append('ALLBUT')
-        args.extend(g.arg_name for g in self.groups if g is not Syntax.ALLBUT)
+        args.extend(
+            g.arg_name for g in sorted(self.groups, key=lambda g: g.name)
+            if g is not Syntax.ALLBUT)
         return f'{self.name}={",".join(args)}'
 
 

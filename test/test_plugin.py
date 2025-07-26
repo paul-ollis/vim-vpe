@@ -11,6 +11,7 @@ from typing import List
 from cleversheep3.Test.Tester import *
 from cleversheep3.Test.Tester import runModule, test
 
+# pylint: disable=wrong-import-order
 import support
 
 _run_after = ['test_vim.py', 'test_mapping_x.py']
@@ -33,6 +34,7 @@ def install_test_plugins(dot_vim_dir: str):
         if rel_path.parent != Path('.'):
             added_dirs.add(plugin_dir_path / rel_path.parent)
         plugin_dir_path.mkdir(parents=True, exist_ok=True)
+        print(f'Copy {path} {dest}')
         shutil.copyfile(path, dest)
 
     # Remove the __init__.py file so we test that VPE creates it if required.
@@ -53,6 +55,7 @@ class TestPlugin(support.Base):
         :<py>:
             res = Struct()
             res.dot_vim_dir = vpe.dot_vim_dir()
+            vpe.post_init(old_plugins_only=True)
             dump(res)
         """
         super().suiteSetUp()
@@ -60,6 +63,7 @@ class TestPlugin(support.Base):
         self.stop_vim_session()
         self.init_py, *self.added_paths = install_test_plugins(res.dot_vim_dir)
         super().suiteSetUp()
+        res = self.run_suite_setup()
 
     def suiteTearDown(self):
         """Clean up added plug-in files."""
@@ -81,6 +85,7 @@ class TestPlugin(support.Base):
             res = Struct()
             res.ok_plugin = vim.vars.vpe_plugin_load_ok
             res.ok_plugin_package = vim.vars.vpe_plugin_package_load_ok
+            print("LOAD TEST")
             dump(res)
         """
         res = self.run_self()

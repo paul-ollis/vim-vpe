@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+"""Script to run tests and generate coverage report."""
 
 import argparse
 import os
@@ -10,7 +11,8 @@ import time
 from pathlib import Path
 
 
-def run(cmd, timeit=False, covit=False):
+def run(cmd, timeit=False, covit=False, silent=False):
+    """Run an external program."""
     env = os.environ.copy()
     if timeit:
         a = time.time()
@@ -19,16 +21,17 @@ def run(cmd, timeit=False, covit=False):
             env['COVERAGE_FILE'] = '.coverage-win.run'
         else:
             env['COVERAGE_FILE'] = '.coverage.run'
-    proc = subprocess.run(cmd.split(), env=env)
+    proc = subprocess.run(cmd.split(), env=env, check=False)
     if timeit:
         print(f'Run took {time.time() - a:.2f} seconds')
 
-    if proc.returncode != 0:
+    if proc.returncode != 0 and not silent:
         sys.exit(f'Process exited with error code {proc.returncode}\n'
                  f'Executed args = {proc.args}')
 
 
 def main(args, rem_args):
+    """Run the tests and generate coverage data."""
     here = Path(__file__).parent
     if args.inc_win:
         os.environ['COVERAGE_RCFILE'] = f'{here}/.coveragerc-inc-win'
@@ -51,6 +54,8 @@ def main(args, rem_args):
         run('coverage json --pretty')
         run('coverage annotate -d ann')
 
+        run('py-cov-combine', silent=True)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser('Run tests and produce coverage.')
@@ -61,5 +66,5 @@ if __name__ == "__main__":
         "--report", action="store_true",
         help='Just run coverage reporing steps.')
 
-    args, rem_args = parser.parse_known_args()
-    main(args, rem_args)
+    p_args, p_rem_args = parser.parse_known_args()
+    main(p_args, p_rem_args)

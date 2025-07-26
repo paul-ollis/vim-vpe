@@ -1,15 +1,11 @@
 """Various of the extensions in VPE."""
 # pylint: disable=deprecated-method
+# pylint: disable=too-many-lines
+# pylint: disable=wrong-import-order
 
-from typing import Set, Tuple, Any
-import asyncio
-import json
-import io
 import os
 import platform
-import threading
 import time
-import traceback
 
 # pylint: disable=unused-wildcard-import,wildcard-import
 from cleversheep3.Test.Tester import *
@@ -384,16 +380,19 @@ class Timers(support.Base):
         self.run_suite_setup()
 
     def do_continue(self):
-       """Contine executions to allow timers to expire.
+        """Contine executions to allow timers to expire.
 
         :<py>:
             res.paused = timer.paused
             res.num_timers = vpe.Timer.num_instances()
             res.dead = timer.dead
             res.fire_count = timer.fire_count
+            res.repeat = timer.repeat
+            res.wibble = 'Wibble!'
+            res.curr_time = time.time()
             dump(res)
-       """
-       return self.run_continue()
+        """
+        return self.run_continue()
 
     def do_dead_continue(self):
        """Contine executions to dead/unreachable timers to expire.
@@ -418,6 +417,7 @@ class Timers(support.Base):
             res.init_time = timer.time
             res.ticks = 0
             res.repr = repr(timer)
+            res.init_repeat = timer.repeat
             dump(res)
         """
         res = self.run_self()
@@ -426,6 +426,8 @@ class Timers(support.Base):
         while time.time() - a < 1.0 and res.ticks < 1:
             res = self.do_continue()
             count += 1
+        elapsed = res.curr_time - res.start_time
+        print(f'PAUL: {res.init_repeat=} {res.repeat=} {res.dead}')
         failUnlessEqual(1, res.ticks)
         failUnless(count > 0)
         failUnlessEqual(10, res.init_time)
@@ -461,7 +463,7 @@ class Timers(support.Base):
             count += 1
         failUnlessEqual(3, res.ticks)
         failUnless(count >= 1)
-        failUnlessEqual([3, 2, 1], res.repeats)
+        failUnlessEqual([2, 1, 0], res.repeats)
         failUnless(max(res.rems) <= 100)
         failIf(res.paused)
 
@@ -998,8 +1000,8 @@ class Miscellaneous(support.CommandsBase):
             keepalt highlight clear
             keepalt highlight clear test
             keepalt highlight test NONE
-            keepalt highlight test default guifg=Blue guibg=DodgerBlue3
-            keepalt highlight test gui=bold ctermfg=17
+            keepalt highlight test default guifg='Blue' guibg='DodgerBlue3'
+            keepalt highlight test gui='bold' ctermfg=17
             keepalt highlight link PythonFunction Function
         """
         vpe.highlight(clear=True)

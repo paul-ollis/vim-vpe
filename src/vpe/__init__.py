@@ -229,22 +229,24 @@ def _import_possible_plugin(path):
                 error_msg(f'Error in post-plugin hook {func}, {e}', soon=True)
 
 
-def _load_plugins():
+def _load_plugins(old_plugins_only: bool = False):
     """Load any VPE based plugins."""
 
     plugin_dir = Path(dot_vim_dir()) / f'pack/{PLUGIN_SUBDIR}'
-    possible_plugins = [
-        p for p in plugin_dir.glob('*') if p.suffix in ('.py', '')]
-    possible_plugins = [
-        p for p in possible_plugins if not p.name.startswith('_')]
-    possible_plugins = [p for p in possible_plugins if '-' not in p.name]
-    for p in sorted(possible_plugins):
-        _import_possible_plugin(p)
-    plugin_doc_dir = plugin_dir / 'doc'
-    if plugin_doc_dir.exists():
-        vim.options.runtimepath += str(plugin_dir)
+    if plugin_dir.is_dir():
+        possible_plugins = [
+            p for p in plugin_dir.glob('*') if p.suffix in ('.py', '')]
+        possible_plugins = [
+            p for p in possible_plugins if not p.name.startswith('_')]
+        possible_plugins = [p for p in possible_plugins if '-' not in p.name]
+        for p in sorted(possible_plugins):
+            _import_possible_plugin(p)
+        plugin_doc_dir = plugin_dir / 'doc'
+        if plugin_doc_dir.exists():
+            vim.options.runtimepath += str(plugin_dir)
 
-    _load_new_plugins()
+    if not old_plugins_only:
+        _load_new_plugins()
 
 
 def _load_new_plugins():
@@ -273,20 +275,7 @@ def _load_new_plugins():
                 common.call_soon(init_func)
 
 
-def _run_post_enter_hooks():
-    """Run any code that as been schedule to run after VimEnter occurs."""
-    for func in _post_vim_enter_hooks:
-        try:
-            func()
-        except Exception:
-            call_soon(print, f'Failed to run post enter hook {func}')
-            # call_soon(print, f'    {e}')
-            f = io.StringIO()
-            traceback.print_exc(file=f)
-            call_soon(print, f.getvalue())
-
-
-def _init_vpe_plugins():
+def _init_vpe_plugins(old_plugins_only: bool = False):
     """Initialise the VPE plug-in infrastructure.
 
     This only does anything if the directory .vim/pack/vpe_plugins (or
@@ -297,8 +286,6 @@ def _init_vpe_plugins():
        vpe_plugins directory
     """
     plugin_dir = Path(dot_vim_dir()) / f'pack/{PLUGIN_SUBDIR}'
-    if not plugin_dir.is_dir():
-        return
 
     spec = importlib.machinery.ModuleSpec('vpe_plugins', None, is_package=True)
     package = importlib.util.module_from_spec(spec)
@@ -309,7 +296,7 @@ def _init_vpe_plugins():
     if not init_path.exists():
         init_path.write_text('')
 
-    _load_plugins()
+    _load_plugins(old_plugins_only=old_plugins_only)
 
 
 class temp_log:                                              # pragma: no cover
@@ -333,11 +320,14 @@ class temp_log:                                              # pragma: no cover
         sys.stderr, sys.stdout = self.saved
 
 
-def post_init():
+def post_init(old_plugins_only: bool = False):
     """Perform post-initialisation.
 
     This is invoked by $HOME/.vim/plugin/000-vpe.vim immediately after the
     `vpe` package is imported.
+
+    :old_plugins_only:
+        This is just for testing.
     """
     _vpe_commands.init()
-    _init_vpe_plugins()
+    _init_vpe_plugins(old_plugins_only=old_plugins_only)

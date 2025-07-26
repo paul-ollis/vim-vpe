@@ -11,9 +11,9 @@ This modifies the standard library argparse as follows:
 """
 from __future__ import annotations
 
-# TODO: Make this a separate plug-in
-#
-#       Note that this is from the subcmd pluing within vpe_plugins.
+# TODO:
+#   Note that this is from the subcmd plugin within vpe_plugins. The ack and
+#   other plugins need to be updated to use this.
 
 import argparse
 import functools
@@ -21,7 +21,7 @@ import inspect
 import sys
 from typing import ClassVar, TYPE_CHECKING, Type, TypeAlias, Union
 
-from vpe import commands, common, core, wrappers
+from vpe import common, core, wrappers
 
 if TYPE_CHECKING:
     from argparse import Namespace
@@ -32,6 +32,9 @@ SubcommandsTable: TypeAlias = dict[str, tuple[Union['CommandBase', str], str]]
 #: Function to print single line error messages.
 error_msg = functools.partial(core.error_msg, soon=True)
 
+# TODO:
+#   I think this is dead once, othe plugins are converted to use this module.
+#
 #: Decorator for `TopLevelSubCommandHandler` methods that implement commands.
 command_handler = functools.partial(
     core.CommandHandler.command,
@@ -39,6 +42,9 @@ command_handler = functools.partial(
     complete='customlist,VPE_Command_Complete',
     bar=True,
 )
+
+#: Debug control flag, for development only.
+debug_completion: bool = False
 
 
 class ArgumentError(argparse.ArgumentError):
@@ -83,7 +89,7 @@ class SubcommandAction(argparse.Action):
     def __init__(self,
                  option_strings,
                  subcommands_table: SubcommandsTable,
-                 dest='__subcommand__',
+                 dest=None,
                  default=None,
                  help=None,
                  **_kwargs):                # pylint: disable=redefined-builtin
@@ -98,8 +104,8 @@ class SubcommandAction(argparse.Action):
             name: value[1] for name, value in subcommands_table.items()}
 
     def __call__(self, parser, namespace, values, option_string=None) -> None:
-        parser.stop_processing = True
-        setattr(namespace, '__subcommand__', values[0])
+        parser.stop_collecting = True
+        setattr(namespace, self.dest, values[0])
 
 
 class ArgumentParser(argparse.ArgumentParser):
@@ -118,10 +124,7 @@ class ArgumentParser(argparse.ArgumentParser):
     """
     # pylint: disable=too-many-instance-attributes
 
-    def __init__(
-            self, command_name: str, *args,
-            parent: ArgumentParser | None = None, **kwargs,
-        ):
+    def __init__(self, command_name: str, *args, **kwargs):
         self._completions = {}
         self._get_completions = {}
 
@@ -131,14 +134,14 @@ class ArgumentParser(argparse.ArgumentParser):
         kwargs['add_help'] = False
 
         super().__init__(prog=command_name, *args, **kwargs)
-        self.parent = parent
         self._parsing_in_progress = 0
         self._all_optionals = None
         self.exit_on_error = kwargs.get('exit_on_error', True)
         self.result: str = ''
         self.popup: core.Popup | None = None
         self.register('action', 'help', HelpAction)
-        self._stop_processing = False
+        self.stop_processing = False
+        self.stop_collecting = False
         self.subcommands_table = {}
 
         # Add the help option only after we have been able to install our own
@@ -149,20 +152,6 @@ class ArgumentParser(argparse.ArgumentParser):
                 action='help', default=argparse.SUPPRESS,
                 help='show this help message and exit')
             self.add_help = True
-
-    @property
-    def stop_processing(self) -> bool:
-        """This is True if command processing should be stopped.
-
-        It is set when, for example, help has been displayed.
-        """
-        return self._stop_processing
-
-    @stop_processing.setter
-    def stop_processing(self, value) -> bool:
-        self._stop_processing = value
-        if self.parent:
-            self.parent.stop_processing = True
 
     # TODO: Should this be supported?
     def parse_args(self, args: Sequence[str]):
@@ -175,20 +164,25 @@ class ArgumentParser(argparse.ArgumentParser):
         finally:
             self._parsing_in_progress -= 1
 
-    def parse_known_args(self, args=None, namespace=None):
-        """Version that does not try to sys.exit() when disabled.
+    def parse_known_args(
+            self, args=None, namespace=None) -> tuple[Namespace, list[str]]:
+        """Parse known arguments from the command line.
+
+        This version does not try to sys.exit().
 
         As of Python 3.9.3, the exit_on_error initialisation argument does not
-        work correctly.
+        work in the way expect.
         """
         self.stop_processing = False
+        self.stop_collecting = False
         self._parsing_in_progress += 1
         try:
             return self.do_parse_known_args(args=args)
         finally:
             self._parsing_in_progress -= 1
 
-    def do_parse_known_args(self, args: Sequence[str]):
+    def do_parse_known_args(
+            self, args: Sequence[str]) -> tuple[Namespace, list[str]]:
         """Parse known arguments, stopping at a sub-command.
 
         This is a modified version from the Python 3.11 standard library. The
@@ -297,7 +291,6 @@ class ArgumentParser(argparse.ArgumentParser):
 
             # Get the optional identified at this index.
             option_tuple = option_string_indices[start_index]
-            print("HI PAUL", option_tuple)
             action, option_string, explicit_arg, *_ = option_tuple
 
             # Identify additional optionals in the same arg string (e.g. -xyz
@@ -422,9 +415,9 @@ class ArgumentParser(argparse.ArgumentParser):
 
                 start_index = positionals_end_index
 
-            # If the stop_processing flag is set then all remaining aruments
-            # are extras.
-            if self.stop_processing:
+            # If the stop_collecting or stop_processing flag is set then all
+            # remaining aruments are extras.
+            if self.stop_collecting or self.stop_processing:
                 break
 
             # If we consumed all the positionals we could and we're not at the
@@ -571,11 +564,12 @@ class ArgumentParser(argparse.ArgumentParser):
             self, args: Sequence[str], at_new_arg: bool) -> list[str]:
         """Get the possible completions for a partial command.
 
-        :args:       The list of arguments parsed so far.
-        :at_new_arg: If false then create completions using args[-1] as the
-                     starting point. Otherwise generate all possible values for
-                     the next argument.
-        :return:     A list of possible completion strings.
+        :args:
+            The list of arguments parsed so far.
+        :at_new_arg:
+            Set to indicate that args[-1] is *not* a partial argument.
+        :return:
+            A list of possible completion strings.
         """
         # Build up the list of all optional flags the first time this is
         # invoked.
@@ -585,6 +579,7 @@ class ArgumentParser(argparse.ArgumentParser):
                 self._all_optionals.extend(action.option_strings)
             self._all_optionals.sort()
 
+        print(f'GC: {self._all_optionals=}')
         if at_new_arg:
             partial = ''
         else:
@@ -703,7 +698,7 @@ class SubcommandParser(ArgumentParser):
         try:
             partial_args, rem_args = self.parse_known_args(arg_list)
             subcommand, choices = unique_match(
-                partial_args.__subcommand__, self.sub_parsers)
+                partial_args.subcommand, self.sub_parsers)
             if rem_args and rem_args[-1] == '---':
                 rem_args[-1] = '--'
         except ArgumentError as e:
@@ -739,16 +734,22 @@ class SubcommandParser(ArgumentParser):
         except Stop:
             return '', None
 
-        subcommand, choices = unique_match(
-            args.__subcommand__, self.sub_parsers)
-        if subcommand:
-            return (
-                subcommand, self.sub_parsers[subcommand].parse_args(rem_args))
+        subcommand = getattr(args, 'subcommand', None)
+        if subcommand is not None:
+            subcommand, choices = unique_match(
+                args.subcommand, self.sub_parsers)
+            if subcommand:
+                return (
+                    subcommand,
+                    self.sub_parsers[subcommand].parse_args(rem_args),
+                )
+            if not choices:
+                raise ArgumentError(
+                    f'Unknown sub-command {args.subcommand!r}')
+            raise ArgumentError(
+                f'Ambiguous {self.prog} command; matches are: {" ".join(choices)}')
 
-        if not choices:
-            raise ArgumentError(f'Unknown sub-command {args.subcommand!r}')
-        raise ArgumentError(
-            f'Ambiguous {self.prog} command; matches are: {" ".join(choices)}')
+        return '', ()
 
 
 class CommandBase:
@@ -756,22 +757,47 @@ class CommandBase:
 
     def __init__(
             self,
-            parent_parser: argparse.SubcommandParser | None,
-            name: str,
+            command_name: str,
+            parent: CommandBase | None,
         ):
-        self.name = name
-        self.parent_parser = parent_parser
-        self.arg_parser: argparse.ArgumentParser | None = self.create_parser()
+        self.command_name = command_name
+        self.parent = parent
+        self.parser: ArgumentParser = self.create_parser()
         self.add_arguments()
 
-    def create_parser(self) -> argparse.ArgumentParser:
+    def create_parser(self) -> ArgumentParser:
         """Create the argument parser for this command."""
-        return self.parent_parser.add_parser(self.name)
+        return ArgumentParser(
+            command_name=self.command_name, exit_on_error=False)
 
     def add_arguments(self) -> None:
         """Add the arguments for this command."""
 
-    def handle_command(self, args: Namespace) -> None:
+    def process_command(
+            self,
+            cmd_info: common.CommandInfo,
+            subcommands: tuple[tuple[str, ArgumentParser]],
+            vim_cmd_args: tuple[str],
+        ) -> None:
+        """Process this command or subcommand.
+
+        :cmd_info:
+            Information about the Vpe command, such as counts or line ranges.
+        :subcommands:
+            A sequence of earlier subcommands and parsed options.
+        :vim_cmd_args:
+            The command and arguments that Vim has parsed from the command
+            line.
+        """
+        # pylint: disable=unused-argument
+        try:
+            parsed_args = self.parser.parse_args(vim_cmd_args)
+        except ArgumentError as e:
+            error_msg(e)
+        else:
+            self.handle_command(parsed_args)
+
+    def handle_command(self, args: Namespace):
         """Handle this command."""
 
 
@@ -782,23 +808,137 @@ class SubCommandBase(CommandBase):
 
     def __init__(
             self,
-            parent_parser: argparse.SubcommandParser | None,
-            name: str,
+            command_name: str,
+            parent: SubCommandBase | None,
         ):
-        super().__init__(parent_parser, name)
-        self.sub_command_parser: argparse.SubcommandParser | None
-        self.sub_command_parser = self.create_sub_command_parser()
-        self.cmd_vector: dict[str, SubCommandBase] = {}
+        super().__init__(command_name, parent)
+        self.parser: ArgumentParser = self.create_parser()
+        self.cmd_vector: SubcommandsTable = {}
         self._init_sub_commands()
 
-    def create_parser(self) -> None:
-        """Create the argument parser for this command."""
-        return None
+    def create_parser(self) -> ArgumentParser:
+        """Create the argument parser for this subcommand handler."""
+        action = functools.partial(
+            SubcommandAction, subcommands_table=self.sub_commands)
+        parser = ArgumentParser(
+            command_name=self.command_name, exit_on_error=False)
+        parser.add_argument(
+            'subcommand', nargs='?', action=action, help='Subcommand name')
+        return parser
 
-    def create_sub_command_parser(self) -> argparse.SubcommandParser:
-        """Create the sub-command argument parser for this command."""
-        return self.parent_parser.add_subcommand_parser(
-            self.name, self.sub_commands)
+    def process_command(
+            self,
+            cmd_info: common.CommandInfo,
+            subcommands: tuple[tuple[str, ArgumentParser]],
+            vim_cmd_args: tuple[str],
+        ) -> None:
+        """Process this command or subcommand.
+
+        :cmd_info:
+            Information about the Vpe command, such as counts or line ranges.
+        :subcommands:
+            A sequence of earlier subcommands and parsed options.
+        :vim_cmd_args:
+            The command and arguments that Vim has parsed from the command
+            line.
+        """
+        # Parse the arguments for this command. The first positional
+        # argument will be a subcommand or not present. Any following
+        # positional arguments will be for the subcommand itself.
+        try:
+            result = self.parser.parse_known_args(vim_cmd_args)
+        except ArgumentError as e:
+            error_msg(e)
+        else:
+            parsed_args, unparsed_args = result
+        if self.parser.stop_processing:
+            return
+
+        subcommand = parsed_args.subcommand
+        if subcommand is not None:
+            subcommand, partials = unique_match(subcommand, self.cmd_vector)
+            if subcommand:
+                handler = self.cmd_vector.get(subcommand)
+                if handler is None:
+                    error_msg('Invalid subcommand {subcommand}')
+                    return
+            elif partials:
+                compl = ' '.join(partials)
+                error_msg(
+                    'Ambiguous subcommand {subcommand}'
+                    f' completions = {compl}'
+                )
+                return
+            else:
+                error_msg('Invalid subcommand {subcommand}')
+                return
+
+            #-print(
+            #-    f'Process: {parsed_args=} {unparsed_args=} {handler=}')
+            if isinstance(handler, SubCommandBase):
+                handler.process_command(
+                    cmd_info, subcommands + (subcommand,), unparsed_args)
+            if isinstance(handler, CommandBase):
+                handler.process_command(
+                    cmd_info, subcommands + (subcommand,), unparsed_args)
+            else:
+                handler()
+
+        else:
+            self.handle_no_subcommand(cmd_info, subcommands)
+
+    def get_completions(
+            self, vim_args: list[str], at_new_arg: bool,
+        ) -> list[str]:
+        """Attempt command line completion for this command.
+
+        :vim_args:
+            The vim command line arguments that are before the cursor.
+        :at_new_arg:
+            True if the cursor's position is where a new argument/subcommand
+            should be inserted.
+        :return:
+            A list strings representing the the possible completions.
+        """
+        if at_new_arg and not vim_args:
+            # Provide completions for defined subcommands.
+            return sorted(self.cmd_vector)
+
+        if at_new_arg or len(vim_args) > 1:
+            # The first argument is (or should be) a subcommand, so completion
+            # must be forwarded to the next subcommand handler.
+            try:
+                result = self.parser.parse_known_args(vim_args)
+            except ArgumentError:
+                if debug_completion:
+                    print(f'   {self.__class__.__name__} parsing failed!')
+                return []
+
+            parsed_args, unparsed_args = result
+            if debug_completion:
+                print(f'   {parsed_args=} {unparsed_args=}')
+            subcommand = parsed_args.subcommand
+            subcommand, _ = unique_match(subcommand, self.cmd_vector)
+            if subcommand:
+                handler = self.cmd_vector.get(subcommand)
+                if handler is None:
+                    return []
+                return handler.get_completions(unparsed_args, at_new_arg)
+            else:
+                return []
+
+        # The first argument should be expanded to the possible subcommand
+        # choices.
+        _, choices = unique_match(vim_args[0], self.cmd_vector)
+        return choices
+
+    def handle_no_subcommand(
+            self,
+            cmd_info: common.CommandInfo,
+            sub_commands: tuple[tuple[str, ArgumentParser]],
+        ):
+        """Handle the case of no subcommand provided."""
+        error_msg('Missing subcommand')
 
     def handle_sub_command(self, subcommand: str, args: Namespace):
         """Execute a specific sub-command."""
@@ -823,10 +963,8 @@ class SubCommandBase(CommandBase):
         for name, (handler_spec, _help_text) in self.sub_commands.items():
             if handler_spec == ':simple':
                 self.cmd_vector[name] = getattr(self, f'handle_{name}')
-                self.sub_command_parser.add_parser(name)
             else:
-                self.cmd_vector[name] = handler_spec(
-                    self.sub_command_parser, name)
+                self.cmd_vector[name] = handler_spec(self, name)
 
 
 class TopLevelSubCommandHandler(SubCommandBase):
@@ -835,36 +973,44 @@ class TopLevelSubCommandHandler(SubCommandBase):
     This provides the main parser for a command that is composed of
     sub-commands.
     """
-    registered_parsers: ClassVar[dict[str, SubcommandParser]] = {}
+    registered_commands: ClassVar[dict[str, TopLevelSubCommandHandler]] = {}
     parser: SubcommandParser
 
     def __init__(self, command_name: str):
-        self.command_name = command_name
-        super().__init__(parent_parser=None, name='')
+        super().__init__(command_name=command_name, parent=None)
         self._init_completion()
         core.define_command(
             command_name, self._handle_main_command,
-            nargs='+',
+            nargs='*',
             complete='customlist,VPE_Command_Complete',
             bar=True)
 
-    def create_sub_command_parser(self) -> None:
+    def create_parser(self) -> None:
         """Create the sub-command argument parser for this command."""
-        parser = SubcommandParser(
-            command_name=self.command_name,
-            subcommands_table=self.sub_commands,
-            exit_on_error=False)
-        self.registered_parsers[self.command_name] = parser
+        parser = super().create_parser()
+        self.registered_commands[self.command_name] = self
         return parser
 
-    def _handle_main_command(self, *cmd_args):
-        """Parse and execute the main command."""
-        sub_cmd, args = self.sub_command_parser.parse_args(cmd_args[1:])
-        if sub_cmd == '':
-            return
-        if self.sub_command_parser.stop_processing:
-            return
-        self.handle_sub_command(sub_cmd, args)
+    def _handle_main_command(
+            self, cmd_info: common.CommandInfo, *vim_cmd_args: str):
+        """Parse and execute the main command.
+
+        This is invoked by Vim when the use enters this command plus one or
+        more arguments.
+
+        :cmd_info:
+            Information about the Vpe command, such as counts or line ranges.
+        :vim_cmd_args:
+            The command and arguments that Vim has parsed from the command
+            line.
+        """
+        self.process_command(cmd_info, (), vim_cmd_args)
+        #-sub_cmd, args = self.sub_command_parser.parse_args(vim_cmd_args)
+        #-if sub_cmd == '':
+        #-    return
+        #-if self.sub_command_parser.stop_processing:
+        #-    return
+        #-self.handle_sub_command(sub_cmd, args)
 
     @classmethod
     def complete(cls) -> list[str]:
@@ -875,19 +1021,40 @@ class TopLevelSubCommandHandler(SubCommandBase):
         """
         try:
             vim_args = dict(getattr(wrappers.vim.vars, '_vpe_args_'))
+            arglead = vim_args['arglead']
             cmdline = vim_args['cmdline']
             pos = vim_args['cursorpos']
 
-            left, _ = cmdline[:pos], cmdline[pos:]
-            partial_command, _, left = left.partition(' ')
-            args = left.split()
-            at_new_arg = left.endswith(' ')
-            command, _ = unique_match(partial_command, cls.registered_parsers)
-            parser = cls.registered_parsers.get(command)
-            if parser:
-                return parser.get_completions(args, at_new_arg)
-            else:
+
+            # Get the command at the start of the line, which may only be
+            # partial. Find its completion and hence the command handler.
+            command_name, _, _ = cmdline.partition(' ')
+            command, _ = unique_match(command_name, cls.registered_commands)
+            handler = cls.registered_commands.get(command)
+            if handler is None:
                 return []
+
+            if debug_completion:
+                print(
+                    f'Perform completion for {command}'
+                    f' {handler.__class__.__name__}')
+
+            # Get the argument text before the cursor and figure out if we have
+            # a partial argument or not.
+            before_cursor, _ = cmdline[:pos], cmdline[pos:]
+            _, _, before_cursor = before_cursor.partition(' ')
+            vim_args = before_cursor.split()
+            at_new_arg = before_cursor.endswith(' ')
+            if len(vim_args) == 0:
+                # For some reason, Vim suppresses the first space after the
+                # command name. So if we have zero arguments then we must be at
+                # a new argument.
+                at_new_arg = True
+            if debug_completion:
+                print(f'   {arglead=}')
+                print(f'   {vim_args=}')
+                print(f'   {at_new_arg=}')
+            return handler.get_completions(vim_args, at_new_arg)
 
         # Possible exceptions are undefined, so we treat all exceptions as a
         # simple completion failure.
@@ -904,11 +1071,11 @@ class TopLevelSubCommandHandler(SubCommandBase):
         calls do nothing.
         """
         if not wrappers.vim.exists('*VPE_Command_Complete'):
-            print("Create completion (Vim) function")
-            commands.py3('import vpe.vpe_commands')
+            wrappers.commands.py3('import vpe.vpe_commands')
             wrappers.vim.command(inspect.cleandoc("""
                 function! VPE_Command_Complete(ArgLead, CmdLine, CursorPos)
                     let g:_vpe_args_ = {}
+                    let g:_vpe_args_['arglead'] = a:ArgLead
                     let g:_vpe_args_['cmdline'] = a:CmdLine
                     let g:_vpe_args_['cursorpos'] = a:CursorPos
                     let expr = 'vpe.vpe_commands.VPECommandProvider.complete()'
@@ -918,7 +1085,13 @@ class TopLevelSubCommandHandler(SubCommandBase):
 
 
 def unique_match(text, choices):
-    """Find a unique match within `choices` that starts with `text`."""
+    """Try to find a unique match within `choices` that starts with `text`.
+
+    :return:
+        A tuple of (match, matches). The ``match`` is an empty string if no
+        unique match was found, in which case ``matches`` is a, possibly empty,
+        list of partial matches.
+    """
     choices = sorted(choices)
     matches = [v for v in choices if v.startswith(text)]
     if matches and (matches[0] == text or len(matches) == 1):

@@ -464,12 +464,17 @@ class Layout(support.Base):
             from vpe import windows
 
             res = Struct()
-            vpe.commands.split()
-            vpe.commands.split()
-            vpe.commands.split(vertical=True)
-            vpe.commands.split()
-            res.layout = windows.LayoutElement.create_from_vim_layout(
-                vim.winlayout())
+            with vim.temp_options():
+                vim.options.guioptions -= 'lL'
+                vim.options.guioptions += 'r'
+                vim.options.columns = 100
+
+                vpe.commands.split()
+                vpe.commands.split()
+                vpe.commands.split(vertical=True)
+                vpe.commands.split()
+                res.layout = windows.LayoutElement.create_from_vim_layout(
+                    vim.winlayout())
 
             dump(res)
         """

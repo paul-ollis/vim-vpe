@@ -7,7 +7,7 @@ from functools import partial
 from typing import Any, ClassVar, Dict, List, Optional, Sequence, Tuple, Union
 
 import vpe
-from . import common, core, wrappers
+from vpe import common, core, wrappers
 
 __all__ = [
     'RawChannel', 'JsonChannel', 'NLChannel', 'JSChannel', 'VimChannel',

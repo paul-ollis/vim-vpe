@@ -35,7 +35,7 @@ class LogLengthCommand(CommandBase):
 
     def add_arguments(self) -> None:
         """Add the arguments for this command."""
-        self.arg_parser.add_argument(
+        self.parser.add_argument(
             'maxlen', type=int, nargs='?',
             help='New maximum length of the log.')
 
@@ -52,7 +52,7 @@ class LogRedirectCommand(CommandBase):
 
     def add_arguments(self) -> None:
         """Add the arguments for this command."""
-        self.arg_parser.add_argument(
+        self.parser.add_argument(
             'flag', choices=('on', 'off'), nargs='?',
             help='Redirect to the log "on" or "off".')
 

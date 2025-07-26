@@ -9,7 +9,7 @@
 VPE provides a toolkit of modules and classes aimed at making it easier to
 extend ``Vim`` using modern Pythonic code. Its key features are:
 
-- A `Vim` class and corresponding `vim<vpe.vim>` singleton that provides an API
+- A `Vim` class and corresponding `vim<vpe.vim>` singleton whichs provides an API
   that is is extremely compatible with Vim's built-in ``vim`` module, but
   includes extended capabilities.
 
@@ -22,4 +22,4 @@ extend ``Vim`` using modern Pythonic code. Its key features are:
   - More pythonic APIs for some Vim features.
   - Extension modules and classes to help in writing plugins in Python.
 
-- Support for plugins, using on Python's standard library entry-point mechanism.
+- Support for plugins, using Python's standard library entry-point mechanism.

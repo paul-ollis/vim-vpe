@@ -1,5 +1,8 @@
 [run]
-source = ../vpe
+source =
+    ../src/vpe
+omit =
+    */minirpyc/*
 
 [paths]
 cygwin_match =
@@ -18,3 +21,6 @@ exclude_lines =
 
     # Don't complain if non-runnable code isn't run:
     if __name__ == .__main__.:
+
+omit =
+    */minirpyc/*

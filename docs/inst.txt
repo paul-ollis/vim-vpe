@@ -14,13 +14,15 @@ On some systems you may see a message that starts::
 
     error: externally-managed-environment
 
-    × This environment is externally managed...
+    × This environment is externally managed
+    ╰─> To install Python packages system-wide, try apt install
+    ...
 
 The typical advice found on the internet suggests that you use a virtual
 environment, but that is not a practical solution for Vim plugin code. So in
 this case you will need to add the option ``--break-system-packages``. This
-option is deliberately named to find frightening, but in this case it should be
-safe to use.
+option is deliberately named to find frightening, but in this case it is safe
+to use because installing VPE will not install other Python packages.
 
 .. code-block:: bash
 

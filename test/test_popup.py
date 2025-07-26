@@ -1,15 +1,13 @@
-"""Various of the extensions in VPE."""
-# pylint: disable=deprecated-method
+"""Various extensions in VPE."""
 
+# pylint: disable=deprecated-method
 # pylint: disable=unused-wildcard-import,wildcard-import
 from cleversheep3.Test.Tester import *
 from cleversheep3.Test.Tester import Collection
 from cleversheep3.Test.Tester import test, runModule
 
-import support
+import support                             # pylint: disable=wrong-import-order
 import vim_if
-
-import vpe
 
 _run_after = ['test_vim.py']
 

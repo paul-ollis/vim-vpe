@@ -4,16 +4,13 @@ This provides a Pythonic API for defining syntax.
 """
 # pylint: disable=deprecated-method
 
-from typing import List
-
 # pylint: disable=unused-wildcard-import,wildcard-import
 from cleversheep3.Test.Tester import *
 from cleversheep3.Test.Tester import test, runModule
 
-import support
+import support                             # pylint: disable=wrong-import-order
 
 from vpe import syntax
-import vpe
 
 _run_after = ['test_vim.py']
 
@@ -324,8 +321,8 @@ class Groups(support.CommandsBase):
         """
         with syntax.Syntax('Test') as syn:
             main = syn.group('Main')
-            other = syn.group('Other')
-            other = syn.group('Third', link_to='Constant')
+            syn.group('Other')
+            syn.group('Third', link_to='Constant')
             ext_grp = syn.std_group('Constant')
             ext_grp.add_links(main, "Other")
         self.check_commands()
@@ -404,7 +401,7 @@ class Groups(support.CommandsBase):
         :<vim>:
 
             keepalt syntax clear
-            keepalt highlight TestMain default guifg=Red
+            keepalt highlight TestMain default guifg='Red'
         """
         with syntax.Syntax('Test') as syn:
             main = syn.group('Main')

@@ -283,17 +283,25 @@ class BufListener(common.Callback):
     One of these is created by `Buffer.add_listener`. Direct instantiation of
     this class is not recommended or supported.
 
-    :func: The Python function or method to be called back.
-    :buf:  The `Buffer` instance.
+    :func:        The Python function or method to be called back.
+    :buf:         The `Buffer` instance.
+    :is_method:   If set then the buffer is not provided to callbacks.
+    :raw_changes: Include the raw changes as an additional argument:
 
     @listen_id: The unique ID from a :vim:`listener_add` invocation.
     """
     listen_id: int
 
-    def __init__(self, func, buf, is_method: bool):
+    def __init__(
+            self, func, buf, is_method: bool, ops: bool = True,
+            raw_changes: bool = False,
+        ):
+        # pylint: disable=too-many-arguments,too-many-positional-arguments
         super().__init__(func)
         self.buf = buf
         self.is_method = is_method
+        self.ops = ops
+        self.raw_changes = raw_changes
 
     def flush(self):
         """Request that any pending callbacks are invoked for this listener."""
@@ -317,19 +325,26 @@ class BufListener(common.Callback):
         changes
             A List of items with details about the changes
 
-        The ``bufnr`` is ignored, since this is just self.buf.number. The start
-        and end are adjusted so they form a Python range. Each entry in the
-        changes is converted to one of a `BufAddOp`, `BufDeleteOp` or
-        `BufChangeOp`.
+        The ``bufnr`` is ignored, since this is just self.buf.number.
+
+        Start and end are adjusted so they form a Python range.
+
+        If `ops` is True then a list of operations is provided to the callback.
+        Each entry in the changes is converted to one of a `BufAddOp`,
+        `BufDeleteOp` or `BufChangeOp`.
         """
         _, start, end, added, changes = vpe_args['args']
         start -= 1
         end -= 1
-        vpe_changes = [diffs.BufOperation.create(**ch) for ch in changes]
         if self.is_method:
-            vpe_args['args'] = start, end, added, vpe_changes
+            vpe_args['args'] = start, end, added
         else:
-            vpe_args['args'] = self.buf, start, end, added, vpe_changes
+            vpe_args['args'] = self.buf, start, end, added
+        if self.ops:
+            vpe_changes = [diffs.BufOperation.create(**ch) for ch in changes]
+            vpe_args['args'] += (vpe_changes,)
+        if self.raw_changes:
+            vpe_args['args'] += (changes,)
         super().invoke_self(vpe_args)
 
     def stop_listening(self):
@@ -359,118 +374,6 @@ class Range(common.MutableSequenceProxy):
             self._proxied.append(line_or_lines)
         else:
             self._proxied.append(line_or_lines, nr)
-
-
-class Marker(NamedTuple):
-    """Information about a buffer marker.
-
-    :uid:   A unique ID for this marker. Unique within a marker set within a
-            buffer.
-    :lidx:  The current start line index for this marker.
-    :start: The original starting line index for this marker.
-    :stop:  The current start line index for this marker.
-    """
-
-    lidx: int
-    start: int
-    stop: int
-
-
-# TODO:
-#   This code appears to be broken. I assume nothing has been using it.
-class MarkerSet:
-    """A set of related markers within a buffer.
-
-    This is not intended to be directly instantiated. Use `Buffer.marker_set`.
-
-    :buf:
-        The buffer that ths set belongs to.
-    :name:
-        A unique name (within the parent Buffer) for this marker set.
-    """
-
-    def __init__(self, buf: Buffer, name: str):
-        self.buf = weakref.proxy(buf)
-        self.name = name
-        self.id_pool = resources.IntIdentifierPool()
-        self.markers: dict[int, range] = {}
-        self._prop_type_name: str = f'vpe:marker:{name}'
-        args = self._prop_args()
-        props = vim.prop_type_get(self._prop_type_name, args)
-        if not props:
-            vim.prop_type_add(self._prop_type_name, args)
-
-    @property
-    def number(self) -> int:
-        """The number of the buffer."""
-        return self.buf.number
-
-    def set_line_range_marker(self, start_lidx: int, stop_lidx: int) -> int:
-        """Set a hidden marker for a range of lines using a propery.
-
-        Each marker is given a unique ID (within the buffer), which is the
-        return value. The ID can be used with `find_line_marker`.
-
-        :start_lidx:  The index of the starting line.
-        :stop_lidx:   The index of the line after the end of the property.
-
-        :return:
-            A unique ID for this marker, within the context of this marker set.
-        """
-        uid = self.id_pool.alloc()
-        args = self._prop_args(id=uid, end_lnum=stop_lidx, end_col=1)
-        vim.prop_add(start_lidx + 1, 1, args)
-        self.markers[uid] = range(start_lidx, stop_lidx)
-        return uid
-
-    def find_line_marker(self, uid: int):
-        """Find the marker with the given ID."""
-        args = {
-            'type': 'vpe:marker',
-            'id': uid,
-            'both': 1,
-            'bufnr': self.number,
-            'lnum': 1,
-            'col': 1,
-        }
-        return vim.prop_find(args)
-
-    def find_markers_for_lidx(self, lidx: int) -> list[Marker]:
-        """Find the markers that include a given line."""
-        list_args = self._prop_args()
-        find_args = self._prop_args(both=1, col=1)
-        vim_prop_list = vim.prop_list(lidx + 1, list_args)
-        found_props = []
-        for prop in vim_prop_list:
-            if prop.get('start'):
-                prop['lnum'] = lidx + 1
-                print("AT START", dict(prop))
-                found_props.append(prop)
-            else:
-                find_args['id'] = prop['id']
-                find_args['lnum'] = lidx + 1
-                found = vim.prop_find(find_args, 'b')
-                if found:
-                    print("FOUND START", dict(found))
-                    found_props.append(found)
-
-        markers = []
-        for prop in found_props:
-            uid = prop['id']
-            r = self.markers.get(uid)
-            if r:
-                m = Marker(lidx=prop['lnum'] - 1, start=r.start, stop=r.stop)
-                markers.append(m)
-
-        return markers
-
-    def _prop_args(self, **kwargs):
-        """Create a dict of arguments for a vim.prop_...() function."""
-        args = dict(kwargs)
-        args['bufnr'] = self.buf.number
-        args['type'] = self._prop_type_name
-        args['types'] = [self._prop_type_name]
-        return args
 
 
 class Buffer(common.MutableSequenceProxy):
@@ -752,8 +655,10 @@ class Buffer(common.MutableSequenceProxy):
 
     def add_listener(
             self,
-            func: ListenerCallbackFunc | ListenerCallbackMethod
-            ) -> BufListener:
+            func: ListenerCallbackFunc | ListenerCallbackMethod,
+            ops: bool = True,
+            raw_changes: bool = False,
+        ) -> BufListener:
         """Add a callback for changes to this buffer.
 
         This is implemented using :vim:`listener_add()`
@@ -771,18 +676,33 @@ class Buffer(common.MutableSequenceProxy):
                 End of the range of modified lines.
             :added:
                 Number of lines added, negative if lines were deleted.
+
+        :ops:
+            Include a list of the individal operations to the callback. This is
+            ``True`` by default.
+
             :changed:
                 A list of diffs.BufOperation instances with details about the
                 changes.
+
+        :raw_changes:
+            Include the raw changes as an additional argument:
+
+            :raw_changes:
+                The unmodified changes provided by the Vim buffer change
+                callback (see :vim:`listener_add` for details).
+
         :return:
             A :py:obj:`BufListener` object.
         """
         inst = getattr(func, '__self__', None)
         p_buf = weakref.proxy(self)
         if inst is self:
-            cb = BufListener(func, p_buf, is_method=True)
+            cb = BufListener(
+                func, p_buf, is_method=True, raw_changes=raw_changes)
         else:
-            cb = BufListener(func, p_buf, is_method=False)
+            cb = BufListener(
+                func, p_buf, is_method=False, raw_changes=raw_changes)
         cb.listen_id = vim.listener_add(cb.as_vim_function(), self.number)
         return cb
 

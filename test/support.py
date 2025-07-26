@@ -24,6 +24,7 @@ COV_START_SCRIPT_NAME = 'cov_start_script.py'
 COV_STOP_SCRIPT_NAME = 'cov_stop_script.py'
 COV_CONT_SCRIPT_NAME = 'cov_cont_script.py'
 
+# pylint: disable=deprecated-method
 
 def fix_path(path: str) -> str:
     """Convert a Windows path to an equivalent Linux style one.

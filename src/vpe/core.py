@@ -111,9 +111,6 @@ endfunction
 """
 _vim.command(_VIM_FUNC_DEFS)
 
-# Provide rich tracebacks.
-install_rich_traceback(show_locals=True)
-
 
 def _clean_ident(s):
     """Clean up a string so it is a valid Vim identifier.
