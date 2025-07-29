@@ -6,7 +6,7 @@ Introduction
 
 NOTE:
 
-    This Vim help file provides details of the |vpe| API and can be useful as a
+    This Vim help file provides details of the VPE API and can be useful as a
     reference. However, the user guide at:
 
        https://vim-vpe.readthedocs.io/en/userguide/

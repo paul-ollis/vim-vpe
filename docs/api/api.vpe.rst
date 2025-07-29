@@ -5,9 +5,11 @@ Module vpe
     :maxdepth: 1
 
     api.vpe.app_ui_support
+    api.vpe.argparse
     api.vpe.channels
     api.vpe.config
     api.vpe.core
+    api.vpe.diffs
     api.vpe.mapping
     api.vpe.panels
     api.vpe.syntax
@@ -298,7 +300,9 @@ _vpe_args_
             .. code::
 
                 add_listener(
-                        func: ListenerCallbackFunc | ListenerCallbackMethod
+                        func: ListenerCallbackFunc | ListenerCallbackMethod,
+                        ops: bool = True,
+                        raw_changes: bool = False
 
             Add a callback for changes to this buffer.
 
@@ -321,9 +325,22 @@ _vpe_args_
                         End of the range of modified lines.
                     :added:
                         Number of lines added, negative if lines were deleted.
+
+                *ops*: bool
+                    Include a list of the individal operations to the callback. This is
+                    ``True`` by default.
+
                     :changed:
                         A list of diffs.BufOperation instances with details about the
                         changes.
+
+                *raw_changes*: bool
+                    Include the raw changes as an additional argument:
+
+                    :raw_changes:
+                        The unmodified changes provided by the Vim buffer change
+                        callback (see :vim:`listener_add` for details).
+
 
             **Return value**
 
@@ -372,7 +389,7 @@ _vpe_args_
 
                 A list of the windows found.
 
-        .. py:method:: find_best_active_window(all_tabpages=False) -> Optional['Window']
+        .. py:method:: find_best_active_window(all_tabpages=False) -> Window | None
 
             Find the best choice for a window where this buffer is active.
 
@@ -392,7 +409,7 @@ _vpe_args_
 
                 The window or None.
 
-        .. py:method:: goto_active_window(all_tabpages=False) -> Optional['Window']
+        .. py:method:: goto_active_window(all_tabpages=False) -> Window | None
 
             Goto the best choice window where this buffer is active.
 
@@ -577,7 +594,7 @@ _vpe_args_
 
     **Class methods**
 
-        .. py:classmethod:: get_known(buffer: Any) -> Optional['Buffer']
+        .. py:classmethod:: get_known(buffer: Any) -> Buffer | None
 
             Get the Buffer instance for a given vim.buffer.
 
@@ -1664,7 +1681,10 @@ _vpe_args_
 
             The number of times the timer will still fire.
 
-            Note that this is 1, during the final callback - not zero.
+            Note that prior to Patch 8.2.3768 this was 1 greater that one might
+            expect. Now Vim's ``timer_info()`` returns the expected value except
+            duruing the final callback, when we get ``None``. This is non-Pythonic,
+            so ``None`` is converted to zero.
 
         .. py:property:: time() -> int
 
@@ -1985,8 +2005,7 @@ _vpe_args_
         *win*
             The `Window` to switch to.
 
-call_soon
----------
+.. rubric:: call_soon
 
 .. py:function:: call_soon(func: Callable,*args: Any,**kwargs: Any)
 
@@ -2013,8 +2032,7 @@ call_soon
         *kwargs*: Any
             Keyword arguments for the callback function.
 
-call_soon_once
---------------
+.. rubric:: call_soon_once
 
 .. py:function:: call_soon_once(token: Any,func: Callable,*args: Any,**kwargs: Any)
 
@@ -2038,8 +2056,7 @@ call_soon_once
         *kwargs*: Any
             Keyword arguments for the callback function.
 
-define_command
---------------
+.. rubric:: define_command
 
 .. py:function:: define_command(...)
 
@@ -2123,8 +2140,7 @@ define_command
         *kwargs*: dict | None
             Additional keyword arguments to pass to the mapped function.
 
-dot_vim_dir
------------
+.. rubric:: dot_vim_dir
 
 .. py:function:: dot_vim_dir() -> str
 
@@ -2137,8 +2153,7 @@ dot_vim_dir
 
         This returns the first directory in the runtimepath option.
 
-echo_msg
---------
+.. rubric:: echo_msg
 
 .. py:function:: echo_msg(*args,soon=False)
 
@@ -2154,8 +2169,7 @@ echo_msg
         *soon*
             If set, delay invocation until the back in the Vim main loop.
 
-error_msg
----------
+.. rubric:: error_msg
 
 .. py:function:: error_msg(*args,soon=False)
 
@@ -2172,8 +2186,7 @@ error_msg
         *soon*
             If set, delay invocation until the back in the Vim main loop.
 
-find_buffer_by_name
--------------------
+.. rubric:: find_buffer_by_name
 
 .. py:function:: find_buffer_by_name(name: str) -> vpe.wrappers.Buffer | None
 
@@ -2188,8 +2201,7 @@ find_buffer_by_name
         *name*: str
             The name of the buffer to find.
 
-get_display_buffer
-------------------
+.. rubric:: get_display_buffer
 
 .. py:function:: get_display_buffer(...)
 
@@ -2212,8 +2224,7 @@ get_display_buffer
             An identifying name for this buffer. This becomes the
             `ScratchBuffer.simple_name` attribute.
 
-highlight
----------
+.. rubric:: highlight
 
 .. py:function:: highlight(...)
 
@@ -2268,8 +2279,7 @@ highlight
             The remaining keyword arguments act like the :vim:`:highlight`
             command's keyword arguments.
 
-pedit
------
+.. rubric:: pedit
 
 .. py:function:: pedit(path: str,silent=True,noerrors=False)
 
@@ -2287,29 +2297,25 @@ pedit
         *noerrors*
             If true then add '!' to suppress errors.
 
-popup_clear
------------
+.. rubric:: popup_clear
 
 .. py:function:: popup_clear(force=False)
 
     Convenience function that invokes `Popup.clear`.
 
-script_py_path
---------------
+.. rubric:: script_py_path
 
 .. py:function:: script_py_path() -> str
 
     Derive a python script name from the current Vim script name.
 
-timer_stopall
--------------
+.. rubric:: timer_stopall
 
 .. py:function:: timer_stopall()
 
     Convenience function that invokes `Timer.stop_all`.
 
-warning_msg
------------
+.. rubric:: warning_msg
 
 .. py:function:: warning_msg(*args,soon=False)
 

@@ -19,10 +19,11 @@ On some systems you may see a message that starts::
     ...
 
 The typical advice found on the internet suggests that you use a virtual
-environment, but that is not a practical solution for Vim plugin code. So in
-this case you will need to add the option ``--break-system-packages``. This
-option is deliberately named to find frightening, but in this case it is safe
-to use because installing VPE will not install other Python packages.
+environment, but that is unlikely to be a practical solution for Vim plugin
+code. So in this case you will need to add the option
+``--break-system-packages``. This option is deliberately named to be
+frightening, but in this case it is safe to use because installing VPE will not
+install other Python packages.
 
 .. code-block:: bash
 
@@ -68,9 +69,9 @@ more documentation than the HTML version.
 
 .. rubric:: If your Vim uses a different Python version
 
-It may be that your Vim installation uses a different version of Python to
-the default for your operating system, in which case the basic installation will
-work, the `vpe` module will not be importable within Vim.
+It may be that your Vim installation uses a different version of Python to the
+default for your operating system, in which case the basic installation may
+appear to work, but the `vpe` module will not be importable within Vim.
 
 To fix this run the following within Vim to find the correct Python executable
 and version for your Vim installation.
@@ -92,6 +93,26 @@ Then you would run:
 .. code-block:: bash
 
     /usr/local/bin/python3.11 -m pip install --user git+https://github.com/paul-ollis/vim-vpe.git
+
+
+.. rubric:: Controlling 000-vpe.vim
+
+The 000-vpe.vim script runs some code that injects the `vpe` and `vim<vpe.vim>`
+objects into Vim's Python namespace and the Python interpreter's builtin
+namespace. This matches how VPE worked before version 0.8. However this
+is rather invasive and quite possibly not what you really want.
+
+This behavious can be controlled using configuration values stored in a global
+``vpe_config`` dictionary. To do this you should create the configuration in
+your $HOME/.vimrc or $HOME/.vim/vimrc file. Edit your vimrc file, place the
+cursor at a suitable location and run the command:
+
+.. code-block:: vim
+
+    :Vpe insert_config
+
+The comments inserted with the code should provide all necessary
+explanation.
 
 
 .. _remove_pre_08:

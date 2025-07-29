@@ -30,7 +30,7 @@ extend Vim using modern Pythonic code. Its key features are:
 
 NOTE:
 
-  This Vim help file provides details of the |vpe| API and can be useful as a
+  This Vim help file provides details of the VPE API and can be useful as a
   reference. However, the user guide at:
 
     https://vim-vpe.readthedocs.io/en/userguide/
@@ -326,7 +326,9 @@ class vpe.Buffer(buffer)                                  *Buffer* *vpe.Buffer*
     add_listener(...)                                 *vpe.Buffer.add_listener*
         >
         add_listener(
-                func: ListenerCallbackFunc | ListenerCallbackMethod
+                func: ListenerCallbackFunc | ListenerCallbackMethod,
+                ops: bool = True,
+                raw_changes: bool = False
 <
       Add a callback for changes to this buffer.
 
@@ -346,8 +348,18 @@ class vpe.Buffer(buffer)                                  *Buffer* *vpe.Buffer*
 
           Number of lines added, negative if lines were deleted.
 
+        ops: bool
+          Include a list of the individal operations to the callback. This is
+          True by default.
+
           A list of diffs.BufOperation instances with details about the
           changes.
+
+        raw_changes: bool
+          Include the raw changes as an additional argument:
+
+          The unmodified changes provided by the Vim buffer change callback
+          (see |listener_add| for details).
 
       Return value
 
@@ -388,7 +400,7 @@ class vpe.Buffer(buffer)                                  *Buffer* *vpe.Buffer*
       A list of the windows found.
 
                                            *vpe.Buffer.find_best_active_window*
-    find_best_active_window(all_tabpages=False) -> 'Window' | None
+    find_best_active_window(all_tabpages=False) -> |Window| | None
       Find the best choice for a window where this buffer is active.
 
       This returns the first entry found by |find_active_windows|.
@@ -404,7 +416,7 @@ class vpe.Buffer(buffer)                                  *Buffer* *vpe.Buffer*
       The window or None.
 
                                                 *vpe.Buffer.goto_active_window*
-    goto_active_window(all_tabpages=False) -> 'Window' | None
+    goto_active_window(all_tabpages=False) -> |Window| | None
       Goto the best choice window where this buffer is active.
 
       This goes to the first entry found by |find_active_windows|.
@@ -562,7 +574,7 @@ class vpe.Buffer(buffer)                                  *Buffer* *vpe.Buffer*
   Class methods
 
                                                          *vpe.Buffer.get_known*
-    classmethod get_known(buffer: Any) -> 'Buffer' | None
+    classmethod get_known(buffer: Any) -> |Buffer| | None
       Get the Buffer instance for a given vim.buffer.
 
       This is only intended for internal use.
@@ -1451,7 +1463,10 @@ class vpe.Timer(...)                                        *Timer* *vpe.Timer*
     property repeat -> int                          *repeat* *vpe.Timer.repeat*
       The number of times the timer will still fire.
 
-      Note that this is 1, during the final callback - not zero.
+      Note that prior to Patch 8.2.3768 this was 1 greater that one might
+      expect. Now Vim’s timer_info() returns the expected value except duruing
+      the final callback, when we get None. This is non-Pythonic, so None is
+      converted to zero.
 
     property time -> int                                *time* *vpe.Timer.time*
       The time value used to create the timer.
@@ -1686,323 +1701,280 @@ class vpe.temp_active_window(win: |Window|)            *vpe.temp_active_window*
     win
       The |Window| to switch to.
 
-  -----------------------------------------------------------------------------~
-  3.1. call_soon~                                               *vpe.call-soon*
-
                                                     *call_soon* *vpe.call_soon*
-  vpe.call_soon(func: Callable, *args: Any, **kwargs: Any)
-    Arrange to call a function ‘soon’.
+vpe.call_soon(func: Callable, *args: Any, **kwargs: Any)
+  Arrange to call a function ‘soon’.
 
-    This uses a Vim timer with a delay of 0ms to schedule the function call.
-    This means that currently executing Python code will complete before the
-    function is invoked.
+  This uses a Vim timer with a delay of 0ms to schedule the function call. This
+  means that currently executing Python code will complete before the function
+  is invoked.
 
-    The function is invoked as:
-      >
-      func(*args, **kwargs)
+  The function is invoked as:
+    >
+    func(*args, **kwargs)
 <
-    Parameters
+  Parameters
 
-      func: Callable
-        The function to be invoked.
+    func: Callable
+      The function to be invoked.
 
-      args: Any
-        Positional arguments for the callback function.
+    args: Any
+      Positional arguments for the callback function.
 
-      kwargs: Any
-        Keyword arguments for the callback function.
-
-  -----------------------------------------------------------------------------~
-  3.2. call_soon_once~                                     *vpe.call-soon-once*
+    kwargs: Any
+      Keyword arguments for the callback function.
 
                                                            *vpe.call_soon_once*
-  vpe.call_soon_once(token: Any, func: Callable, *args: Any, **kwargs: Any)
-    Arrange to call a function ‘soon’, but only once.
+vpe.call_soon_once(token: Any, func: Callable, *args: Any, **kwargs: Any)
+  Arrange to call a function ‘soon’, but only once.
 
-    This is like |call_soon|, but if multiple calls with the same token are
-    scheduled then only the first registed function is invoked when Vim’s main
-    loop regains control.
+  This is like |call_soon|, but if multiple calls with the same token are
+  scheduled then only the first registed function is invoked when Vim’s main
+  loop regains control.
 
-    Parameters
+  Parameters
 
-      token: Any
-        A token that identifies duplicate registered callbacks. This can be any
-        object that may be a member of a set, except None.
+    token: Any
+      A token that identifies duplicate registered callbacks. This can be any
+      object that may be a member of a set, except None.
 
-      func: Callable
-        The function to be invoked.
+    func: Callable
+      The function to be invoked.
 
-      args: Any
-        Positional arguments for the callback function.
+    args: Any
+      Positional arguments for the callback function.
 
-      kwargs: Any
-        Keyword arguments for the callback function.
+    kwargs: Any
+      Keyword arguments for the callback function.
 
-  -----------------------------------------------------------------------------~
-  3.3. define_command~                                     *vpe.define-command*
-
-  vpe.define_command(...)                                  *vpe.define_command*
-      >
-      define_command(
-              name: str,
-              func: Callable,
-              nargs: int | str = 0,
-              complete: str = '',
-              range: bool | str = '',
-              count: str = '',
-              addr: str = '',
-              bang: bool = False,
-              bar: bool = False,
-              register: bool = False,
-              buffer: bool = False,
-              replace: bool = True,
-              pass_info: bool = True,
-              args=(),
+vpe.define_command(...)                                    *vpe.define_command*
+    >
+    define_command(
+            name: str,
+            func: Callable,
+            nargs: int | str = 0,
+            complete: str = '',
+            range: bool | str = '',
+            count: str = '',
+            addr: str = '',
+            bang: bool = False,
+            bar: bool = False,
+            register: bool = False,
+            buffer: bool = False,
+            replace: bool = True,
+            pass_info: bool = True,
+            args=(),
 <
-    Create a user defined command that invokes a Python function.
+  Create a user defined command that invokes a Python function.
 
-    When the command is executed, the function is invoked as:
-      >
-      func(info, *args, *cmd_args, **kwargs)
+  When the command is executed, the function is invoked as:
+    >
+    func(info, *args, *cmd_args, **kwargs)
 <
-    The info parameter is |CommandInfo| instance which carries all the meta
-    information, such as the command name, range, modifiers, etc. The cmd_args
-    are those provided to the command; each a string. The args and kwargs are
-    those provided to this function.
+  The info parameter is |CommandInfo| instance which carries all the meta
+  information, such as the command name, range, modifiers, etc. The cmd_args
+  are those provided to the command; each a string. The args and kwargs are
+  those provided to this function.
 
-    Parameters
+  Parameters
 
-      name: str
-        The command name; must follow the rules for `:command`.
+    name: str
+      The command name; must follow the rules for `:command`.
 
-      func: Callable
-        The function that implements the command.
+    func: Callable
+      The function that implements the command.
 
-      nargs: int | str
-        The number of supported arguments; must follow the rules for `:command-
-        nargs`, except that integer values of 0, 1 are permitted.
+    nargs: int | str
+      The number of supported arguments; must follow the rules for `:command-
+      nargs`, except that integer values of 0, 1 are permitted.
 
-      complete: str
-        Argument completion mode (see |command-complete|). Does not currently
-        support ‘custom’ or ‘customlist’.
+    complete: str
+      Argument completion mode (see |command-complete|). Does not currently
+      support ‘custom’ or ‘customlist’.
 
-      range: bool | str
-        The permitted type of range; must follow the rules for `:command-
-        range`, except that the N value may be an integer.
+    range: bool | str
+      The permitted type of range; must follow the rules for `:command-range`,
+      except that the N value may be an integer.
 
-      count: str
-        The permitted type of count; must follow the rules for `:command-
-        count`, except that the N value may be an integer. Use count=0 to get
-        the same behaviour as ‘-count’.
+    count: str
+      The permitted type of count; must follow the rules for `:command-count`,
+      except that the N value may be an integer. Use count=0 to get the same
+      behaviour as ‘-count’.
 
-      addr: str
-        How range or count values are interpreted (see `:command-addr`).
+    addr: str
+      How range or count values are interpreted (see `:command-addr`).
 
-      bang: bool
-        If set then the ‘!’ modifieer is supported (see `:command-bang`).
+    bang: bool
+      If set then the ‘!’ modifieer is supported (see `:command-bang`).
 
-      bar: bool
-        If set then the command may be followed by a ‘|’ (see `:command-bar`).
+    bar: bool
+      If set then the command may be followed by a ‘|’ (see `:command-bar`).
 
-      register: bool
-        If set then an optional register is supported (see `:command-
-        register`).
+    register: bool
+      If set then an optional register is supported (see `:command-register`).
 
-      buffer: bool
-        If set then the command is only for the current buffer (see `:command-
-        buffer`).
+    buffer: bool
+      If set then the command is only for the current buffer (see `:command-
+      buffer`).
 
-      replace: bool
-        If set (the default) then ‘command!’ is used to replace an existing
-        command of the same name.
+    replace: bool
+      If set (the default) then ‘command!’ is used to replace an existing
+      command of the same name.
 
-      pass_info: bool
-        If set then the first argument passed to func is a MappingInfo object.
-        Defaults to True.
+    pass_info: bool
+      If set then the first argument passed to func is a MappingInfo object.
+      Defaults to True.
 
-      args
-        Additional arguments to pass to the mapped function.
+    args
+      Additional arguments to pass to the mapped function.
 
-      kwargs: dict | None
-        Additional keyword arguments to pass to the mapped function.
+    kwargs: dict | None
+      Additional keyword arguments to pass to the mapped function.
 
-  -----------------------------------------------------------------------------~
-  3.4. dot_vim_dir~                                           *vpe.dot-vim-dir*
+vpe.dot_vim_dir() -> str                                      *vpe.dot_vim_dir*
+  Return the path to the ~/.vim directory or its equivalent.
 
-  vpe.dot_vim_dir() -> str                                    *vpe.dot_vim_dir*
-    Return the path to the ~/.vim directory or its equivalent.
+  Return value
 
-    Return value
+  This returns the first directory in the runtimepath option.
 
-    This returns the first directory in the runtimepath option.
+vpe.echo_msg(*args, soon=False)                                  *vpe.echo_msg*
+  Like |error_msg|, but for information.
 
-  -----------------------------------------------------------------------------~
-  3.5. echo_msg~                                                 *vpe.echo-msg*
+  Parameters
 
-  vpe.echo_msg(*args, soon=False)                                *vpe.echo_msg*
-    Like |error_msg|, but for information.
+    args
+      All non-keyword arguments are converted to strings before output.
 
-    Parameters
+    soon
+      If set, delay invocation until the back in the Vim main loop.
 
-      args
-        All non-keyword arguments are converted to strings before output.
+vpe.error_msg(*args, soon=False)                    *error_msg* *vpe.error_msg*
+  A print-like function that writes an error message.
 
-      soon
-        If set, delay invocation until the back in the Vim main loop.
+  Unlike using sys.stderr directly, this does not raise a vim.error.
 
-  -----------------------------------------------------------------------------~
-  3.6. error_msg~                                               *vpe.error-msg*
+  Parameters
 
-  vpe.error_msg(*args, soon=False)                  *error_msg* *vpe.error_msg*
-    A print-like function that writes an error message.
+    args
+      All non-keyword arguments are converted to strings before output.
 
-    Unlike using sys.stderr directly, this does not raise a vim.error.
-
-    Parameters
-
-      args
-        All non-keyword arguments are converted to strings before output.
-
-      soon
-        If set, delay invocation until the back in the Vim main loop.
-
-  -----------------------------------------------------------------------------~
-  3.7. find_buffer_by_name~                           *vpe.find-buffer-by-name*
+    soon
+      If set, delay invocation until the back in the Vim main loop.
 
                                                       *vpe.find_buffer_by_name*
-  vpe.find_buffer_by_name(name: str) -> vpe.wrappers.Buffer | None
-    Find the buffer with a given name.
+vpe.find_buffer_by_name(name: str) -> vpe.wrappers.Buffer | None
+  Find the buffer with a given name.
 
-    The name must be an exact match.
+  The name must be an exact match.
 
-    Parameters
+  Parameters
 
-      name: str
-        The name of the buffer to find.
+    name: str
+      The name of the buffer to find.
 
-  -----------------------------------------------------------------------------~
-  3.8. get_display_buffer~                             *vpe.get-display-buffer*
-
-  vpe.get_display_buffer(...)     *get_display_buffer* *vpe.get_display_buffer*
-      >
-      get_display_buffer(
-              name: str,
-              buf_class: Type[ScratchBuffer] = <class 'vpe.core.ScratchBuffer'>
+vpe.get_display_buffer(...)       *get_display_buffer* *vpe.get_display_buffer*
+    >
+    get_display_buffer(
+            name: str,
+            buf_class: Type[ScratchBuffer] = <class 'vpe.core.ScratchBuffer'>
 <
-    Get a named display-only buffer.
+  Get a named display-only buffer.
 
-    The actual buffer name will be of the form ‘/[[name]]’. The buffer is
-    created if it does not already exist.
+  The actual buffer name will be of the form ‘/[[name]]’. The buffer is created
+  if it does not already exist.
 
-    Parameters
+  Parameters
 
-      name: str
-        An identifying name for this buffer. This becomes the
-        |vpe.ScratchBuffer.simple_name| attribute.
+    name: str
+      An identifying name for this buffer. This becomes the
+      |vpe.ScratchBuffer.simple_name| attribute.
 
-  -----------------------------------------------------------------------------~
-  3.9. highlight~                                               *vpe.highlight*
-
-  vpe.highlight(...)
-      >
-      highlight(
-              group: str | None = None,
-              clear: bool = False,
-              default: bool = False,
-              link: str | None = None,
-              disable: bool = False,
-              dump: bool = False,
-              file: TextIO = None,
+vpe.highlight(...)                                              *vpe.highlight*
+    >
+    highlight(
+            group: str | None = None,
+            clear: bool = False,
+            default: bool = False,
+            link: str | None = None,
+            disable: bool = False,
+            dump: bool = False,
+            file: TextIO = None,
 <
-    Execute a highlight command.
+  Execute a highlight command.
 
-    This provides keyword arguments for all the command parameters. These are
-    generally taken from the `:highlight` command’s documentation.
+  This provides keyword arguments for all the command parameters. These are
+  generally taken from the `:highlight` command’s documentation.
 
-    Parameters
+  Parameters
 
-      group: str | None
-        The name of the group being defined. If omitted then all other
-        arguments except clear are ignored.
+    group: str | None
+      The name of the group being defined. If omitted then all other arguments
+      except clear are ignored.
 
-      clear: bool
-        If set then the command highlight clear [<group>] is generated. All
-        other arguments are ignored.
+    clear: bool
+      If set then the command highlight clear [<group>] is generated. All other
+      arguments are ignored.
 
-      disable: bool
-        If set then the specified group is disabled using the command:
+    disable: bool
+      If set then the specified group is disabled using the command:
 
-          highlight <group> NONE
+        highlight <group> NONE
 
-      link: str | None
-        If set then a link command will be generated of the form:
+    link: str | None
+      If set then a link command will be generated of the form:
 
-          highlight link <group> <link>.
+        highlight link <group> <link>.
 
-        Other arguments are ignored.
+      Other arguments are ignored.
 
-      default: bool
-        If set then the generated command has the form highlight default....
+    default: bool
+      If set then the generated command has the form highlight default....
 
-      dump: bool
-        Print the command’s arguments, for debugging use.
+    dump: bool
+      Print the command’s arguments, for debugging use.
 
-      kwargs
-        The remaining keyword arguments act like the `:highlight` command’s
-        keyword arguments.
+    kwargs
+      The remaining keyword arguments act like the `:highlight` command’s
+      keyword arguments.
 
-  -----------------------------------------------------------------------------~
-  3.10. pedit~                                                      *vpe.pedit*
+vpe.pedit(path: str, silent=True, noerrors=False)                   *vpe.pedit*
+  Edit file in the preview window.
 
-  vpe.pedit(path: str, silent=True, noerrors=False)
-    Edit file in the preview window.
+  Parameters
 
-    Parameters
+    path: str
+      The files path.
 
-      path: str
-        The files path.
+    silent
+      If true then run the :pedit command silently.
 
-      silent
-        If true then run the :pedit command silently.
+    noerrors
+      If true then add ‘!’ to suppress errors.
 
-      noerrors
-        If true then add ‘!’ to suppress errors.
+vpe.popup_clear(force=False)                                  *vpe.popup_clear*
+  Convenience function that invokes |vpe.Popup.clear|.
 
-  -----------------------------------------------------------------------------~
-  3.11. popup_clear~                                          *vpe.popup-clear*
+vpe.script_py_path() -> str                                *vpe.script_py_path*
+  Derive a python script name from the current Vim script name.
 
-  vpe.popup_clear(force=False)                                *vpe.popup_clear*
-    Convenience function that invokes |vpe.Popup.clear|.
+vpe.timer_stopall()                                         *vpe.timer_stopall*
+  Convenience function that invokes |vpe.Timer.stop_all|.
 
-  -----------------------------------------------------------------------------~
-  3.12. script_py_path~                                    *vpe.script-py-path*
+vpe.warning_msg(*args, soon=False)                            *vpe.warning_msg*
+  A print-like function that writes a warning message.
 
-  vpe.script_py_path() -> str                              *vpe.script_py_path*
-    Derive a python script name from the current Vim script name.
+  Parameters
 
-  -----------------------------------------------------------------------------~
-  3.13. timer_stopall~                                      *vpe.timer-stopall*
+    args
+      All non-keyword arguments are converted to strings before output.
 
-  vpe.timer_stopall()                                       *vpe.timer_stopall*
-    Convenience function that invokes |vpe.Timer.stop_all|.
-
-  -----------------------------------------------------------------------------~
-  3.14. warning_msg~                                          *vpe.warning-msg*
-
-  vpe.warning_msg(*args, soon=False)                          *vpe.warning_msg*
-    A print-like function that writes a warning message.
-
-    Parameters
-
-      args
-        All non-keyword arguments are converted to strings before output.
-
-      soon
-        If set, delay invocation until the back in the Vim main loop.
+    soon
+      If set, delay invocation until the back in the Vim main loop.
 
   -----------------------------------------------------------------------------~
                     *vpe.module-app_ui_support* *vpe.module-vpe-app-ui-support*
-  3.15. Module vpe.app_ui_support~
+  3.1. Module vpe.app_ui_support~
 
   Application level user interface support.
 
@@ -2129,34 +2101,370 @@ class vpe.temp_active_window(win: |Window|)            *vpe.temp_active_window*
           w: AppWin
             The window bein searched for.
 
+  app_ui_support.attach_vars(**kwargs)             *app_ui_support.attach_vars*
+    Decorator to attach variables to a function.
 
-    3.15.1. attach_vars~                                      *vpe.attach-vars*
+    Parameters
 
-    app_ui_support.attach_vars(**kwargs)           *app_ui_support.attach_vars*
-      Decorator to attach variables to a function.
-
-      Parameters
-
-        kwargs
-          The names and initial values of the variables to add.
-
-
-    3.15.2. get_app_win_info~                            *vpe.get-app-win-info*
+      kwargs
+        The names and initial values of the variables to add.
 
                                               *app_ui_support.get_app_win_info*
-    app_ui_support.get_app_win_info() -> |AppWin| | None
-      Get information about the Vim application window.
-
-
-    3.15.3. get_display_info~                            *vpe.get-display-info*
+  app_ui_support.get_app_win_info() -> |AppWin| | None
+    Get information about the Vim application window.
 
                                               *app_ui_support.get_display_info*
-    app_ui_support.get_display_info() -> |Displays|
-      Get information about the displays (screens).
+  app_ui_support.get_display_info() -> |Displays|
+    Get information about the displays (screens).
 
   -----------------------------------------------------------------------------~
-                                *vpe.module-channels* *vpe.module-vpe-channels*
-  3.16. Module vpe.channels~
+  3.2. Module vpe.argparse~     *vpe.module-argparse* *vpe.module-vpe-argparse*
+
+  Thin wrapper around the standard argparse module.
+
+  This modifies the standard library argparse as follows:
+
+    - Prevents calls to sys.exit() during argument parsing, when the
+      exit_on_error option is cleared. (As of Python 3.9.3) the exit_on_error
+      construction argument does not not seem to work correctly.)
+
+    - Adds support for partial command completion.
+
+    - Adds the SubcommandParser, which extends support for command completion
+      with subcommands.
+
+  class argparse.ArgumentError(message)                *argparse.ArgumentError*
+    Exception raised when a parse error occurs.
+
+                                     *ArgumentParser* *argparse.ArgumentParser*
+  class argparse.ArgumentParser(command_name: str, *args, **kwargs)
+    A modified argparse.ArgumentParser.
+
+    This is fairly thin wrapper around the standard library argparse’s
+    ArgumentParser. The changes are:
+
+      - The parse_args and parse_known_args methods do not try to invoke
+        sys.exit() when exit_on_error is False.
+
+      - It has support for partial command completions that work the way I
+        expect.
+
+      - Some features that do not make sense within the Vim environment, such as
+        reading arguments from files) are disabled.
+
+      - The word ‘prog’ is generally replaced by ‘command_name’.
+
+    Methods
+
+      add_argument(*args, **kwargs)      *argparse.ArgumentParser.add_argument*
+        Define how a single command-line argument should be parsed.
+
+        This wraps the standard method in order to support command completion.
+
+                                  *argparse.ArgumentParser.do_parse_known_args*
+      do_parse_known_args(args: Sequence[str]) -> tuple[Namespace, list[str]]
+        Parse known arguments, stopping at a sub-command.
+
+        This is a modified version from the Python 3.11 standard library. The
+        changes are:
+
+          - Reading arguments from a file is not supported.
+
+      error(message)                            *argparse.ArgumentParser.error*
+        Raise ArgumentError or print message and exit.
+
+        This extends the standard method to prevent attempting to exit the
+        program during argument parsing. If parsing is in progress, the message
+        is used to raise an ArgumentError.
+
+      exit(status=0, message=None)               *argparse.ArgumentParser.exit*
+        Raise ArgumentError and optionally print a message.
+
+        This overrides the standard method to prevent attempting to exit the
+        program during argument parsing.
+
+                                      *argparse.ArgumentParser.get_completions*
+      get_completions(args: Sequence[str], at_new_arg: bool) -> list[str]
+        Get the possible completions for a partial command.
+
+        Parameters
+
+          args: Sequence
+            The list of arguments parsed so far.
+
+          at_new_arg: bool
+            Set to indicate that args[-1] is not a partial argument.
+
+        Return value
+
+        A list of possible completion strings.
+
+      parse_args(args: Sequence[str])      *argparse.ArgumentParser.parse_args*
+        Convert argument strings to attributes of the namespace.
+
+                                     *argparse.ArgumentParser.parse_known_args*
+      parse_known_args(args=None, namespace=None) -> tuple[Namespace, list[str]]
+        Parse known arguments from the command line.
+
+        This version does not try to sys.exit().
+
+        As of Python 3.9.3, the exit_on_error initialisation argument does not
+        work in the way expect.
+
+      print_help(_file=None) -> None       *argparse.ArgumentParser.print_help*
+        Display the help message.
+
+                                           *CommandBase* *argparse.CommandBase*
+  class argparse.CommandBase(command_name: str, parent: |CommandBase| | None)
+    Base for a simple command or sub-command.
+
+    Methods
+
+      add_arguments() -> None              *argparse.CommandBase.add_arguments*
+        Add the arguments for this command.
+
+                                           *argparse.CommandBase.create_parser*
+      create_parser() -> |ArgumentParser|
+        Create the argument parser for this command.
+
+      handle_command(args: Namespace)     *argparse.CommandBase.handle_command*
+        Handle this command.
+
+      process_command(...)               *argparse.CommandBase.process_command*
+          >
+          process_command(
+                  cmd_info: common.CommandInfo,
+                  subcommands: tuple[tuple[str, ArgumentParser]],
+                  vim_cmd_args: tuple[str]
+<
+        Process this command or subcommand.
+
+        Parameters
+
+          cmd_info: CommandInfo
+            Information about the Vpe command, such as counts or line ranges.
+
+          subcommands: tuple
+            A sequence of earlier subcommands and parsed options.
+
+          vim_cmd_args: tuple
+            The command and arguments that Vim has parsed from the command
+            line.
+
+  class argparse.HelpAction(...)                          *argparse.HelpAction*
+      >
+      HelpAction(
+              option_strings,
+              dest='==SUPPRESS==',
+              default='==SUPPRESS==',
+<
+    A replacement for the standard argparse help action.
+
+  class argparse.Stop                                           *argparse.Stop*
+    Raised to prevent further processing.
+
+                                     *SubCommandBase* *argparse.SubCommandBase*
+  class argparse.SubCommandBase(command_name: str, parent: |SubCommandBase| | None)
+    Base for a command that has sub-commands.
+
+    Methods
+
+                                        *argparse.SubCommandBase.create_parser*
+      create_parser() -> |ArgumentParser|
+        Create the argument parser for this subcommand handler.
+
+                                      *argparse.SubCommandBase.get_completions*
+      get_completions(vim_args: list[str], at_new_arg: bool) -> list[str]
+        Attempt command line completion for this command.
+
+        Parameters
+
+          vim_args: list
+            The vim command line arguments that are before the cursor.
+
+          at_new_arg: bool
+            True if the cursor’s position is where a new argument/subcommand
+            should be inserted.
+
+        Return value
+
+        A list strings representing the the possible completions.
+
+                                 *argparse.SubCommandBase.handle_no_subcommand*
+      handle_no_subcommand(...)
+          >
+          handle_no_subcommand(
+                  cmd_info: common.CommandInfo,
+<
+        Handle the case of no subcommand provided.
+
+                                   *argparse.SubCommandBase.handle_sub_command*
+      handle_sub_command(subcommand: str, args: Namespace)
+        Execute a specific sub-command.
+
+      process_command(...)            *argparse.SubCommandBase.process_command*
+          >
+          process_command(
+                  cmd_info: common.CommandInfo,
+                  subcommands: tuple[tuple[str, ArgumentParser]],
+                  vim_cmd_args: tuple[str]
+<
+        Process this command or subcommand.
+
+        Parameters
+
+          cmd_info: CommandInfo
+            Information about the Vpe command, such as counts or line ranges.
+
+          subcommands: tuple
+            A sequence of earlier subcommands and parsed options.
+
+          vim_cmd_args: tuple
+            The command and arguments that Vim has parsed from the command
+            line.
+
+  class argparse.SubcommandAction(...)              *argparse.SubcommandAction*
+      >
+      SubcommandAction(
+              option_strings,
+              subcommands_table: SubcommandsTable,
+              dest=None,
+              default=None,
+              help=None,
+<
+    An action for subcommands.
+
+                                 *SubcommandParser* *argparse.SubcommandParser*
+  class argparse.SubcommandParser(...)
+      >
+      SubcommandParser(
+              command_name: str,
+              subcommands_table: SubcommandsTable,
+              *args,
+              parent: ArgumentParser | None = None,
+<
+    A ArgumentParser that uses a set of subcommands.
+
+    This provides an alternative to using the add_subparsers method in the
+    standard library’s ArgumentParser. The results obtained are essentially the
+    same, but with added support for command completion.
+
+    Properties
+
+      property usage_prefix -> str     *argparse.SubcommandParser.usage_prefix*
+        The prefix for usage messages.
+
+    Methods
+
+      add_parser(name, **kwargs)         *argparse.SubcommandParser.add_parser*
+        Add an |ArgumentParser| for a subcommand.
+
+        An ArgumentParser is created, with exit_on_error=False. You should not
+        include exit_on_error in the keywrod argument of this method.
+
+        Parameters
+
+          name
+            The name of the subcommand.
+
+          kwargs
+            The keyword arguments for the subcommand’s ArgumentParser.
+
+        Return value
+
+        The ArgumentParser for the subcommand.
+
+                              *argparse.SubcommandParser.add_subcommand_parser*
+      add_subcommand_parser(name: str, subcommands_table: SubcommandsTable, **kwargs)
+        Add a |SubcommandParser| for a subcommand.
+
+        A SubcommandParser is created, with exit_on_error=False. You should not
+        include exit_on_error in the keyword arguments of this method.
+
+        Parameters
+
+          name: str
+            The name of the subcommand.
+
+          subcommands_table: dict
+            The table of subcommands, which provides the names and summary.
+
+          kwargs
+            The keyword arguments for the subcommand’s SubcommandParser.
+
+        Return value
+
+        The SubcommandParser for the subcommand.
+
+                                    *argparse.SubcommandParser.get_completions*
+      get_completions(args: Sequence[str], at_new_arg: bool)
+        Get the possible completions for a partial command.
+
+        Parameters
+
+          args: Sequence
+            The list of arguments parsed so far.
+
+          at_new_arg: bool
+            If false then create completions using args[-1] as the starting
+            point. Otherwise generate all possible values for the next
+            argument.
+
+        Return value
+
+        A list of possible completion strings.
+
+      parse_args(args: tuple[str])       *argparse.SubcommandParser.parse_args*
+        Parse the command arguments.
+
+        Most of the work is done in parse_known_args, which converts arguments
+        to actions, executing them as it goes. Most actions simply update this
+        parser’s Namespace, but a few (such as help) perform more complex
+        actions.
+
+                                           *argparse.TopLevelSubCommandHandler*
+  class argparse.TopLevelSubCommandHandler(command_name: str)
+    Base for a top-level sub-command handler.
+
+    This provides the main parser for a command that is composed of sub-
+    commands.
+
+    Methods
+
+                             *argparse.TopLevelSubCommandHandler.create_parser*
+      create_parser() -> None
+        Create the sub-command argument parser for this command.
+
+    Class methods
+
+                                  *argparse.TopLevelSubCommandHandler.complete*
+      classmethod complete() -> list[str]
+        Attempt command line completion for a command.
+
+        Return value
+
+        A list strings representing the the possible completions.
+
+                                                        *argparse.unique_match*
+  argparse.unique_match(text: str, choices: list[str]) -> tuple[str, list[str]]
+    Try to find a unique match within choices that starts with text.
+
+    Parameters
+
+      text: str
+        The text to match.
+
+      choices: list
+        The choices from which to select the match.
+
+    Return value
+
+    A tuple of (match, matches). The match is an empty string if no unique
+    match was found, in which case matches is a, possibly empty, list of
+    partial matches.
+
+  -----------------------------------------------------------------------------~
+  3.3. Module vpe.channels~     *vpe.module-channels* *vpe.module-vpe-channels*
 
   Pythonic wrappers for Vim’s channels.
 
@@ -2429,7 +2737,7 @@ class vpe.temp_active_window(win: |Window|)            *vpe.temp_active_window*
         Mark as closed and release the underlying reference variable.
 
   -----------------------------------------------------------------------------~
-  3.17. Module vpe.config~          *vpe.module-config* *vpe.module-vpe-config*
+  3.4. Module vpe.config~           *vpe.module-config* *vpe.module-vpe-config*
 
   Support for managing configuration information.
 
@@ -2658,7 +2966,7 @@ class vpe.temp_active_window(win: |Window|)            *vpe.temp_active_window*
         Try to set this option’s value.
 
   -----------------------------------------------------------------------------~
-  3.18. Module vpe.core~                *vpe.module-core* *vpe.module-vpe-core*
+  3.5. Module vpe.core~                 *vpe.module-core* *vpe.module-vpe-core*
 
   Enhanced module for using Python3 in Vim.
 
@@ -2683,7 +2991,164 @@ class vpe.temp_active_window(win: |Window|)            *vpe.temp_active_window*
         The argument as a string representing the Vim expression.
 
   -----------------------------------------------------------------------------~
-  3.19. Module vpe.mapping~       *vpe.module-mapping* *vpe.module-vpe-mapping*
+  3.6. Module vpe.diffs~              *vpe.module-diffs* *vpe.module-vpe-diffs*
+
+  Types involved in tracking changes.
+
+                                                          *AddOp* *diffs.AddOp*
+  class diffs.AddOp(lnum: int, end: int, added: int, col: int)
+    A buffer addition operation.
+
+    Methods
+
+      apply_to(buf: MutableSequence[str])                *diffs.AddOp.apply_to*
+        Apply this change to the supplied buffer.
+
+                                                    *ChangeOp* *diffs.ChangeOp*
+  class diffs.ChangeOp(lnum: int, end: int, added: int, col: int)
+    A buffer change operation.
+
+    Methods
+
+      apply_to(buf: MutableSequence[str])             *diffs.ChangeOp.apply_to*
+        Apply this change to the supplied buffer - a null operation.
+
+                                                    *DeleteOp* *diffs.DeleteOp*
+  class diffs.DeleteOp(lnum: int, end: int, added: int, col: int)
+    A buffer deletion operation.
+
+    Methods
+
+      apply_to(buf: MutableSequence[str])             *diffs.DeleteOp.apply_to*
+        Apply this change to the supplied buffer.
+
+                                                  *Operation* *diffs.Operation*
+  class diffs.Operation(lnum: int, end: int, added: int, col: int)
+    Base for each type of a line buffer modification.
+
+    This stores information about changes to a sub-sequence of lines. This
+    stores information about what has changed, not the details of the change.
+    For example, it will identify that N lines have been added after a given
+    line, but not the contents of those new lines.
+
+    This is not directly instantiated by VPE code, one of the subclasses
+    |AddOp|, |DeleteOp| or |ChangeOp| is always used. And these should be
+    created using the |from_vim_change| class method.
+
+    Parameters
+
+      lnum
+        The Vim lnum for a change.
+
+      end
+        The Vim emd for a change.
+
+      added
+        The Vim added for a change.
+
+      col
+        The Vim column for a change.
+
+    Attributes
+
+      a                                                     *diffs.Operation.a*
+        The start of the affected line range == lnum - 1.
+
+      b                                                     *diffs.Operation.b*
+        The end of the affected line range  == end - 1.
+
+      col                                                 *diffs.Operation.col*
+        The first affected column == col - 1. This is a value the Vim supplies
+        buffer listener callbacks. It is stored here but not used by any
+        methods.
+
+      delta                                             *diffs.Operation.delta*
+        The change in line count, set from added.
+
+      name: ClassVar:                                    *diffs.Operation.name*
+        The start of the affected line range == lnum - 1.
+
+    Properties
+
+      property count -> int                             *diffs.Operation.count*
+        The number of lines affected.
+
+        This is always zero or more, zero indicating a change operation.
+
+                                                    *diffs.Operation.operation*
+      property operation -> Literal['add', 'delete', 'change']
+        The operation name - this is deprecated; use |name|.
+
+    Methods
+
+      __getitem__(key)                            *diffs.Operation.__getitem__*
+        Emulation of Vim’s buffer modification operation dictionary.
+
+        This is provided to avoid breaking the VPE 0.6 API too much, but using
+        this is deprecated.
+
+      apply_to(buf: MutableSequence[str])            *diffs.Operation.apply_to*
+        Simplistically apply this change to a line buffer.
+
+          NOTE: This method may be removed because its usefulness is very
+            questionable.
+
+        This adds blank lines, delete lines or replaces lines with empty
+        strings, depending on the specific Operation subclass.
+
+        This is necessarily a simplistic operation because the |Operation|
+        class does not store contents of added or changed lines.
+
+      items() -> Iterator[tuple[str, int]]              *diffs.Operation.items*
+        Emulation of Vim’s buffer modification operation dictionary.
+
+        This is provided to avoid breaking the VPE 0.6 API too much, but using
+        this is deprecated.
+
+    Class methods
+
+                                                       *diffs.Operation.create*
+      classmethod create(lnum: int, end: int, added: int, col: int = 1) -> |Operation|
+        Create the appropriate Operation subclass.
+
+        Parameters
+
+          lnum: int
+            The starting line number for the operation.
+
+          end: int
+            The ending line number (exclusive) for the operation.
+
+          added: int
+            How many lines were added. A negative value indicates that lines
+            were deleted. A value of zero indicates that the lines were
+            changed.
+
+          col: int
+            The starting column for a change.
+
+                            *from_vim_change* *diffs.Operation.from_vim_change*
+      classmethod from_vim_change(lnum: int, end: int, added: int, col: int = 1) -> |Operation|
+        Create the appropriate Operation subclass.
+
+        Parameters
+
+          lnum: int
+            The starting line number for the operation.
+
+          end: int
+            The ending line number (exclusive) for the operation.
+
+          added: int
+            How many lines were added. A negative value indicates that lines
+            were deleted. A value of zero indicates that the lines were
+            changed.
+
+          col: int
+            The starting column for a change.
+
+  -----------------------------------------------------------------------------~
+  3.7. Module vpe.mapping~        *vpe.module-mapping* *vpe.module-vpe-mapping*
 
   Python support for key sequence mapping.
 
@@ -2778,175 +3243,160 @@ class vpe.temp_active_window(win: |Window|)            *vpe.temp_active_window*
 
         This is a Python style range.
 
-
-    3.19.1. imap~                                                    *vpe.imap*
-
-    mapping.imap(...)                                     *imap* *mapping.imap*
-        >
-        imap(
-                keys: Union[str, Iterable[str]],
-                func: Union[Callable, str],
-                buffer: bool = True,
-                silent: bool = True,
-                unique: bool = False,
-                pass_info=True,
-                nowait: bool = False,
-                command: bool = False,
-                args=(),
-                kwargs: Optional[dict] = None,
+  mapping.imap(...)                                       *imap* *mapping.imap*
+      >
+      imap(
+              keys: Union[str, Iterable[str]],
+              func: Union[Callable, str],
+              buffer: bool = True,
+              silent: bool = True,
+              unique: bool = False,
+              pass_info=True,
+              nowait: bool = False,
+              command: bool = False,
+              args=(),
+              kwargs: Optional[dict] = None,
 <
-      Set up an insert mapping that invokes a Python function.
+    Set up an insert mapping that invokes a Python function.
 
-      See |map| for argument details.
+    See |map| for argument details.
 
-
-    3.19.2. map~                                                      *vpe.map*
-
-    mapping.map(...)                                        *map* *mapping.map*
-        >
-        map(
-                mode: str,
-                keys: Union[str, Iterable[str]],
-                func: Union[Callable, str],
-                buffer: bool = True,
-                silent: bool = True,
-                unique: bool = False,
-                nowait: bool = False,
-                command: bool = False,
-                pass_info=True,
-                args=(),
-                kwargs: Optional[dict] = None,
+  mapping.map(...)                                          *map* *mapping.map*
+      >
+      map(
+              mode: str,
+              keys: Union[str, Iterable[str]],
+              func: Union[Callable, str],
+              buffer: bool = True,
+              silent: bool = True,
+              unique: bool = False,
+              nowait: bool = False,
+              command: bool = False,
+              pass_info=True,
+              args=(),
+              kwargs: Optional[dict] = None,
 <
-      Set up a key mapping that invokes a Python function.
+    Set up a key mapping that invokes a Python function.
 
-      By default, the effective map command has the form:
+    By default, the effective map command has the form:
 
-        {m}noremap <buffer> <silent> keys …
+      {m}noremap <buffer> <silent> keys …
 
-      Where {m} is one of n, x, o, i.
+    Where {m} is one of n, x, o, i.
 
-      The noremap form is always used.
+    The noremap form is always used.
 
-      By default the first argument passed to the mapped function is a
-      |MappingInfo| object. The pass_info argument can be used to prevent this.
-      Additional arguments can be speficied using args and kwargs.
+    By default the first argument passed to the mapped function is a
+    |MappingInfo| object. The pass_info argument can be used to prevent this.
+    Additional arguments can be speficied using args and kwargs.
 
-      For convenience, mode specific versions are provided (|nmap|, |xmap|,
-      |omap| and |imap|). See those for details of what he mapped function can
-      do. It is recommended that these mode specific versions are use in
-      preference to this function.
+    For convenience, mode specific versions are provided (|nmap|, |xmap|,
+    |omap| and |imap|). See those for details of what he mapped function can
+    do. It is recommended that these mode specific versions are use in
+    preference to this function.
 
-      The func argument may also be a string, in which case it is interpreted
-      as the literal RHS of the key mapping.
+    The func argument may also be a string, in which case it is interpreted as
+    the literal RHS of the key mapping.
 
-      Parameters
+    Parameters
 
-        mode: str
-          A string defining the mode in which the mapping occurs. This should
-          be one of: normal, visual, op-pending, insert, command, select. The
-          command and select mode are not supported when func is not a string.
+      mode: str
+        A string defining the mode in which the mapping occurs. This should be
+        one of: normal, visual, op-pending, insert, command, select. The
+        command and select mode are not supported when func is not a string.
 
-        keys: Union
-          The key sequence to be mapped. This may be an iterable set of key
-          sequences that should all be mapped to the same action.
+      keys: Union
+        The key sequence to be mapped. This may be an iterable set of key
+        sequences that should all be mapped to the same action.
 
-        func: Union
-          The Python function to invoke for the mapping or a string to use as
-          the right hand side of the mapping.
+      func: Union
+        The Python function to invoke for the mapping or a string to use as the
+        right hand side of the mapping.
 
-        buffer: bool
-          Use the <buffer> special argument. Defaults to True.
+      buffer: bool
+        Use the <buffer> special argument. Defaults to True.
 
-        silent: bool
-          Use the <silent> special argument. Defaults to True.
+      silent: bool
+        Use the <silent> special argument. Defaults to True.
 
-        unique: bool
-          Use the <unique> special argument. Defaults to False.
+      unique: bool
+        Use the <unique> special argument. Defaults to False.
 
-        nowait: bool
-          Use the <nowait> special argument. Defaults to False.
+      nowait: bool
+        Use the <nowait> special argument. Defaults to False.
 
-        command: bool
-          Only applicable to insert mode. If true then the function is invoked
-          from the command prompt and the return value is not used. Otherwise
-          (the default) the function should return the text to be inserted.
+      command: bool
+        Only applicable to insert mode. If true then the function is invoked
+        from the command prompt and the return value is not used. Otherwise
+        (the default) the function should return the text to be inserted.
 
-        pass_info
-          If set then the first argument passed to func is a MappingInfo
-          object. Defaults to True.
+      pass_info
+        If set then the first argument passed to func is a MappingInfo object.
+        Defaults to True.
 
-        args
-          Additional arguments to pass to the mapped function.
+      args
+        Additional arguments to pass to the mapped function.
 
-        kwargs: Optional
-          Additional keyword arguments to pass to the mapped function.
+      kwargs: Optional
+        Additional keyword arguments to pass to the mapped function.
 
-        vim_exprs: Tuple
-          Vim expressions to be evaluated and passed to the callback function,
-          when the mapping is triggered.
+      vim_exprs: Tuple
+        Vim expressions to be evaluated and passed to the callback function,
+        when the mapping is triggered.
 
-
-    3.19.3. nmap~                                                    *vpe.nmap*
-
-    mapping.nmap(...)                                     *nmap* *mapping.nmap*
-        >
-        nmap(
-                keys: Union[str, Iterable[str]],
-                func: Union[Callable, str],
-                buffer: bool = True,
-                silent: bool = True,
-                unique: bool = False,
-                pass_info=True,
-                nowait: bool = False,
-                args=(),
-                kwargs: Optional[dict] = None,
+  mapping.nmap(...)                                       *nmap* *mapping.nmap*
+      >
+      nmap(
+              keys: Union[str, Iterable[str]],
+              func: Union[Callable, str],
+              buffer: bool = True,
+              silent: bool = True,
+              unique: bool = False,
+              pass_info=True,
+              nowait: bool = False,
+              args=(),
+              kwargs: Optional[dict] = None,
 <
-      Set up a normal mode  mapping that invokes a Python function.
+    Set up a normal mode  mapping that invokes a Python function.
 
-      See |map| for argument details.
+    See |map| for argument details.
 
-
-    3.19.4. omap~                                                    *vpe.omap*
-
-    mapping.omap(...)                                     *omap* *mapping.omap*
-        >
-        omap(
-                keys: Union[str, Iterable[str]],
-                func: Union[Callable, str],
-                buffer: bool = True,
-                silent: bool = True,
-                unique: bool = False,
-                pass_info=True,
-                nowait: bool = False,
-                args=(),
-                kwargs: Optional[dict] = None,
+  mapping.omap(...)                                       *omap* *mapping.omap*
+      >
+      omap(
+              keys: Union[str, Iterable[str]],
+              func: Union[Callable, str],
+              buffer: bool = True,
+              silent: bool = True,
+              unique: bool = False,
+              pass_info=True,
+              nowait: bool = False,
+              args=(),
+              kwargs: Optional[dict] = None,
 <
-      Set up an operator-pending mode mapping that invokes a Python function.
+    Set up an operator-pending mode mapping that invokes a Python function.
 
-      See |map| for argument details.
+    See |map| for argument details.
 
-
-    3.19.5. xmap~                                                    *vpe.xmap*
-
-    mapping.xmap(...)                                     *xmap* *mapping.xmap*
-        >
-        xmap(
-                keys: Union[str, Iterable[str]],
-                func: Union[Callable, str],
-                buffer: bool = True,
-                silent: bool = True,
-                unique: bool = False,
-                pass_info=True,
-                nowait: bool = False,
-                args=(),
-                kwargs: Optional[dict] = None,
+  mapping.xmap(...)                                       *xmap* *mapping.xmap*
+      >
+      xmap(
+              keys: Union[str, Iterable[str]],
+              func: Union[Callable, str],
+              buffer: bool = True,
+              silent: bool = True,
+              unique: bool = False,
+              pass_info=True,
+              nowait: bool = False,
+              args=(),
+              kwargs: Optional[dict] = None,
 <
-      Set up a visual mode mapping that invokes a Python function.
+    Set up a visual mode mapping that invokes a Python function.
 
-      See |map| for argument details.
+    See |map| for argument details.
 
   -----------------------------------------------------------------------------~
-  3.20. Module vpe.panels~          *vpe.module-panels* *vpe.module-vpe-panels*
+  3.8. Module vpe.panels~           *vpe.module-panels* *vpe.module-vpe-panels*
 
   Simple display and control panel framework.
 
@@ -3166,14 +3616,11 @@ class vpe.temp_active_window(win: |Window|)            *vpe.temp_active_window*
       schedule_win_op(key, func, *args)
         Schedule an operation for when the buffer appears in a window.
 
-
-    3.20.1. can_cause_changes~                          *vpe.can-cause-changes*
-
-    panels.can_cause_changes(method)                 *panels.can_cause_changes*
-      Decorator for |Panel| methods that can cause visible changes.
+  panels.can_cause_changes(method)                   *panels.can_cause_changes*
+    Decorator for |Panel| methods that can cause visible changes.
 
   -----------------------------------------------------------------------------~
-  3.21. Module vpe.syntax~          *vpe.module-syntax* *vpe.module-vpe-syntax*
+  3.9. Module vpe.syntax~           *vpe.module-syntax* *vpe.module-vpe-syntax*
 
   A pythonic API for creating syntax highlighting definitions.
 
@@ -3975,61 +4422,52 @@ class vpe.temp_active_window(win: |Window|)            *vpe.temp_active_window*
         value is a string of the form name=value[,…], ready to use in the Vim
         syntax command.
 
-
-    3.21.1. convert_syntax_options~                *vpe.convert-syntax-options*
-
                                                 *syntax.convert_syntax_options*
-    syntax.convert_syntax_options(syn, options) -> dict
-      Convert values in a dictionary of option to |Option| instances.
+  syntax.convert_syntax_options(syn, options) -> dict
+    Convert values in a dictionary of option to |Option| instances.
 
-      Parameters
+    Parameters
 
-        options
-          The dictionary containing keyword defined options.
+      options
+        The dictionary containing keyword defined options.
 
-      Return value
+    Return value
 
-      The same (modified in place) dictionary.
+    The same (modified in place) dictionary.
 
+  syntax.deliminate(pat: str) -> str                        *syntax.deliminate*
+    Put deliminators around a syntax expression.
 
-    3.21.2. deliminate~                                        *vpe.deliminate*
+    If reasonably sensible, a deliminator that is not part of the pattern is
+    used. If this is not possible then the double quote character is used and
+    any double quotes within the pattern are escaped with a backslash.
 
-    syntax.deliminate(pat: str) -> str                      *syntax.deliminate*
-      Put deliminators around a syntax expression.
+    Parameters
 
-      If reasonably sensible, a deliminator that is not part of the pattern is
-      used. If this is not possible then the double quote character is used and
-      any double quotes within the pattern are escaped with a backslash.
-
-      Parameters
-
-        pat: str
-          The pattern to be deliminated.
-
-
-    3.21.3. extract_keys~                                    *vpe.extract-keys*
+      pat: str
+        The pattern to be deliminated.
 
                                                           *syntax.extract_keys*
-    syntax.extract_keys(source_dict: dict, *keys: Any) -> dict
-      Extract a set of named items from a dictionary.
+  syntax.extract_keys(source_dict: dict, *keys: Any) -> dict
+    Extract a set of named items from a dictionary.
 
-      Any item in source_dict that has a key contained in keys is moved to a
-      new dictionary.
+    Any item in source_dict that has a key contained in keys is moved to a new
+    dictionary.
 
-      Parameters
+    Parameters
 
-        source_dict: dict
-          The dictionary from which to extract the items.
+      source_dict: dict
+        The dictionary from which to extract the items.
 
-        keys: Any
-          The keys for the items to extract.
+      keys: Any
+        The keys for the items to extract.
 
-      Return value
+    Return value
 
-      A new dictionary containing the items remove from the source_dict.
+    A new dictionary containing the items remove from the source_dict.
 
   -----------------------------------------------------------------------------~
-  3.22. Module vpe.ui~                      *vpe.module-ui* *vpe.module-vpe-ui*
+  3.10. Module vpe.ui~                      *vpe.module-ui* *vpe.module-vpe-ui*
 
   User interface components.
 
@@ -4363,27 +4801,23 @@ class vpe.temp_active_window(win: |Window|)            *vpe.temp_active_window*
 
         True if the value was modified.
 
+  ui.format_str(s: str, width: int) -> str                      *ui.format_str*
+    Format a string within a given field width.
 
-    3.22.1. format_str~                                        *vpe.format-str*
+    The string is truncated (if necessary) to the width and then left or right
+    justified within the width. A width of zero results in an empty string.
 
-    ui.format_str(s: str, width: int) -> str                    *ui.format_str*
-      Format a string within a given field width.
+    Parameters
 
-      The string is truncated (if necessary) to the width and then left or
-      right justified within the width. A width of zero results in an empty
-      string.
+      s: str
+        The string to justify.
 
-      Parameters
-
-        s: str
-          The string to justify.
-
-        width: int
-          The field width. Postive values mean left justified, negative mean
-          right justified.
+      width: int
+        The field width. Postive values mean left justified, negative mean
+        right justified.
 
   -----------------------------------------------------------------------------~
-  3.23. Module vpe.windows~       *vpe.module-windows* *vpe.module-vpe-windows*
+  3.11. Module vpe.windows~       *vpe.module-windows* *vpe.module-vpe-windows*
 
   Window specific support.
 
@@ -4498,7 +4932,7 @@ class vpe.temp_active_window(win: |Window|)            *vpe.temp_active_window*
 
   -----------------------------------------------------------------------------~
                                 *vpe.module-wrappers* *vpe.module-vpe-wrappers*
-  3.24. Module vpe.wrappers~
+  3.12. Module vpe.wrappers~
 
   Wrappers around the built-in Vim Python types.
 

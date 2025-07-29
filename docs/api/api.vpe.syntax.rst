@@ -958,8 +958,7 @@ A pythonic API for creating syntax highlighting definitions.
                 offsets value is a string of the form name=value[,...], ready to
                 use in the Vim syntax command.
 
-convert_syntax_options
-----------------------
+.. rubric:: convert_syntax_options
 
 .. py:function:: convert_syntax_options(syn,options) -> dict
 
@@ -979,8 +978,7 @@ convert_syntax_options
 
         The same (modified in place) dictionary.
 
-deliminate
-----------
+.. rubric:: deliminate
 
 .. py:function:: deliminate(pat: str) -> str
 
@@ -997,8 +995,7 @@ deliminate
         *pat*: str
             The pattern to be deliminated.
 
-extract_keys
-------------
+.. rubric:: extract_keys
 
 .. py:function:: extract_keys(source_dict: dict,*keys: Any) -> dict
 

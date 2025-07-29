@@ -428,8 +428,7 @@ This is still being developed. The API and behaviour is likely to change.
 
                 True if the value was modified.
 
-format_str
-----------
+.. rubric:: format_str
 
 .. py:function:: format_str(s: str,width: int) -> str
 

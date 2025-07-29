@@ -155,8 +155,7 @@ Currently this only works on X.Org based desktops.
                 *w*: AppWin
                     The window bein searched for.
 
-attach_vars
------------
+.. rubric:: attach_vars
 
 .. py:function:: attach_vars(**kwargs)
 
@@ -170,15 +169,13 @@ attach_vars
         *kwargs*
             The names and initial values of the variables to add.
 
-get_app_win_info
-----------------
+.. rubric:: get_app_win_info
 
 .. py:function:: get_app_win_info() -> Optional[AppWin]
 
     Get information about the Vim application window.
 
-get_display_info
-----------------
+.. rubric:: get_display_info
 
 .. py:function:: get_display_info() -> Displays
 

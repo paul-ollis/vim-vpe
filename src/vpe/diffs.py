@@ -23,16 +23,15 @@ class Operation:
     `AddOp`, `DeleteOp` or `ChangeOp` is always used. And these should be
     created using the `from_vim_change` class method.
 
-    :lnum:  The Vim lnum for a change.
-    :end:   The Vim emd for a change.
-    :added: The Vim added for a change.
-    :col:   The Vim column for a change.
+    :lnum:  The ``lnum`` value from a Vim change list entry.
+    :end:   The ``end`` value from a Vim change list entry.
+    :added: The ``added`` value from a Vim change list entry.
+    :col:   The ``col`` value from a Vim change list entry.
 
     @name:  The start of the affected line range == lnum - 1.
     @a:     The start of the affected line range == lnum - 1.
     @b:     The end of the affected line range  == end - 1.
     @delta: The change in line count, set from added.
-    @count: The number of affected abs(delta) / abs(added).
     @col:   The first affected column == col - 1. This is a value the Vim
             supplies buffer listener callbacks. It is stored here but not used
             by any methods.
@@ -163,7 +162,3 @@ class ChangeOp(Operation):
     def __repr__(self):
         name = self.__class__.__name__
         return f'<{name}:{self.a}.{self.col}-{self.b}>'
-
-
-# Deprecated names for backward compatability.
-BufOperation = Operation

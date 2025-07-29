@@ -117,8 +117,7 @@ calls.
 
             This is a Python style range.
 
-imap
-----
+.. rubric:: imap
 
 .. py:function:: imap(...)
 
@@ -140,8 +139,7 @@ imap
 
     See `map` for argument details.
 
-map
----
+.. rubric:: map
 
 .. py:function:: map(...)
 
@@ -221,8 +219,7 @@ map
             Vim expressions to be evaluated and passed to the callback
             function, when the mapping is triggered.
 
-nmap
-----
+.. rubric:: nmap
 
 .. py:function:: nmap(...)
 
@@ -243,8 +240,7 @@ nmap
 
     See `map` for argument details.
 
-omap
-----
+.. rubric:: omap
 
 .. py:function:: omap(...)
 
@@ -265,8 +261,7 @@ omap
 
     See `map` for argument details.
 
-xmap
-----
+.. rubric:: xmap
 
 .. py:function:: xmap(...)
 

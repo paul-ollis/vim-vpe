@@ -10,13 +10,11 @@ import itertools
 import pathlib
 import pprint
 import weakref
-from typing import (
-    Any, Callable, ClassVar, Iterator, NamedTuple, Optional, Type)
+from typing import Any, Callable, ClassVar, Iterator, Type
 
 import vim as _vim
 
-from vpe import common
-from vpe.vpe_lib import diffs, resources
+from vpe import common, diffs
 
 __all__ = ('tabpages', 'TabPage', 'Vim', 'Registers', 'vim',
            'Function', 'windows', 'Window',
@@ -283,14 +281,19 @@ class BufListener(common.Callback):
     One of these is created by `Buffer.add_listener`. Direct instantiation of
     this class is not recommended or supported.
 
-    :func:        The Python function or method to be called back.
-    :buf:         The `Buffer` instance.
-    :is_method:   If set then the buffer is not provided to callbacks.
-    :raw_changes: Include the raw changes as an additional argument:
+    :func:
+    The Python function or method to be called back.
+    :buf:
+        The `Buffer` instance.
+    :is_method:
+        If set then the buffer is not provided to callbacks.
+    :ops:
+        Include the `diffs.BufOperation` changes as an additional argument:
+    :raw_changes:
+        Include the raw changes as an additional argument:
 
     @listen_id: The unique ID from a :vim:`listener_add` invocation.
     """
-    listen_id: int
 
     def __init__(
             self, func, buf, is_method: bool, ops: bool = True,
@@ -302,6 +305,7 @@ class BufListener(common.Callback):
         self.is_method = is_method
         self.ops = ops
         self.raw_changes = raw_changes
+        self.listen_id: int = -1  # Gets set by creator.
 
     def flush(self):
         """Request that any pending callbacks are invoked for this listener."""
@@ -389,7 +393,6 @@ class Buffer(common.MutableSequenceProxy):
         self.__dict__['_number'] = buffer.number
         self.__dict__['_store'] = collections.defaultdict(Struct)
         self._known[buffer.number] = self
-        self.__dict__['_marker_sets']: dict[str, MarkerSet] = {}
         super().__init__()
 
     @property
@@ -447,7 +450,7 @@ class Buffer(common.MutableSequenceProxy):
         return iter(self._proxied)
 
     @classmethod
-    def get_known(cls, buffer: Any) -> Optional["Buffer"]:
+    def get_known(cls, buffer: Any) -> Buffer | None:
         """Get the Buffer instance for a given vim.buffer.
 
         This is only intended for internal use.
@@ -627,7 +630,7 @@ class Buffer(common.MutableSequenceProxy):
         return list(found.values())
 
     def find_best_active_window(
-            self, all_tabpages=False) -> Optional['Window']:
+            self, all_tabpages=False) -> Window | None:
         """Find the best choice for a window where this buffer is active.
 
         This returns the first entry found by `find_active_windows`.
@@ -639,7 +642,7 @@ class Buffer(common.MutableSequenceProxy):
         all_windows = self.find_active_windows(all_tabpages=all_tabpages)
         return all_windows[0] if all_windows else None
 
-    def goto_active_window(self, all_tabpages=False) -> Optional['Window']:
+    def goto_active_window(self, all_tabpages=False) -> Window | None:
         """Goto the best choice window where this buffer is active.
 
         This goes to the first entry found by `find_active_windows`.
@@ -699,10 +702,10 @@ class Buffer(common.MutableSequenceProxy):
         p_buf = weakref.proxy(self)
         if inst is self:
             cb = BufListener(
-                func, p_buf, is_method=True, raw_changes=raw_changes)
+                func, p_buf, is_method=True, raw_changes=raw_changes, ops=ops)
         else:
             cb = BufListener(
-                func, p_buf, is_method=False, raw_changes=raw_changes)
+                func, p_buf, is_method=False, raw_changes=raw_changes, ops=ops)
         cb.listen_id = vim.listener_add(cb.as_vim_function(), self.number)
         return cb
 

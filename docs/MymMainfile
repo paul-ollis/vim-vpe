@@ -77,17 +77,19 @@ KeepEnviron("PYTHONPATH")
 path = EnvironPath("PATH")
 
 api_files = '''
-    api/api.vpe.app_ui_support.rst
-    api/api.vpe.channels.rst
-    api/api.vpe.config.rst
-    api/api.vpe.core.rst
-    api/api.vpe.mapping.rst
-    api/api.vpe.panels.rst
-    api/api.vpe.rst
-    api/api.vpe.syntax.rst
-    api/api.vpe.ui.rst
-    api/api.vpe.windows.rst
-    api/api.vpe.wrappers.rst
+    guide/api/api.vpe.argparse.rst
+    guide/api/api.vpe.app_ui_support.rst
+    guide/api/api.vpe.channels.rst
+    guide/api/api.vpe.config.rst
+    guide/api/api.vpe.core.rst
+    guide/api/api.vpe.diffs.rst
+    guide/api/api.vpe.mapping.rst
+    guide/api/api.vpe.panels.rst
+    guide/api/api.vpe.rst
+    guide/api/api.vpe.syntax.rst
+    guide/api/api.vpe.ui.rst
+    guide/api/api.vpe.windows.rst
+    guide/api/api.vpe.wrappers.rst
 '''.split()
 api_files = [File(p) for p in api_files]
 

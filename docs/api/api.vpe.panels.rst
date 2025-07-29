@@ -269,8 +269,7 @@ managed by a `PanelViewBuffer`.
 
             Schedule an operation for when the buffer appears in a window.
 
-can_cause_changes
------------------
+.. rubric:: can_cause_changes
 
 .. py:function:: can_cause_changes(method)
 
