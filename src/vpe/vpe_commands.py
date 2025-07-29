@@ -94,56 +94,55 @@ class VPECommandProvider(TopLevelSubCommandHandler):
 
     sub_commands = {
         'log': (LogSubCommand, 'Log file management.'),
-        'insert_control_vars': (':simple', "Insert VPE's control variables"),
+        'insert_config': (':simple', 'Insert the vpe_config global variable.'),
     }
 
-    def handle_insert_control_vars(self) -> None:
-        """Execute the 'Vpe insert_control_vars' command."""
+    def handle_insert_config(self) -> None:
+        """Execute the 'Vpe insert_config' command."""
         vpe_vars = (
             (
-                'vpe_do_not_auto_import',
-                """Prevent any of the imports/namespace insertions. This is
-                equivalent to setting all the below variable to a true
-                value.""",
+                'import.vpe',
+                '''Import `vpe` imported into Vim's python namespace.''',
             ),
             (
-                'vpe_do_not_auto_import_vpe',
-                '''Prevent `vpe` being imported into Vim's python
+                'import.vim',
+                '''Import `vim` (the `Vim` singleton) into Vim's python
                 namespace.''',
             ),
             (
-                'vpe_do_not_auto_import_vim',
-                '''Prevent `vim` (the `Vim` singleton) being imported into
-                Vim's python namespace.''',
+                'import.vpe_into_builtins',
+                '''Import `vpe` into Pythons's builtins namespace.''',
             ),
             (
-                'vpe_do_not_auto_import_vpe_into_builtins',
-                '''Prevent `vpe` being imported into Pythons's builtins
+                'import.vim_into_builtins',
+                '''Import `vim` (the `Vim` singleton) into Python's builtins
                 namespace.''',
-            ),
-            (
-                'vpe_do_not_auto_import_vim_into_builtins',
-                '''Prevent `vim` (the `Vim` singleton) being imported into
-                Python's builtins namespace.''',
             ),
         )
         buf = vim.current.buffer
         is_vim9 = 'vim9script' in [s.strip() for s in buf[:10]]
         row, _ = vim.current.window.cursor
         lines = []
-        for i, (name, description) in enumerate(vpe_vars):
+        if is_vim9:
+            lines.append('# The VPE configuration structure.')
+            lines.append('var g:vpe_config = {}')
+            lines.append('g:vpe_config.import = {}')
+        else:
+            lines.append('" The VPE configuration structure.')
+            lines.append('let g:vpe_config = {}')
+            lines.append('let g:vpe_config.import = {}')
+        for name, description in vpe_vars:
             description = cleandoc(description)
-            if i:
-                lines.append('')
+            lines.append('')
             for line in description.splitlines():
                 if is_vim9:
                     lines.append(f'# {line}')
                 else:
                     lines.append(f'" {line}')
             if is_vim9:
-                lines.append(f'g:{name} = 0')
+                lines.append(f'g:vpe_config.{name} = 1')
             else:
-                lines.append(f'let g:{name} = 0')
+                lines.append(f'let g:vpe_config.{name} = 1')
         buf[row-1:row-1] = lines
 
 

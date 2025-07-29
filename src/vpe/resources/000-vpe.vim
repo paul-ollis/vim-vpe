@@ -43,6 +43,7 @@ python3 << trim EOF
     # `VPE_run_this_as_py`.
     VPE_run_as_imports = {}
 
+
     # TODO:
     #     This is fragile. I would like a stop using it.
     #     Is this offically supposed to be part of VPE?
@@ -126,31 +127,56 @@ python3 << trim EOF
         import builtins
         import vim as _vim
 
-        if _vim.vars.get('vpe_do_not_auto_import', False):
-            return
-
-        import vpe
         from vpe import vim
 
+        def init_config_var(name: str, default_value: int) -> None:
+            section = vim.vars.vpe_config
+            parts = name.split('.')
+            for part in parts[:-1]:
+                if part not in section:
+                    section[part] = {}
+                section = section[part]
+            leaf = parts[-1]
+            if leaf not in section:
+                section[leaf] = default_value
+
+        if 'vpe_config' not in vim.vars:
+            print('Creating vpe_config!')
+            vim.vars.vpe_config = {}
+        else:
+            print('The vpe_config already exists!')
+        init_config_var('import.vpe', 1)
+        init_config_var('import.vim', 1)
+        init_config_var('import.vpe_into_builtins', 1)
+        init_config_var('import.vim_into_builtins', 1)
+
         # Import `vpe` into Vim's Python namespace.
-        if not _vim.vars.get('vpe_do_not_auto_import_vpe', False):
-            _vim.command('python3 import vpe')
+        imp = vim.vars.vpe_config['import']
+        if imp['vpe']:
+            vim.command('python3 import vpe')
 
-        # Import `vim` singleton into Vim's Python namespace. Make the built-in
-        # ``vim`` module available as ``_vim``.
-        if not _vim.vars.get('vpe_do_not_auto_import_vim', False):
-            _vim.command('python3 import vim as _vim')
-            _vim.command('python3 from vpe import vim')
+        # Import `vim` singleton into Vim's Python namespace. Make the
+        # built-in ``vim`` module available as ``_vim``.
+        if imp['vim']:
+            vim.command('python3 import vim as _vim')
+            vim.command('python3 from vpe import vim')
 
-        if not _vim.vars.get('vpe_do_not_auto_import_vpe_into_builtins', False):
+        # Optionally make ``vpe`` available in the Python builtin namespace.
+        if imp['vpe_into_builtins']:
             builtins.vpe = vpe
 
-        if not _vim.vars.get('vpe_do_not_auto_import_vim_into_builtins', False):
+        # Optionally make ``vim`` available in the Python builtin namespace.
+        if imp['vim_into_builtins']:
             builtins.vim = vim
 
 
     # Invoke initialisation functions.
-    provide_backward_compatibilty()
+    vpe.log.redirect()
+    print("START COMPAT")
+    try:
+        provide_backward_compatibilty()
+    finally:
+        vpe.log.unredirect()
 
     # Clean up the Vim Python namespace.
     del provide_backward_compatibilty
