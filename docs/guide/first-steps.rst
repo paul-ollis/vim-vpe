@@ -33,14 +33,14 @@ In order to take advantage of VPE, the starting point is to import ``vim`` from
 .. sidebar:: Use of vpe.vim in examples.
 
     The style ``from vpe import vim`` is recommended. However, some examples
-    and the text use ``vpe.vim`` and in order to distinguish from the ``vim``
+    and the text use ``vpe.vim`` in order to distinguish from the ``vim``
     module.
 
-Then use this `vpe.vim` object instead of the ``vim`` module. The ``vim`` object
-provided by `vpe` is an instance of the `Vim` class, which is designed to
-provide almost exactly the same basic behaviour as the built-in ``vim`` module.
-Of course, it is more than a simple replacement and the next sections cover
-some of the important enhancements.
+Then use this `vpe.vim` object instead of the ``vim`` module. The ``vim``
+object provided by `vpe` is an instance of the `Vim` class, which is designed
+to duplicate the module's behaviour almost exactly and provide significant
+improvements. The next few sections introduce some of the important
+enhancements.
 
 The underlying ``vim`` module is accessible as ``vim.vim()``. This guide's text
 and examples uses ``vim.vim()`` to make it clear when the standard ``vim``
@@ -90,12 +90,12 @@ lot of code.
     vpe.vim.options.keywordprg            # 'man -s'
 
 The conversion is performed assuming that the byte value is encoded as UTF-8.
-Decoding errors are ignore.
+Decoding errors are ignored.
 
 Note that this is one example where the `Vim` class chooses to behave slightly
 differently to the ``vim`` module. Sensible, automatic conversion between bytes
 and strings is a general rule followed by VPE. The advantages of this approach
-are believed to greatly outweigh the minor incompatibilities.
+are considered to outweigh the minor incompatibilities.
 
 
 Type specific behaviour
