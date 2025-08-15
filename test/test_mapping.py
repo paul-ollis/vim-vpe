@@ -57,12 +57,25 @@ class Mapping(support.Base):
             res.lines = list(vim.current.buffer)
             dump(res)
         """
-        self.vs.execute(self.mycode(stack_level=2))
+        code_text, _ = self.mycode(stack_level=2)
+        self.vs.execute_python_code(code_text)
         return self.run_self()
 
 
 class NormalMapping(Mapping):
     """Normal mode mappings."""
+
+    def tearDown(self):
+        r"""Clean up after each test.
+
+        :<py>:
+
+            # Ensure normal mode is restored.
+            vpe.commands.nunmap('<buffer> f')
+            vpe.commands.nunmap('f')
+        """
+        super().tearDown()
+        self.run_self()
 
     @test(testID='simple-mapping')
     def simple_mapping(self):
@@ -147,6 +160,78 @@ class NormalMapping(Mapping):
             vpe.feedkeys(r'f', literal=True)
         """
         res = self.run_mapping()
+        failUnlessEqual(1, res.called)
+
+    @test(testID='non-buffer-mapping')
+    def simple_non_buffer_mapping(self):
+        """Mappings can be global, rather limited to the current buffer.
+
+        :<py>:
+
+            from vpe.mapping import nmap
+
+            def handle(info):
+                res.called = 1
+
+            res = Struct()
+            nmap('f', handle, buffer=False)
+            vpe.feedkeys(r'f', literal=True)
+        """
+        res = self.run_mapping()
+        failUnlessEqual(1, res.called)
+
+    def del_handle(self):
+        """Continue execution, saving the result structure.
+
+        :<py>:
+            del handle
+            vpe.feedkeys(r'f', literal=True)
+            dump(res)
+        """
+        return self.run_mapping()
+
+    @test(testID='non-mapping-remove-for-dead-function')
+    def mapping_is_removed_for_dead_function(self):
+        """Mappings are removed if the mapped function disappears.
+
+        :<py>:
+            print("START")
+            from vpe.mapping import nmap
+
+            def handle(info):
+                res.called += 1
+                print("INV", res.called)
+
+            res = Struct()
+            res.called = 0
+            nmap('f', handle)
+            vpe.feedkeys(r'f', literal=True)
+        """
+        res = self.run_mapping()
+        failUnlessEqual(1, res.called)
+        res = self.del_handle()
+        failUnlessEqual(1, res.called)
+
+    @test(testID='non-mapping-remove-for-dead-function-non-buffer')
+    def mapping_is_removed_for_dead_function_non_buffer(self):
+        """Mappings are removed if the mapped function disappears.
+
+        :<py>:
+            print("START")
+            from vpe.mapping import nmap
+
+            def handle(info):
+                res.called += 1
+                print("INV", res.called)
+
+            res = Struct()
+            res.called = 0
+            nmap('f', handle, buffer=False)
+            vpe.feedkeys(r'f', literal=True)
+        """
+        res = self.run_mapping()
+        failUnlessEqual(1, res.called)
+        res = self.del_handle()
         failUnlessEqual(1, res.called)
 
 

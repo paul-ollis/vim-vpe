@@ -9,8 +9,8 @@ from functools import partial
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 import vpe
-from . import common
-from .wrappers import vim
+from vpe import common, core
+from vpe.wrappers import Buffer, vim
 
 mode_to_map_command = {
     'normal': 'nnoremap',
@@ -112,11 +112,20 @@ class MappingInfo:
 #   script  - Probably not useful.
 #   expr    - Probably should have a different function.
 def map(
-        mode: str, keys: Union[str, Iterable[str]], func: Union[Callable, str],
-        *, buffer: bool = True, silent: bool = True, unique: bool = False,
-        nowait: bool = False, command: bool = False, pass_info=True,
-        args=(), kwargs: Optional[dict] = None,
-        vim_exprs: Tuple[str, ...] = ()):
+        mode: str,
+        keys: Union[str, Iterable[str]],
+        func: Union[Callable, str],
+        *,
+        buffer: bool = True,
+        silent: bool = True,
+        unique: bool = False,
+        nowait: bool = False,
+        command: bool = False,
+        pass_info=True,
+        args=(),
+        kwargs: Optional[dict] = None,
+        vim_exprs: Tuple[str, ...] = (),
+    ) -> None:
     """Set up a key mapping that invokes a Python function.
 
     By default, the effective map command has the form:
@@ -165,6 +174,7 @@ def map(
     # pylint: disable=redefined-builtin
     # pylint: disable=too-many-arguments
     # pylint: disable=too-many-locals
+    # pylint: disable=too-many-branches
     specials = [el for el in [
         '<buffer>' if buffer else '',
         '<silent>' if silent else '',
@@ -177,13 +187,24 @@ def map(
         keys = [keys]
 
     for key_seq in keys:
+        undo = None
+        map_cmd = mode_to_map_command[mode]
+        if buffer:
+            vim_buf = vim.current.buffer
+            unmap_cmd = f'un{map_cmd} <buffer> {key_seq}'
+        else:
+            vim_buf = None
+            unmap_cmd = f'un{map_cmd} {key_seq}'
+        undo = partial(_remove_mapping, unmap_cmd, vim_buf)
+
         if isinstance(func, str):
             rhs = func
         else:
             cb = MapCallback(
                 func, info=(mode, key_seq), py_args=args,
                 py_kwargs=kwargs or {}, vim_exprs=vim_exprs,
-                pass_info=pass_info)
+                pass_info=pass_info,
+                cleanup=undo)
             if mode == 'normal':
                 rhs = f':silent {cb.as_call()}<CR>'
             elif mode == 'insert':
@@ -198,8 +219,8 @@ def map(
             else:
                 raise NotImplementedError
 
-        map_cmd = mode_to_map_command[mode]
         cmd = f'{map_cmd} <special> {" ".join(specials)} {key_seq} {rhs}'
+        print(f'CMD: {cmd!r}')
         vim.command(cmd)
 
 
@@ -212,6 +233,7 @@ def nmap(
 
     See `map` for argument details.
     """
+    # pylint: disable=too-many-arguments
     map(
         'normal', keys, func, buffer=buffer, silent=silent, unique=unique,
         nowait=nowait, args=args, kwargs=kwargs, pass_info=pass_info,
@@ -227,6 +249,7 @@ def xmap(
 
     See `map` for argument details.
     """
+    # pylint: disable=too-many-arguments
     map(
         'visual', keys, func, buffer=buffer, silent=silent, unique=unique,
         nowait=nowait, args=args, kwargs=kwargs, pass_info=pass_info,
@@ -242,6 +265,7 @@ def omap(
 
     See `map` for argument details.
     """
+    # pylint: disable=too-many-arguments
     map(
         'op-pending', keys, func, buffer=buffer, silent=silent, unique=unique,
         nowait=nowait, args=args, kwargs=kwargs, pass_info=pass_info,
@@ -258,6 +282,7 @@ def imap(
 
     See `map` for argument details.
     """
+    # pylint: disable=too-many-arguments
     map(
         'insert', keys, func, buffer=buffer, silent=silent, unique=unique,
         nowait=nowait, command=command, args=args, kwargs=kwargs,
@@ -305,3 +330,12 @@ class KeyHandler:
             return func
 
         return wrapper
+
+
+def _remove_mapping(unmap_cmd: str, buffer: Buffer | None):
+    """Function to remove a previously created mapping."""
+    if buffer is not None:
+        with core.temp_active_buffer(buffer):
+            vim.command(unmap_cmd)
+    else:
+        vim.command(unmap_cmd)

@@ -158,7 +158,7 @@ def call_and_assign(varname: str, funcname: str, args: Sequence[Any]) -> None:
     This implements the invocation by forming a Vim command and executing it.
     This is not the most efficient way to invoke most vim functions, but is
     necessary when certain Vim types (such as :vim:`Channel` and :vim:`Job`)
-    are involved.
+    are involved, due to a lack of support in the Vim Python bindings.
 
     :varname:  The name of the variable accepting the return value.
     :funcname: The name of the function to invoke.
@@ -188,10 +188,11 @@ class Channel:
     vim_channels: ClassVar[Dict[int, VimChannel]] = {}
     vch: VimChannel
 
-    def __init__(                          # pylint: disable=too-many-arguments
+    def __init__(
             self, net_address: str, drop: Optional[str] = None,
             noblock: Optional[bool] = None, waittime: Optional[int] = None,
             timeout_ms: Optional[int] = None):
+        # pylint: disable=too-many-arguments,too-many-positional-arguments
         self.net_address = net_address
         options = self._build_options(
             ('drop', drop), ('noblock', noblock), ('waittime', waittime),
@@ -345,6 +346,7 @@ class Channel:
                   to a Latin-1 string before sending.
         """
         if isinstance(message, bytes):
+            # Latin-1 decodinging simply takes each byte as a codepoint.
             message = message.decode('latin-1', errors='ignore')
         ch_sendraw(self.vch, message)
 
@@ -385,6 +387,9 @@ class Channel:
         """
         ch_log(msg, self.vch)
 
+    # TODO:
+    #     The _build_options mechanis seems clunky. Why not simply use
+    #     dictionaries.
     @staticmethod
     def _build_options(*pairs: Tuple[str, Any]) -> Dict[str, Any]:
         options = {}

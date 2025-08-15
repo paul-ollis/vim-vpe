@@ -13,12 +13,15 @@ from typing import (
     Tuple, Union)
 
 import builtins
+import itertools
 import re
 from pathlib import Path
 
 __name__ = 'vim'  # pylint: disable=redefined-builtin
 __qualname__ = 'vim'
 __TEST__ = True
+
+poll_man = None
 
 
 class error(Exception):
@@ -42,10 +45,12 @@ class Dictionary(Base):
     def __init__(self, read_only=False):
         super().__init__()
         self.__dict__['_read_only'] = read_only
+        self.__dict__['_values'] = {}
 
     def __getitem__(self, key: str) -> Any:
-        if key == '__vpe_args_':
-            return {}
+        values = self.__dict__['_values']
+        if key in values:
+            return values[key]
         return ''
 
     def __setattr__(self, name: str, value: Any):
@@ -53,14 +58,15 @@ class Dictionary(Base):
             raise error(f'Cannot set variable v:{name!r}.')
         self.__dict__[name] = value
 
-    def __setitem__(self, name: str, value: Any):
+    def __setitem__(self, key: str, value: Any):
         if self._read_only:
-            raise error(f'Cannot set variable v:{name!r}.')
-        self.__dict__[name] = value
+            raise error(f'Cannot set variable v:{key!r}.')
+        values = self.__dict__['_values']
+        values[key] = value
 
     def __iter__(self) -> Generator[str, None, None]:
-        for name in self.__dict__:
-            yield name
+        values = self.__dict__['_values']
+        yield from values
 
     def _set(self, name: str, value: Any):
         if name not in self.settable:
@@ -229,15 +235,37 @@ class Options(Base):
         return name in self.__dict__
 
 
-class Function(Base):
-    """Stub type for documentation, type hinting and linting."""
+class _Function(Base):
+    """Stub type for documentation, type hinting, testing and linting."""
     # pylint: disable=too-few-public-methods,disable=unused-argument
+    instances = {}
+
     def __init__(self, name: str, args: Optional[ListType[Any]] = None):
+        self.instances[name] = self
         self.name = name
+        self.args = args
+        self.self = None
 
     def __call__(self, *args):
-        func = builtins.eval(self.name)
-        return func(*args)
+        if self.name == 'g:VPE_Call':
+            # Emulate the VPE_Call function.
+            va = vars['_vpe_args_'] = {}
+            va['uid'] = self.args[0]
+            va['args'] = args
+            import vpe                # pylint: disable=import-outside-toplevel
+            ret = vpe.Callback.invoke()
+            return ret
+        else:
+            func = builtins.eval(self.name)
+            ret = func(*args)
+            return ret
+
+
+def Function(name, args=None) -> _Function:      # pylint: disable=invalid-name
+    """Create or reuse a _Function."""
+    if name in _Function.instances:
+        return _Function.instances[name]
+    return _Function(name, args)
 
 
 class Range(Base):
@@ -260,12 +288,21 @@ e_varname = r'''
     (?P<vname> [_a-zA-Z] [_a-zA-Z0-9]* )
 '''
 
+e_funcname = r'''
+    (?P<vtype> [gvb] :) ?
+    (?P<fname> [A-Z] [_a-zA-Z0-9]* )
+'''
+
 r_varname = re.compile(fr'''(?x)
     {e_varname} $
 ''')
 r_assign = re.compile(fr'''(?x)
     let [ ] {e_varname}
     [ ]* = [ ]* (?P<expr> .* )
+''')
+r_funcdef = re.compile(fr'''(?x)
+    function!? [ ] {e_funcname}
+    \(
 ''')
 
 
@@ -284,10 +321,18 @@ def command(cmd: str) -> None:
         else:
             # print("SKIP SET", m.groups())
             pass
+        return
 
-    else:
-        if command_callback:
-            command_callback(cmd)
+    m = r_funcdef.match(cmd.strip())
+    if m:
+        vtype, fname = m.groups()
+        if vtype is None or vtype == 'g':
+            defined_user_functions.add(fname)
+        defined_user_functions.add(f'{vtype}:{fname}')
+        return
+
+    if command_callback:
+        command_callback(cmd)
 
 
 def normal(_cmd: str) -> None:
@@ -309,12 +354,13 @@ def eval(expr: str) -> Any:   # pylint: disable=redefined-builtin
         return ''
 
     try:
-        return builtins.eval(expr)
+        ret = builtins.eval(expr)
+        return ret
     except Exception:  # pylint: disable=broad-except
         return ''
 
 
-def exists(expr):
+def exists(expr: str) -> int:
     """Test whether a Vim object, file, *etc.* exists."""
     if expr.startswith(':'):
         return '2'
@@ -326,10 +372,10 @@ def exists(expr):
         try:
             value = builtins.eval(name)
         except NameError:
-            return '0'
-        return '1' if callable(value) else '0'
+            return 1 if name in defined_user_functions else 0
+        return 1 if callable(value) else 0
 
-    return '0'
+    return 0
 
 
 def win_id2tabwin(_id: Any) -> Tuple[int, int]:
@@ -350,8 +396,47 @@ def setreg(_name, _value):
     """Set a register's value."""
 
 
+def hlID(name: str) -> int:
+    """Get the ID for a named highlight group."""
+    return 0
+
+
+def popup_create(content, name, **p_options):
+    print("POPUP", content)
+
+
+_timers = {}
+
+
 def timer_start(_time, _callback, _options):
-    """Set up a timer."""
+    """Set up a timer.
+
+    This does not support time based callbacks, it simply invokes the callback
+    function.
+    """
+    def cb(*args, **kwargs):
+        _, saved_options = _timers[tid]
+        saved_options['repeat'] -= 1
+        return _callback(*args, **kwargs)
+
+    saved_options = dict(_options)
+    tid = next(timer_id_source)
+    if poll_man is not None:
+        poll_man.addCallback(cb, tid)
+    _timers[tid] = (cb, saved_options)
+
+    return tid
+
+
+# NOTE: Just about OK for the repeat value.
+def timer_info(tid) -> dict:
+    """Return simplified timer info."""
+    return [_timers[tid][1]]
+
+
+def timer_stop(tid) -> None:
+    """Return simplified timer info."""
+    _timers.pop(tid, None)
 
 
 def has(_spec):
@@ -385,4 +470,13 @@ dictionary = Dictionary
 window = Window
 list = List  # pylint: disable=redefined-builtin
 
+# Source of timer IDs.
+timer_id_source = itertools.count(42)
+
 command_callback: Optional[Callable] = None
+
+# Set some default variables values:
+vars['_vpe_args_'] = {}
+
+# User functions that are considered to be defined.
+defined_user_functions: set[str] = set()

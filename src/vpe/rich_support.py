@@ -2,7 +2,7 @@
 
 try:
     from rich.traceback import install
-except ImportError:
+except ImportError:                                          # pragma: no cover
     pass
 else:
     install()

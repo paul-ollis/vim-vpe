@@ -5,3 +5,5 @@ test.log
 /coverage.json
 /covhtml
 /rt_test_data
+/test-swap
+/ext-coverage.json

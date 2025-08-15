@@ -1,11 +1,11 @@
 """Special handling of buffers."""
 # pylint: disable=deprecated-method
+# pylint: disable=wrong-import-order
+# pylint: disable=unused-wildcard-import,wildcard-import
 
 from functools import partial
 
-# pylint: disable=unused-wildcard-import,wildcard-import
 from cleversheep3.Test.Tester import *
-from cleversheep3.Test.Tester import test, runModule
 
 import support
 import vim_if
@@ -51,6 +51,7 @@ class BuffersList(support.Base):
 
             dump(res)
         """
+        # TODO: Vim -bug: I have seem Vim segfault when this test is run.
         res = self.run_self()
         failUnlessEqual(1, res.init_len)
         failUnlessEqual(3, res.len_three)
@@ -65,6 +66,8 @@ class Buffers(support.Base):
     Buffer may be used in the same manner as :vim:`python-buffer`, but has some
     enhancements.
     """
+    # pylint: disable=too-many-public-methods
+
     buffer: vpe.wrappers.Buffer
 
     def suiteSetUp(self):
@@ -117,6 +120,46 @@ class Buffers(support.Base):
         res = self.run_self()
         failUnlessEqual(1, res.tick_two - res.tick_one)
         failUnlessEqual(1234, res.value)
+
+    @test(testID='buf-vars-defaul-none')
+    def buffer_vars_as_default_none(self):
+        """Buffer.vars give ``None`` for most undefined names.
+
+        :<py>:
+
+            res = Struct()
+            buffer = vim.current.buffer
+            res.is_none = buffer.vars.wibble_wobble
+
+            dump(res)
+        """
+        res = self.run_self()
+        failUnless(res.is_none is None)
+
+    @test(testID='buf-vars-attr-dunder-names')
+    def buffer_vars_as_attributes_dunder_names(self):
+        """Buffer.vars starting with '__' must exists.
+
+        AttributeError os raise otherwise.
+
+        :<py>:
+            res = Struct()
+            buffer = vim.current.buffer
+            try:
+                buffer.vars.__wibble__
+            except AttributeError:
+                res.attr_error = True
+            else:
+                res.attr_error = False
+
+            buffer.vars.__dont_do_this__ = 42
+            res.value = buffer.vars.__dont_do_this__
+
+            dump(res)
+        """
+        res = self.run_self()
+        failUnless(res.attr_error)
+        failUnlessEqual(42, res.value)
 
     @test(testID='buf-options-attr')
     def buffer_options_as_attributes(self):
@@ -447,12 +490,12 @@ class Buffers(support.Base):
             ['1', '22', '3', '4', '5', '66', '7', '99', '8', '9'],
             res.mod_buf3)
 
-    @test(testID='buf-store')
+    @test(testID='buf-store-01')
     def arbitrary_data_can_be_stored(self):
         """There is an arbitrary data store for each buffer.
 
-        The store is an aobject that allows arbitrary attribute assignment.
-        Undefined attributes are ``None``.
+        The store is an object that allows arbitrary attribute assignment.
+        Undefined attributes are typicall ``None``.
 
         :<py>:
 
@@ -478,6 +521,55 @@ class Buffers(support.Base):
         failUnlessEqual(7, res.b.x)
         failUnlessEqual('hello', res.a.y)
         failUnless(res.none is None)
+
+    @test(testID='buf-store-02')
+    def retrieve_store_does_not_create(self):
+        """The ``retrieve_store`` method prevents automatic creation.
+
+        Unlike the ``store`` method, ``retrieve_store`` will return ``None`` if
+        the store does not exists.
+
+        :<py>:
+
+            res = Struct()
+            buf_b = get_alt_buffer()
+
+            res.no_store = buf_b.retrieve_store('test-2')
+            buf_b.store('test-2')
+            res.store = buf_b.retrieve_store('test-2')
+
+            dump(res)
+        """
+        res = self.run_self()
+        failUnless(res.no_store is None)
+        failUnless(res.store is not None)
+
+    @test(testID='buf-store-03')
+    def special_attrs_can_raise_attribite_error(self):
+        """The buffer store raises an error unknown, special attributes.
+
+        Trying to access an unkown attribute whose name starts with '_' will
+        raise an AttributeError.
+
+        :<py>:
+
+            res = Struct()
+            buf_a = vim.current.buffer
+
+            a = buf_a.store('test')
+            a._ok = 42
+            res.a = a._ok
+            try:
+                res.b = a._not_ok
+            except AttributeError:
+                res.error_raised = True
+            else:
+                res.error_raised = False
+            dump(res)
+        """
+        res = self.run_self()
+        failUnlessEqual(42, res.a)
+        failUnless(res.error_raised)
 
     @test(testID='buf-type')
     def type_property(self):
@@ -687,6 +779,7 @@ class Buffers(support.Base):
 
             dump(res)
         """
+        # TODO: Vim -bug: I have seem Vim segfault when this test is run.
         res = self.run_self()
         failUnlessEqual(3, res.start_tab)
         failUnlessEqual(2, res.tab_found)
@@ -908,5 +1001,61 @@ class Buffers(support.Base):
         failIfEqual('all', res.final_eventignore)
 
 
-if __name__ == '__main__':
-    runModule()
+class BufferProperties(support.Base):
+    """The buffer class provides methods to set text properties."""
+
+    buffer: vpe.wrappers.Buffer
+
+    def setUp(self):
+        """Set up for a test.
+
+        :<py>:
+
+            from vpe import vim
+
+            buf = vim.current.buffer
+            buf[:] = ['Line 1', 'Line the second', 'A third line']
+            vim.prop_clear(1, len(buf), {'bufnr': buf.number})
+        """
+        self.run_setup()
+
+    @test(testID='buf-prop-set-type-add')
+    def set_prop_type(self):
+        """Property types can be added to the buffer and cleared.
+
+        :<py>:
+
+            res = Struct()
+            buffer = vim.current.buffer
+            kw = {'bufnr': buffer.number}
+            res.initial_prop_type_names = list(vim.prop_type_list(kw))
+
+            buffer.set_line_prop(
+                lidx=1, start_cidx=5, end_cidx=8, hl_group='ErrorMsg')
+            res.final_prop_type_names = list(vim.prop_type_list(kw))
+
+            kw = {
+                'bufnr': buffer.number,
+                'type': 'vpe:hl:ErrorMsg',
+                'lnum': 1,
+            }
+            res.found_prop = dict(vim.prop_find(kw))
+            res.buf_number = buffer.number
+
+            buffer.clear_props()
+            res.final_found_prop = dict(vim.prop_find(kw))
+
+            dump(res)
+        """
+        res = self.run_self()
+        failUnlessEqual([], res.initial_prop_type_names)
+
+        failUnlessEqual(['vpe:hl:ErrorMsg'], res.final_prop_type_names)
+        failUnlessEqual(2, res.found_prop['lnum'])
+        failUnlessEqual(6, res.found_prop['col'])
+        failUnlessEqual(1, res.found_prop['end'])
+        failUnlessEqual(1, res.found_prop['start'])
+        failUnlessEqual('vpe:hl:ErrorMsg', res.found_prop['type'])
+        failUnlessEqual(res.buf_number, res.found_prop['type_bufnr'])
+
+        failUnlessEqual({}, res.final_found_prop)

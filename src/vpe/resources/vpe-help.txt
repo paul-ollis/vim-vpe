@@ -1,4 +1,4 @@
-*vpe.txt*                    For Vim version 8.0                     Jul 2025
+*vpe.txt*                    For Vim version 8.0                     Aug 2025
 
                                   Introduction                                 
 
@@ -211,6 +211,80 @@ class vpe.BufEventHandler                                 *vpe.BufEventHandler*
 
   This differs from EventHandler by the use of self as the default pattern.
 
+                                                *BufListener* *vpe.BufListener*
+class vpe.BufListener(func, buf, ops: bool = True, raw_changes: bool = False)
+  An extension of |Callback| for Vim’s buffer change callbacks.
+
+  One of these is created by |vpe.Buffer.add_listener|. Direct instantiation of
+  this class is not recommended or supported.
+
+  The Python function or method to be called back.
+
+  Parameters
+
+    buf
+      The |Buffer| instance.
+
+    ops
+      Include the |Operation| changes as an additional argument:
+
+    raw_changes
+      Include the raw changes as an additional argument:
+
+  Attributes
+
+    buf                                                   *vpe.BufListener.buf*
+      The |Buffer| instance.
+
+    listen_id                                       *vpe.BufListener.listen_id*
+      The unique ID from a |listener_add| invocation.
+
+    ops                                             *ops* *vpe.BufListener.ops*
+      Include the |Operation| changes as an additional argument:
+
+    raw_changes                     *raw_changes* *vpe.BufListener.raw_changes*
+      Include the raw changes as an additional argument:
+
+  Methods
+
+    invoke_cb(func, vpe_args)                       *vpe.BufListener.invoke_cb*
+      Invoke this Callback.
+
+      This extends the |vpe.Callback.invoke_cb| method.
+
+      The vpe_args[‘args’] are (From Vim’s docs):
+
+        bufnr
+          The buffer that was changed
+
+        start
+          First changed line number
+
+        end
+          First line number below the change
+
+        added
+          Number of lines added, negative if lines were deleted
+
+        changes
+          A List of items with details about the changes
+
+      The bufnr is ignored, since this is just self.buf.number.
+
+      Start and end are adjusted so they form a Python range.
+
+      If |ops| is True then a list of operations is provided to the callback as
+      an ops keyword argument. Each entry in the changes is converted to one of
+      an |AddOp|, |DeleteOp| or |ChangeOp|.
+
+      Similarly, if |raw_changes| is True then the list of operations provided
+      by Vim is provided to the callback as a raw_changes keyword argument.
+
+    stop_listening()                           *vpe.BufListener.stop_listening*
+      Stop listening for changes.
+
+      This permanently disables this listener.
+
 class vpe.Buffer(buffer)                                  *Buffer* *vpe.Buffer*
   Wrapper around a |python-buffer|.
 
@@ -339,8 +413,7 @@ class vpe.Buffer(buffer)                                  *Buffer* *vpe.Buffer*
         func: Union
           The callback function which is invoked with the following arguments:
 
-          The buffer that was changed. Only present if func is not a bound
-          method of this instance.
+          The buffer that was changed.
 
           Start of the range of modified lines (zero based).
 
@@ -349,21 +422,17 @@ class vpe.Buffer(buffer)                                  *Buffer* *vpe.Buffer*
           Number of lines added, negative if lines were deleted.
 
         ops: bool
-          Include a list of the individal operations to the callback. This is
-          True by default.
-
-          A list of diffs.BufOperation instances with details about the
-          changes.
+          True by default. Include a list of the individal operations to the
+          callback as the ops keyword argument. A list of diffs.Operation
+          instances with details about the changes.
 
         raw_changes: bool
-          Include the raw changes as an additional argument:
-
-          The unmodified changes provided by the Vim buffer change callback
-          (see |listener_add| for details).
+          False by default. Include the unmodified changes as the raw_changes
+          keyword argument (see |listener_add| for details).
 
       Return value
 
-      A BufListener object.
+      A |BufListener| object.
 
     append(line_or_lines, nr=None)                          *vpe.Buffer.append*
       Append one or more lines to the buffer.
@@ -451,11 +520,6 @@ class vpe.Buffer(buffer)                                  *Buffer* *vpe.Buffer*
 
       This will update the buffer, even if ‘modifiable’ is not set.
 
-    marker_set(name: str)                               *vpe.Buffer.marker_set*
-      Get the marker set with a given name.
-
-      The marker set for a given name is created on demand.
-
     range(a: int, b: int) -> |Range|                         *vpe.Buffer.range*
       Get a |Range| for the buffer.
 
@@ -490,6 +554,15 @@ class vpe.Buffer(buffer)                                  *Buffer* *vpe.Buffer*
 <
       Set a highlighting property on a single line.
 
+      The name of the text property is formed from the ‘name’ if provided and
+      the ‘hl_group’ otherwise, by prefixing ‘vpe:hl:’. For example if
+      hl_group='Label' and ‘name’ is not provided then the property is called
+      ‘vpe:hl:Label’.
+
+      The text property is created, as a buffer specific property, if it does
+      not already exist. Apart from the bufnr option, default values are used
+      for the property’s options.
+
       Parameters
 
         lidx: int
@@ -506,25 +579,6 @@ class vpe.Buffer(buffer)                                  *Buffer* *vpe.Buffer*
 
         name: str
           An optional name for the property.
-
-    set_property_type(name: str, **kwargs)       *vpe.Buffer.set_property_type*
-      Register or modify a property type associated with this buffer.
-
-      This is a wrapper around vim.prop_type_add and vim.prop_type_change.
-
-      Parameters
-
-        kwargs
-          The same parameters used for vim.prop_type_add’s props argument;
-          namely:
-            >
-            highlight: str
-            priority: int
-            combine: bool
-            override: bool
-            start_incl: bool
-            end_incl: bool
-<
 
     store(key: Any) -> |Struct|                      *store* *vpe.Buffer.store*
       Return a |Struct| for a give key.
@@ -593,12 +647,14 @@ class vpe.Buffers(obj=None)                             *Buffers* *vpe.Buffers*
 class vpe.Callback(...)                               *Callback* *vpe.Callback*
     >
     Callback(
-            func,
-            py_args=(),
-            py_kwargs=None,
-            vim_exprs=(),
-            pass_bytes=False,
-            once=False,
+            func: Callable[[...], None],
+            py_args: tuple[Any, ...] = (),
+            py_kwargs: dict[str, Any] | None = None,
+            vim_exprs: tuple[Any, ...] = (),
+            pass_bytes: bool = False,
+            once: bool = False,
+            cleanup: Callable[[], None] | None = None,
+            meta: Any | None = None,
 <
   Wrapper for a function to be called from Vim.
 
@@ -622,14 +678,17 @@ class vpe.Callback(...)                               *Callback* *vpe.Callback*
         'args': ['hello', 123]
     }
 <
-  Then it calls this class’s |invoke| method:
+  Then it calls this class’s |invoke| classmethod:
     >
     return py3eval('vpe.Callback.invoke()')
 <
   The |invoke| class method extracts the UID and uses it to find the Callback
   instance.
 
-    @callbacks   A class level mapping from |uid| to |Callback| instance. This
+  Note that a strong reference to each |Callback| instance is automatically
+  stored, but only while a strong reference to the function exists.
+
+    @callbacks    A class level mapping from |uid| to |Callback| instance. This
       is used to lookup the correct function during the execution of VPE_Call.
 
   Parameters
@@ -653,6 +712,14 @@ class vpe.Callback(...)                               *Callback* *vpe.Callback*
     once
       If True then the callback will only ever be invoked once.
 
+    cleanup
+      If supplied then this is callable taking no arguments. It is invoked to
+      perform any special clean up actions when the function is no longer
+      referenced.
+
+    meta
+      Arbitrary meta-data to be stored in the Callback’s |meta| attribute.
+
     kwargs
       Additional info to store with the callback. This is used by subclasses -
       see ‘MapCallback’ for an example.
@@ -662,18 +729,37 @@ class vpe.Callback(...)                               *Callback* *vpe.Callback*
     call_count                                        *vpe.Callback.call_count*
       The number of times the wrapped function or method has been invoked.
 
+    meta                                             *meta* *vpe.Callback.meta*
+      Arbitrary meta-data to be stored in the Callback’s |meta| attribute.
+
+    once                                                    *vpe.Callback.once*
+      If True then the callback will only ever be invoked once.
+
+    pass_bytes                                        *vpe.Callback.pass_bytes*
+      If true then vim byte-strings will not be decoded to Python strings.
+
+    py_args                                              *vpe.Callback.py_args*
+      Addition positional arguments to be passed to func.
+
+    py_kwargs                                          *vpe.Callback.py_kwargs*
+      Additional keyword arguments to be passed to func.
+
     uid                                                *uid* *vpe.Callback.uid*
       The unique ID for this wrapping. It is the string form of an integer.
+
+    vim_exprs                                          *vpe.Callback.vim_exprs*
+      Expressions used as positional arguments for the VPE_Call helper
+      function.
 
   Methods
 
     as_call()                                            *vpe.Callback.as_call*
-      Format a command of the form ‘call VPE_xxx(…)’
+      Format a command of the form ‘call VPE_Call(“42”, …)’.
 
       The result can be used as a colon prompt command.
 
     as_invocation()                                *vpe.Callback.as_invocation*
-      Format a command of the form ‘VPE_xxx(…)’
+      Format an expression of the form ‘VPE_Call(“42”, …)’.
 
       The result is a valid Vim script expression.
 
@@ -691,20 +777,19 @@ class vpe.Callback(...)                               *Callback* *vpe.Callback*
 
       This may be over-ridden by subclasses.
 
-    invoke_self(vpe_args)                            *vpe.Callback.invoke_self*
+    invoke_cb(func: Callable, vpe_args: dict)          *vpe.Callback.invoke_cb*
       Invoke this Callback.
 
-      This is invoked on the |Callback| instance found by |invoke|. The
-      callback is invoked with as:
+      This invokes the function as:
         >
-        self(*args, *vim_args, **kwargs)
+        func(*args, *vim_args, **kwargs)
 <
       Where args and kwargs are those provided when this instance was created.
       The vim_args arr the ‘args’ from the vpe_args dictionary.
 
       Parameters
 
-        vpe_args
+        vpe_args: dict
           A dictionary containing:
 
             uid
@@ -713,9 +798,6 @@ class vpe.Callback(...)                               *Callback* *vpe.Callback*
 
             args
               Any additional arguments passed to the callback by Vim.
-
-    on_del(ref)                                           *vpe.Callback.on_del*
-      “Handle deletion of weak reference to method’s instance.
 
   Class methods
 
@@ -917,6 +999,13 @@ class vpe.Log(name: str, maxlen: int = 500, timestamps: bool = True)
 
   Properties
 
+    property lines -> list[str]                                 *vpe.Log.lines*
+      The lines currently in the log.
+
+      This is used by the VPE test suite. It is not really intended to general
+      use and unlikely to be generally useful. Note that each access to this
+      property creates a new list.
+
     property maxlen -> int                                     *vpe.Log.maxlen*
       The current maximum length.
 
@@ -977,6 +1066,26 @@ class vpe.Log(name: str, maxlen: int = 500, timestamps: bool = True)
         s
           The string to write.
 
+                                              *OneShotTimer* *vpe.OneShotTimer*
+class vpe.OneShotTimer(ms: int, func: Callable[[...], None])
+  A version of |Timer| that can be used ‘set-and-forget’.
+
+  This version makes sure that a reference to the function and the
+  |OneShotTimer| instance is saved until the timer fires. This means that this
+  type of code will work:
+    >
+    def one_shot_example():
+        def fire():
+            print('Bang!')
+        OneShotTimer(1000, fire)
+<
+  The callback function is invoked without arguments.
+
+  Methods
+
+    invoke_cb(func: Callable, vpe_args: dict)      *vpe.OneShotTimer.invoke_cb*
+      Invoke the callback as a result of the timer firing.
+
 class vpe.Options(vim_options)                                    *vpe.Options*
   Wrapper for buffer.options, etc.
 
@@ -1015,9 +1124,12 @@ class vpe.Popup(content, name: str = '', **p_options)       *Popup* *vpe.Popup*
 
     name
       An optional name for the Popup. If provided then a named |ScratchBuffer|
-      is used for the content rather than letting Vim etc.) can be provided as
-      keyword arguments. The exceptions are filter and callback. Over ride the
-      |on_key| and |on_close| methods instead.
+      is used for the content rather than letting Vim create one.
+
+    p_options
+      Vim popup_create() options can be provided as keyword arguments. The
+      exceptions are filter and callback. Over ride the |on_key| and |on_close|
+      methods instead.
 
   Properties
 
@@ -1373,11 +1485,11 @@ class vpe.TabPages(obj=None)                          *TabPages* *vpe.TabPages*
 class vpe.Timer(...)                                        *Timer* *vpe.Timer*
     >
     Timer(
-            ms,
-            func,
-            repeat=None,
-            pass_timer=True,
-            no_hard_ref=False,
+            ms: int | float,
+            func: Callable[[...], None],
+            repeat: int | None = None,
+            pass_timer: bool = True,
+            meta: Any | None = None,
             args=(),
 <
   Pythonic way to use Vim’s timers.
@@ -1399,20 +1511,15 @@ class vpe.Timer(...)                                        *Timer* *vpe.Timer*
   |remaining| and |paused|. The methods |pause|, |stop| and |resume| allow an
   active timer to be controlled.
 
-  A timer with ms == 0 is a special case, used to schedule an action to occur
-  as soon as possible once Vim is waiting for user input. Consequently the
-  repeat argument is forced to be 1 and the pass_timer argument is forced to be
-  False.
-
-  If the created timer instamce has a repeat count of 1, then a hard reference
-  to the function is stored. This means that the code that creates the timer
-  does not need to keep a reference, allowing single-shot timers to be ‘set-
-  and-forget’. The no_hard_ref argument can be used to prevent this.
+  A timer with ms == 0 is a special case. It is used to schedule an action to
+  occur as soon as possible once Vim is waiting for user input. Consequently
+  the repeat argument is forced to be 1 and the pass_timer argument is forced
+  to be False.
 
   Parameters
 
     ms
-      The timer’s interval in milliseconds.
+      The timer’s interval in milliseconds. The value int(ms) is used.
 
     func
       The function to be invoked when the timer fires. This is called with the
@@ -1424,9 +1531,8 @@ class vpe.Timer(...)                                        *Timer* *vpe.Timer*
     pass_timer
       Set this false to prevent the timer being passed to func.
 
-    no_hard_ref
-      Set True to prevent a hard reference to the func being held by this
-      timer.
+    meta
+      Arbitrary meta-data to be stored in the Callback’s |meta| attribute.
 
     args
       Optional positional arguments to pass to func.
@@ -1448,6 +1554,9 @@ class vpe.Timer(...)                                        *Timer* *vpe.Timer*
 
     kwargs                                                   *vpe.Timer.kwargs*
       Optional keyword arguments to pass to func.
+
+    meta                                                       *vpe.Timer.meta*
+      Arbitrary meta-data to be stored in the Callback’s |meta| attribute.
 
   Properties
 
@@ -1476,8 +1585,8 @@ class vpe.Timer(...)                                        *Timer* *vpe.Timer*
     finish()                                                 *vpe.Timer.finish*
       Take action when a timer is finished.
 
-    on_del(ref)                                              *vpe.Timer.on_del*
-      “Handle deletion of weak reference to method’s instance.
+    invoke_cb(func: Callable, vpe_args: dict)             *vpe.Timer.invoke_cb*
+      Invoke the callback as a result of the timer firing.
 
     pause()                                           *pause* *vpe.Timer.pause*
       Pause the timer.
@@ -1493,17 +1602,6 @@ class vpe.Timer(...)                                        *Timer* *vpe.Timer*
       Stop the timer.
 
       This invokes vim’s timer_stop function.
-
-  Class methods
-
-    classmethod num_instances() -> int                *vpe.Timer.num_instances*
-      The number of |Timer| instances.
-
-    classmethod stop_all()                                 *vpe.Timer.stop_all*
-      Stop all timers and clean up.
-
-      Use this in preference to vim.timer_stopall, to ensure that VPE cleans up
-      its underlying administrative structures.
 
 class vpe.Variables(obj=None)                       *Variables* *vpe.Variables*
   Wrapper around the various vim variable dictionaries.
@@ -1602,7 +1700,7 @@ class vpe.Vim(*args, **kwargs)                                        *vpe.Vim*
     static vim()                                                  *vpe.Vim.vim*
       Get the underlying built-in vim module.
 
-class vpe.VimError(error: vim.error)                  *VimError* *vpe.VimError*
+class vpe.VimError(error: _vim.error)                 *VimError* *vpe.VimError*
   A parsed version of vim.error.
 
   VPE code raises this in place of the standard vim.error exception. It is a
@@ -1754,8 +1852,8 @@ vpe.define_command(...)                                    *vpe.define_command*
             func: Callable,
             nargs: int | str = 0,
             complete: str = '',
-            range: bool | str = '',
-            count: str = '',
+            range: bool | int | str = '',
+            count: int | str = '',
             addr: str = '',
             bang: bool = False,
             bar: bool = False,
@@ -1792,11 +1890,11 @@ vpe.define_command(...)                                    *vpe.define_command*
       Argument completion mode (see |command-complete|). Does not currently
       support ‘custom’ or ‘customlist’.
 
-    range: bool | str
+    range: bool | int | str
       The permitted type of range; must follow the rules for `:command-range`,
       except that the N value may be an integer.
 
-    count: str
+    count: int | str
       The permitted type of count; must follow the rules for `:command-count`,
       except that the N value may be an integer. Use count=0 to get the same
       behaviour as ‘-count’.
@@ -1898,7 +1996,7 @@ vpe.highlight(...)                                              *vpe.highlight*
             default: bool = False,
             link: str | None = None,
             disable: bool = False,
-            dump: bool = False,
+            debug: bool = False,
             file: TextIO = None,
 <
   Execute a highlight command.
@@ -1931,7 +2029,7 @@ vpe.highlight(...)                                              *vpe.highlight*
     default: bool
       If set then the generated command has the form highlight default....
 
-    dump: bool
+    debug: bool
       Print the command’s arguments, for debugging use.
 
     kwargs
@@ -1957,9 +2055,6 @@ vpe.popup_clear(force=False)                                  *vpe.popup_clear*
 
 vpe.script_py_path() -> str                                *vpe.script_py_path*
   Derive a python script name from the current Vim script name.
-
-vpe.timer_stopall()                                         *vpe.timer_stopall*
-  Convenience function that invokes |vpe.Timer.stop_all|.
 
 vpe.warning_msg(*args, soon=False)                            *vpe.warning_msg*
   A print-like function that writes a warning message.
@@ -2120,39 +2215,50 @@ vpe.warning_msg(*args, soon=False)                            *vpe.warning_msg*
   -----------------------------------------------------------------------------~
   3.2. Module vpe.argparse~     *vpe.module-argparse* *vpe.module-vpe-argparse*
 
-  Thin wrapper around the standard argparse module.
+  Support user commands based on Python’s argparse module.
 
-  This modifies the standard library argparse as follows:
+  This module makes it easy to implement user complex user commands. The
+  features provided are:
 
-    - Prevents calls to sys.exit() during argument parsing, when the
-      exit_on_error option is cleared. (As of Python 3.9.3) the exit_on_error
-      construction argument does not not seem to work correctly.)
+    - Support for optional arguments.
 
-    - Adds support for partial command completion.
+    - Clean implementation of subcommands.
 
-    - Adds the SubcommandParser, which extends support for command completion
-      with subcommands.
+    - Subcommands, and options can be abbreviated.
+
+    - Automatic command line completion.
+
+                                                 *argparse.AmbiguousSubcommand*
+  class argparse.AmbiguousSubcommand(message, choices: list[str])
+    Exception raised when a subcommand is ambiguous.
 
   class argparse.ArgumentError(message)                *argparse.ArgumentError*
     Exception raised when a parse error occurs.
 
                                      *ArgumentParser* *argparse.ArgumentParser*
-  class argparse.ArgumentParser(command_name: str, *args, **kwargs)
-    A modified argparse.ArgumentParser.
+  class argparse.ArgumentParser(...)
+      >
+      ArgumentParser(
+              command_handler: CommandHandler,
+              command_name: str,
+              *args,
+<
+    A modified ArgumentParser designed to work with |CommandHandler|.
 
     This is fairly thin wrapper around the standard library argparse’s
     ArgumentParser. The changes are:
 
       - The parse_args and parse_known_args methods do not try to invoke
-        sys.exit() when exit_on_error is False.
+        sys.exit().
 
       - It has support for partial command completions that work the way I
         expect.
 
-      - Some features that do not make sense within the Vim environment, such as
-        reading arguments from files) are disabled.
+      - The word ‘prog’ is generally replaced by ‘command_name’, just to be
+        consistent with |CommandHandler| and its subclasses.
 
-      - The word ‘prog’ is generally replaced by ‘command_name’.
+      - Parser defaults are not supported (those set by set_defaults). Defaults
+        have to be specified as part of add_argument.
 
     Methods
 
@@ -2163,37 +2269,27 @@ vpe.warning_msg(*args, soon=False)                            *vpe.warning_msg*
 
                                   *argparse.ArgumentParser.do_parse_known_args*
       do_parse_known_args(args: Sequence[str]) -> tuple[Namespace, list[str]]
-        Parse known arguments, stopping at a sub-command.
+        Parse known arguments, stopping at a subcommand.
 
-        This is a modified version from the Python 3.11 standard library. The
-        changes are:
-
-          - Reading arguments from a file is not supported.
+        This is a modified version from the Python 3.11 standard library. This
+        version stops processing arguments when a subcommand is encountered.
+        The upshot is that optional arguments are get properly associated with
+        the correct main command or subcommmand.
 
       error(message)                            *argparse.ArgumentParser.error*
-        Raise ArgumentError or print message and exit.
-
-        This extends the standard method to prevent attempting to exit the
-        program during argument parsing. If parsing is in progress, the message
-        is used to raise an ArgumentError.
+        Raise an ArgumentError.
 
       exit(status=0, message=None)               *argparse.ArgumentParser.exit*
-        Raise ArgumentError and optionally print a message.
-
-        This overrides the standard method to prevent attempting to exit the
-        program during argument parsing.
+        Raise ArgumentError.
 
                                       *argparse.ArgumentParser.get_completions*
-      get_completions(args: Sequence[str], at_new_arg: bool) -> list[str]
+      get_completions(arglead: str) -> list[str]
         Get the possible completions for a partial command.
 
         Parameters
 
-          args: Sequence
-            The list of arguments parsed so far.
-
-          at_new_arg: bool
-            Set to indicate that args[-1] is not a partial argument.
+          arglead: str
+            The partial argument to be completed.
 
         Return value
 
@@ -2202,8 +2298,13 @@ vpe.warning_msg(*args, soon=False)                            *vpe.warning_msg*
       parse_args(args: Sequence[str])      *argparse.ArgumentParser.parse_args*
         Convert argument strings to attributes of the namespace.
 
-                                     *argparse.ArgumentParser.parse_known_args*
-      parse_known_args(args=None, namespace=None) -> tuple[Namespace, list[str]]
+      parse_known_args(...)          *argparse.ArgumentParser.parse_known_args*
+          >
+          parse_known_args(
+                  args=None,
+                  namespace=None,
+                  no_help: bool = False
+<
         Parse known arguments from the command line.
 
         This version does not try to sys.exit().
@@ -2211,30 +2312,61 @@ vpe.warning_msg(*args, soon=False)                            *vpe.warning_msg*
         As of Python 3.9.3, the exit_on_error initialisation argument does not
         work in the way expect.
 
-      print_help(_file=None) -> None       *argparse.ArgumentParser.print_help*
+      print_help(...)                      *argparse.ArgumentParser.print_help*
+          >
+          print_help(
+                  _file=None,
+                  cmd_info: common.CommandInfo | None = None
+<
         Display the help message.
 
-                                           *CommandBase* *argparse.CommandBase*
-  class argparse.CommandBase(command_name: str, parent: |CommandBase| | None)
-    Base for a simple command or sub-command.
+                                     *CommandHandler* *argparse.CommandHandler*
+  class argparse.CommandHandler(command_name: str, parent: |CommandHandler| | None)
+    A class providing a Vim user command or subcommand.
 
     Methods
 
-      add_arguments() -> None              *argparse.CommandBase.add_arguments*
+      add_arguments() -> None           *argparse.CommandHandler.add_arguments*
         Add the arguments for this command.
 
-                                           *argparse.CommandBase.create_parser*
+                                        *argparse.CommandHandler.create_parser*
       create_parser() -> |ArgumentParser|
         Create the argument parser for this command.
 
-      handle_command(args: Namespace)     *argparse.CommandBase.handle_command*
+                                    *argparse.CommandHandler.format_usage_head*
+      format_usage_head() -> str
+        Format the leading part of a usage message.
+
+      get_completions(...)            *argparse.CommandHandler.get_completions*
+          >
+          get_completions(
+                  _vim_args: list[str],
+                  _at_new_arg: bool,
+                  arglead: str
+<
+        Attempt command line completion for this command.
+
+        Parameters
+
+          vim_args
+            The vim command line arguments that are before the cursor.
+
+          at_new_arg
+            True if the cursor’s position is where a new argument/subcommand
+            should be inserted.
+
+        Return value
+
+        A list strings representing the possible completions.
+
+                                       *argparse.CommandHandler.handle_command*
+      handle_command(args: Namespace)
         Handle this command.
 
-      process_command(...)               *argparse.CommandBase.process_command*
+      process_command(...)            *argparse.CommandHandler.process_command*
           >
           process_command(
                   cmd_info: common.CommandInfo,
-                  subcommands: tuple[tuple[str, ArgumentParser]],
                   vim_cmd_args: tuple[str]
 <
         Process this command or subcommand.
@@ -2244,12 +2376,18 @@ vpe.warning_msg(*args, soon=False)                            *vpe.warning_msg*
           cmd_info: CommandInfo
             Information about the Vpe command, such as counts or line ranges.
 
-          subcommands: tuple
-            A sequence of earlier subcommands and parsed options.
+          subcommands
+            The sequence of subcommands leading to and in including this
+            subcommand. When the subclass is a SimpleCommandHandler this has
+            zero length.
 
           vim_cmd_args: tuple
             The command and arguments that Vim has parsed from the command
             line.
+
+                                      *argparse.CommandHandler.subcommand_help*
+      subcommand_help() -> list[str]
+        Provide subcommand help as a list of strings.
 
   class argparse.HelpAction(...)                          *argparse.HelpAction*
       >
@@ -2260,21 +2398,39 @@ vpe.warning_msg(*args, soon=False)                            *vpe.warning_msg*
 <
     A replacement for the standard argparse help action.
 
-  class argparse.Stop                                           *argparse.Stop*
-    Raised to prevent further processing.
+    This version defers the help output using |call_soon| and sets the parser’s
+    stop_processing flag.
 
-                                     *SubCommandBase* *argparse.SubCommandBase*
-  class argparse.SubCommandBase(command_name: str, parent: |SubCommandBase| | None)
-    Base for a command that has sub-commands.
+                                                *argparse.SimpleCommandHandler*
+  class argparse.SimpleCommandHandler(command_name: str)
+    A top-level user defined Vim command.
+
+    This provides the main parser for a command that has subcommands.
+
+  class argparse.SubcommandAction(...)              *argparse.SubcommandAction*
+      >
+      SubcommandAction(
+              option_strings,
+              subcommands_table: SubcommandsTable,
+              dest=None,
+              default=None,
+              help=None,
+<
+    An action for subcommands.
+
+                       *SubcommandHandlerBase* *argparse.SubcommandHandlerBase*
+  class argparse.SubcommandHandlerBase(command_name: str, parent: |SubcommandHandlerBase| | None)
+    Base for a command that has subcommands.
 
     Methods
 
-                                        *argparse.SubCommandBase.create_parser*
-      create_parser() -> |ArgumentParser|
-        Create the argument parser for this subcommand handler.
-
-                                      *argparse.SubCommandBase.get_completions*
-      get_completions(vim_args: list[str], at_new_arg: bool) -> list[str]
+      get_completions(...)     *argparse.SubcommandHandlerBase.get_completions*
+          >
+          get_completions(
+                  vim_args: list[str],
+                  at_new_arg: bool,
+                  arglead: str
+<
         Attempt command line completion for this command.
 
         Parameters
@@ -2288,25 +2444,16 @@ vpe.warning_msg(*args, soon=False)                            *vpe.warning_msg*
 
         Return value
 
-        A list strings representing the the possible completions.
+        A list strings representing the possible completions.
 
-                                 *argparse.SubCommandBase.handle_no_subcommand*
-      handle_no_subcommand(...)
-          >
-          handle_no_subcommand(
-                  cmd_info: common.CommandInfo,
-<
-        Handle the case of no subcommand provided.
+                          *argparse.SubcommandHandlerBase.handle_no_subcommand*
+      handle_no_subcommand(cmd_info: common.CommandInfo, args: Namespace)
+        Handle the case of no subcommand being provided.
 
-                                   *argparse.SubCommandBase.handle_sub_command*
-      handle_sub_command(subcommand: str, args: Namespace)
-        Execute a specific sub-command.
-
-      process_command(...)            *argparse.SubCommandBase.process_command*
+      process_command(...)     *argparse.SubcommandHandlerBase.process_command*
           >
           process_command(
                   cmd_info: common.CommandInfo,
-                  subcommands: tuple[tuple[str, ArgumentParser]],
                   vim_cmd_args: tuple[str]
 <
         Process this command or subcommand.
@@ -2316,128 +2463,54 @@ vpe.warning_msg(*args, soon=False)                            *vpe.warning_msg*
           cmd_info: CommandInfo
             Information about the Vpe command, such as counts or line ranges.
 
-          subcommands: tuple
-            A sequence of earlier subcommands and parsed options.
-
           vim_cmd_args: tuple
             The command and arguments that Vim has parsed from the command
             line.
 
-  class argparse.SubcommandAction(...)              *argparse.SubcommandAction*
-      >
-      SubcommandAction(
-              option_strings,
-              subcommands_table: SubcommandsTable,
-              dest=None,
-              default=None,
-              help=None,
-<
-    An action for subcommands.
+                               *argparse.SubcommandHandlerBase.subcommand_help*
+      subcommand_help() -> list[str]
+        Provide subcommand help as a list of strings.
 
-                                 *SubcommandParser* *argparse.SubcommandParser*
-  class argparse.SubcommandParser(...)
-      >
-      SubcommandParser(
-              command_name: str,
-              subcommands_table: SubcommandsTable,
-              *args,
-              parent: ArgumentParser | None = None,
-<
-    A ArgumentParser that uses a set of subcommands.
+  class argparse.SubcommandReached(value: str)     *argparse.SubcommandReached*
+    Raised to indicate that a subcommand has been found.
 
-    This provides an alternative to using the add_subparsers method in the
-    standard library’s ArgumentParser. The results obtained are essentially the
-    same, but with added support for command completion.
+                                           *argparse.TopLevelSubcommandHandler*
+  class argparse.TopLevelSubcommandHandler(command_name: str)
+    A top-level user defined Vim command, with subcommands.
 
-    Properties
-
-      property usage_prefix -> str     *argparse.SubcommandParser.usage_prefix*
-        The prefix for usage messages.
+    This provides the main parser for a command that has subcommands.
 
     Methods
 
-      add_parser(name, **kwargs)         *argparse.SubcommandParser.add_parser*
-        Add an |ArgumentParser| for a subcommand.
+                             *argparse.TopLevelSubcommandHandler.create_parser*
+      create_parser() -> |ArgumentParser|
+        Create the subcommand argument parser for this command.
 
-        An ArgumentParser is created, with exit_on_error=False. You should not
-        include exit_on_error in the keywrod argument of this method.
-
-        Parameters
-
-          name
-            The name of the subcommand.
-
-          kwargs
-            The keyword arguments for the subcommand’s ArgumentParser.
-
-        Return value
-
-        The ArgumentParser for the subcommand.
-
-                              *argparse.SubcommandParser.add_subcommand_parser*
-      add_subcommand_parser(name: str, subcommands_table: SubcommandsTable, **kwargs)
-        Add a |SubcommandParser| for a subcommand.
-
-        A SubcommandParser is created, with exit_on_error=False. You should not
-        include exit_on_error in the keyword arguments of this method.
-
-        Parameters
-
-          name: str
-            The name of the subcommand.
-
-          subcommands_table: dict
-            The table of subcommands, which provides the names and summary.
-
-          kwargs
-            The keyword arguments for the subcommand’s SubcommandParser.
-
-        Return value
-
-        The SubcommandParser for the subcommand.
-
-                                    *argparse.SubcommandParser.get_completions*
-      get_completions(args: Sequence[str], at_new_arg: bool)
-        Get the possible completions for a partial command.
-
-        Parameters
-
-          args: Sequence
-            The list of arguments parsed so far.
-
-          at_new_arg: bool
-            If false then create completions using args[-1] as the starting
-            point. Otherwise generate all possible values for the next
-            argument.
-
-        Return value
-
-        A list of possible completion strings.
-
-      parse_args(args: tuple[str])       *argparse.SubcommandParser.parse_args*
-        Parse the command arguments.
-
-        Most of the work is done in parse_known_args, which converts arguments
-        to actions, executing them as it goes. Most actions simply update this
-        parser’s Namespace, but a few (such as help) perform more complex
-        actions.
-
-                                           *argparse.TopLevelSubCommandHandler*
-  class argparse.TopLevelSubCommandHandler(command_name: str)
-    Base for a top-level sub-command handler.
-
-    This provides the main parser for a command that is composed of sub-
-    commands.
+                                                   *argparse.VimCommandHandler*
+  class argparse.VimCommandHandler(command_name: str, *args, **kwargs)
+    Base for user defined Vim commands.
 
     Methods
 
-                             *argparse.TopLevelSubCommandHandler.create_parser*
-      create_parser() -> None
-        Create the sub-command argument parser for this command.
+                               *argparse.VimCommandHandler.handle_main_command*
+      handle_main_command(cmd_info: common.CommandInfo, *vim_cmd_args: str)
+        Parse and execute the main command.
+
+        This is invoked by Vim when the user enters this command plus one or
+        more arguments.
+
+        Parameters
+
+          cmd_info: CommandInfo
+            Information about the Vpe command, such as counts or line ranges.
+
+          vim_cmd_args: str
+            The command and arguments that Vim has parsed from the command
+            line.
 
     Class methods
 
-                                  *argparse.TopLevelSubCommandHandler.complete*
+                                          *argparse.VimCommandHandler.complete*
       classmethod complete() -> list[str]
         Attempt command line completion for a command.
 
@@ -2999,28 +3072,13 @@ vpe.warning_msg(*args, soon=False)                            *vpe.warning_msg*
   class diffs.AddOp(lnum: int, end: int, added: int, col: int)
     A buffer addition operation.
 
-    Methods
-
-      apply_to(buf: MutableSequence[str])                *diffs.AddOp.apply_to*
-        Apply this change to the supplied buffer.
-
                                                     *ChangeOp* *diffs.ChangeOp*
   class diffs.ChangeOp(lnum: int, end: int, added: int, col: int)
     A buffer change operation.
 
-    Methods
-
-      apply_to(buf: MutableSequence[str])             *diffs.ChangeOp.apply_to*
-        Apply this change to the supplied buffer - a null operation.
-
                                                     *DeleteOp* *diffs.DeleteOp*
   class diffs.DeleteOp(lnum: int, end: int, added: int, col: int)
     A buffer deletion operation.
-
-    Methods
-
-      apply_to(buf: MutableSequence[str])             *diffs.DeleteOp.apply_to*
-        Apply this change to the supplied buffer.
 
                                                   *Operation* *diffs.Operation*
   class diffs.Operation(lnum: int, end: int, added: int, col: int)
@@ -3038,16 +3096,16 @@ vpe.warning_msg(*args, soon=False)                            *vpe.warning_msg*
     Parameters
 
       lnum
-        The Vim lnum for a change.
+        The lnum value from a Vim change list entry.
 
       end
-        The Vim emd for a change.
+        The end value from a Vim change list entry.
 
       added
-        The Vim added for a change.
+        The added value from a Vim change list entry.
 
       col
-        The Vim column for a change.
+        The col value from a Vim change list entry.
 
     Attributes
 
@@ -3074,10 +3132,6 @@ vpe.warning_msg(*args, soon=False)                            *vpe.warning_msg*
         The number of lines affected.
 
         This is always zero or more, zero indicating a change operation.
-
-                                                    *diffs.Operation.operation*
-      property operation -> Literal['add', 'delete', 'change']
-        The operation name - this is deprecated; use |name|.
 
     Methods
 
@@ -3275,6 +3329,7 @@ vpe.warning_msg(*args, soon=False)                            *vpe.warning_msg*
               pass_info=True,
               args=(),
               kwargs: Optional[dict] = None,
+              vim_exprs: Tuple[str, ...] = ()
 <
     Set up a key mapping that invokes a Python function.
 
@@ -3907,16 +3962,17 @@ vpe.warning_msg(*args, soon=False)                            *vpe.warning_msg*
       group
         A group instance.
 
-  class syntax.MatchGorup(group: |Group| | None)            *syntax.MatchGorup*
+  class syntax.MatchGroup(group: 'Group')                   *syntax.MatchGroup*
+    A matchgroup option.
+
+                                                   *syntax.MatchGroupDirective*
+  class syntax.MatchGroupDirective(group: |Group| | None)
     A matchgroup directive for a region.
 
     Methods
 
-      arg_str() -> str                              *syntax.MatchGorup.arg_str*
+      arg_str() -> str                     *syntax.MatchGroupDirective.arg_str*
         Format matchgroup as an directove in a region command.
-
-  class syntax.MatchGroup(group: 'Group')                   *syntax.MatchGroup*
-    A matchgroup option.
 
                                                        *syntax.NamedSyntaxItem*
   class syntax.NamedSyntaxItem(syn: 'Syntax', name: str, std=False)
@@ -5008,11 +5064,5 @@ vpe.warning_msg(*args, soon=False)                            *vpe.warning_msg*
           >
           vpe.commands.tabonly(silent=True)
 <
-
-                                                            *wrappers.Function*
-  class wrappers.Function(name: str, args: ListType[Any] | None = None)
-    Wrapper around a vim.Function.
-
-    This provides some wrapping or decoding of return types.
 
 vim:tw=78:ts=8:noet:ft=help:norl:cole=0:

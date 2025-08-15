@@ -167,21 +167,22 @@ class CodeSource:
         if CodeSource.vs is None:
             print("Start Vim Session")
             CodeSource.vs = vim_if.VimSession()
-            self.vs.execute(f'import os')
+            self.vs.execute_python_code('import os')
             if platform.platform().startswith('CYGWIN'):
-                self.vs.execute(
+                self.vs.execute_python_code(
                     f'DUMP_PATH = os.environ["TEMP"] + "/{OBJ_DUMP_NAME}"')
             else:
-                self.vs.execute(
+                self.vs.execute_python_code(
                     f'DUMP_PATH = "/tmp/{OBJ_DUMP_NAME}"')
             self.vim_cov_start()
-            self.vs.execute(self.mycode(), py_name='init.py')
+            source_code, _adjust = self.mycode()
+            self.vs.execute_python_code(source_code, py_name='init.py')
 
     def stop_vim_session(self):
         """Stop the running Vim session."""
         if CodeSource.vs is not None:
             self.vim_cov_stop()
-            CodeSource.vs.execute_vim('qa!')
+            CodeSource.vs.execute_vim_command('qa!')
             CodeSource.vs = None
 
     def vim_cov_start(self):
@@ -267,6 +268,17 @@ class CodeSource:
         return None
 
     @staticmethod
+    def _find_py_code_offset(lines: list[str]) -> int:
+        start = -1
+        for i, line in enumerate(lines):
+            if line.strip().endswith(':<py>:'):
+                start = i
+                continue
+            if start >= 0 and line.strip():
+                return i
+        return -1
+
+    @staticmethod
     def extract_vim_code(doc: str) -> Optional[str]:
         """Extract Vim code from a docstring.
 
@@ -279,36 +291,64 @@ class CodeSource:
         return None
 
     def _mycode(
-            self, extract_code: Callable, stack_level: int = 1) -> str:
-        """Extract a block of code from the caller's docstring."""
+            self, extract_code: Callable, stack_level: int = 1,
+            fields: dict | None = None,
+        ) -> tuple[str, tuple[str, int]]:
+        """Extract a block of code from the caller's docstring.
+
+        :return:
+            A tuple of the extracted code and traceback adjustment information.
+            The adjustment information is a either an empty tuple or a 2-tuple
+            of the filename from which the code was extracted and the line
+            where the extracted code started.
+        """
         stack = inspect.stack()
         method_name = stack[stack_level].function
+        adjust_info = ()
         for cls in self.__class__.__mro__:
             method = cls.__dict__.get(method_name, None)
             if method is not None:
+                try:
+                    lines, lnum = inspect.getsourcelines(method)
+                    sourcefile = inspect.getsourcefile(method)
+                except TypeError:
+                    adjust_info = ()
+                else:
+                    offset = self._find_py_code_offset(lines)
+                    adjust_info = (sourcefile, offset + lnum)
+
                 code = extract_code(getattr(method, '__doc__', ''))
                 if code is not None:
-                    return code
+                    if fields:
+                        print(">>>", fields)
+                        return code.format(**fields), adjust_info
+                    else:
+                        return code, adjust_info
 
         fail('code not found in docstring of:'
              f' {self.__class__.__name__}.{method_name}')
-        return ''
+        return '', ()
 
-    def mycode(self, stack_level: int = 1) -> str:
+    def mycode(
+            self, stack_level: int = 1, **kwargs,
+        ) -> tuple[str, tuple[str, int]]:
         """Extract a block of Python code from the caller's docstring."""
-        return self._mycode(self.extract_code, stack_level=stack_level + 1)
+        return self._mycode(
+            self.extract_code, stack_level=stack_level + 1, fields=kwargs)
 
-    def myvimcode(self, stack_level: int = 1) -> str:
+    def myvimcode(
+             self, stack_level: int = 1) -> tuple[str, tuple[str, int]]:
         """Extract a block of Vim code from the caller's docstring."""
-        return self._mycode(self.extract_vim_code, stack_level=stack_level + 1)
+        return self._mycode(
+            self.extract_vim_code, stack_level=stack_level + 1)
 
     @staticmethod
     def result():
         """Get the result from a remote Vim execution."""
-        OBJ_DUMP_PATH, _ = vim_if.get_tmp_paths(OBJ_DUMP_NAME)
-        if not OBJ_DUMP_PATH.exists():
+        obj_dump_path, _ = vim_if.get_tmp_paths(OBJ_DUMP_NAME)
+        if not obj_dump_path.exists():
             return None
-        with open(OBJ_DUMP_PATH, 'rb') as f:
+        with open(obj_dump_path, 'rb') as f:
             data = f.read()
         try:
             v = pickle.loads(data)
@@ -318,13 +358,16 @@ class CodeSource:
             return None
         return v
 
-    def run_self(self, py_name=None, stack_level=2):
+    def run_self(self, py_name=None, stack_level=2, **kwargs):
         """Run the Python code in the caller's docstring."""
-        OBJ_DUMP_PATH, _ = vim_if.get_tmp_paths(OBJ_DUMP_NAME)
-        if OBJ_DUMP_PATH.exists():
-            os.unlink(OBJ_DUMP_PATH)
-        self.vs.execute(self.mycode(stack_level=stack_level), py_name=py_name)
-        return self.result()
+        obj_dump_path, _ = vim_if.get_tmp_paths(OBJ_DUMP_NAME)
+        if obj_dump_path.exists():
+            os.unlink(obj_dump_path)
+        source_code, adjust = self.mycode(stack_level=stack_level, **kwargs)
+        self.vs.execute_python_code(
+            source_code, py_name=py_name, adjust=adjust)
+        result = self.result()
+        return result
 
     def run_suite_setup(self):
         """Run a suite set up script."""
@@ -353,7 +396,8 @@ class CodeSource:
 
             dump({expr})
         """
-        self.vs.execute(self.mycode().format(expr=expr))
+        source_code, _adjust = self.mycode()
+        self.vs.execute_python_code(source_code.format(expr=expr))
         return self.result()
 
 
@@ -371,7 +415,6 @@ class Base(Suite, CodeSource):
         self.vim_cov_start()
 
     def suiteTearDown(self):
-        print("TD Stop")
         self.vim_cov_stop()
         super().suiteTearDown()
 
@@ -392,17 +435,17 @@ class CommandsBase(Base):
         """Suite clean up function."""
         super().suiteTearDown()
         vpe.vim.vim().register_command_callback(None)
-        vpe.common.id_source = self.saved_id_source
+        #vpe.common.id_source = self.saved_id_source
 
     def setUp(self):
         """Per test init function."""
         self.commands = []
         self.saved_id_source = vpe.common.id_source
-        vpe.common.id_source = itertools.count(100)
+        #vpe.common.id_source = itertools.count(100)
 
     def tearDown(self):
         """Per test clean up."""
-        vpe.common.id_source = self.saved_id_source
+        #vpe.common.id_source = self.saved_id_source
 
     def on_command(self, cmd: str):
         """Callback for when vim.command is invoked.
@@ -412,9 +455,15 @@ class CommandsBase(Base):
         self.commands.append(cmd)
         print(cmd)
 
-    def check_commands(self):
-        """Check the set of issued Vim commands."""
-        code = self.myvimcode(stack_level=2)
+    def check_commands(self, **values):
+        """Check the set of issued Vim commands.
+
+        :values:
+            A set of keyword arguments used to parameterise the expected
+            command output.
+        """
+        code, _ = self.myvimcode(stack_level=2)
+        code = code.format(**values)
         e_lines = code.splitlines()
         a_lines = self.commands
         if e_lines == ['<NOP>']:

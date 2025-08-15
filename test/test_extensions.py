@@ -5,17 +5,18 @@
 
 import os
 import platform
+import re
 import time
 
 # pylint: disable=unused-wildcard-import,wildcard-import
 from cleversheep3.Test.Tester import *
-from cleversheep3.Test.Tester import test, runModule
 
 import support
 import vim_if
 from support import fix_path
 
 import vpe
+from vpe import utils
 
 _run_after = ['test_vim.py', 'test_mapping_x.py']
 
@@ -373,18 +374,44 @@ class Timers(support.Base):
 
         :<py>:
             import time
-
-            vpe.timer_stopall()
         """
         super().suiteSetUp()
         self.run_suite_setup()
+
+    @classmethod
+    def extract_from_lines(
+            cls, lines: list[str], pattern: str, after: str = '') -> str:
+        """Extract a line from a list of lines, using a search pattern."""
+        if after:
+            for line in lines:
+                if line == after:
+                    break
+            else:
+                return ''
+
+        for line in lines:
+            if re.search(pattern, line):
+                return line
+        return ''
+
+    @classmethod
+    def extract_log_line(
+            cls, lines: list[str], pattern: str) -> str:
+        """Extract a line from a list of log lines, using a search pattern."""
+
+        line = cls.extract_from_lines(lines, pattern)
+        m = re.match('^ *[0-9]+[.][0-9]{2}: (.*)', line)
+        if m:
+            line = m.group(1)
+        else:
+            line = line[9:]
+        return line.rstrip()
 
     def do_continue(self):
         """Contine executions to allow timers to expire.
 
         :<py>:
             res.paused = timer.paused
-            res.num_timers = vpe.Timer.num_instances()
             res.dead = timer.dead
             res.fire_count = timer.fire_count
             res.repeat = timer.repeat
@@ -394,14 +421,38 @@ class Timers(support.Base):
         """
         return self.run_continue()
 
-    def do_dead_continue(self):
-       """Contine executions to dead/unreachable timers to expire.
+    def do_continue_for_time_estimation(self):
+        """A verions of `do_continue` just for execution time estimation.
 
         :<py>:
-            res.num_timers = vpe.Timer.num_instances()
+            res = Struct()
+            res.paused = 42
+            res.dead = 43
+            res.fire_count = 44
+            res.repeat = 45
+            res.wibble = 'Wibble!'
+            res.curr_time = time.time()
             dump(res)
-       """
-       return self.run_continue()
+        """
+        return self.run_continue()
+
+    def do_dead_continue(self):
+        """Contine executions to allow dead/unreachable timers to expire.
+
+        :<py>:
+            print("CONT", res.ticks)
+            dump(res)
+        """
+        return self.run_continue()
+
+    def do_dead_continue_get_log(self):
+        """Contine executions to allow dead/unreachable timers to expire.
+
+        :<py>:
+            res.log = vpe.log.lines
+            dump(res)
+        """
+        return self.run_continue()
 
     @test(testID='timer-one-shot')
     def create_one_shot(self):
@@ -426,8 +477,6 @@ class Timers(support.Base):
         while time.time() - a < 1.0 and res.ticks < 1:
             res = self.do_continue()
             count += 1
-        elapsed = res.curr_time - res.start_time
-        print(f'PAUL: {res.init_repeat=} {res.repeat=} {res.dead}')
         failUnlessEqual(1, res.ticks)
         failUnless(count > 0)
         failUnlessEqual(10, res.init_time)
@@ -479,8 +528,9 @@ class Timers(support.Base):
 
     # TODO: Vim timers seem to behave badly and unpredictably if the remaining
     #       time hits zero whilst paused.
-    #       This is why the interval in this test is 1000ms. Too small a number
-    #       and the test is unrealiable (at least on Windows).
+    #       So I had this test using a 1000ms timer, with the comment:
+    #          This is why the interval in this test is 100ms. Too small a
+    #          number and the test is unrealiable (at least on Windows).
     @test(testID='timer-control')
     def control_timer(self):
         """The pause, resume and stop functions control an active timer.
@@ -497,48 +547,66 @@ class Timers(support.Base):
 
             res = Struct()
             res.start_time = time.time()
-            timer = vpe.Timer(ms=1000, func=on_expire, repeat=3)
+            timer = vpe.Timer(ms={interval_ms}, func=on_expire, repeat=3)
             res.ticks = 0
             dump(res)
         """
-        res = self.run_self()
+        # Make a measurement of how long it takes to execute code in the Vim
+        # session and use it to choosea suitable interval. (We want the
+        # do_continue to be able to execute 5 plus times within the interval.)
         a = time.time()
-        count = 0
-        while time.time() - a < 1.0 and res.ticks < 1:
+        res = self.do_continue_for_time_estimation()
+        b = time.time()
+        interval_ms = int((b - a) * 6000)
+        interval = interval_ms / 2.0
+
+        res = self.run_self(interval_ms=interval_ms)
+        a = time.time()
+        while time.time() - a < interval and res.ticks < 1:
+            b = time.time()
             res = self.do_continue()
+        b = time.time()
         failUnless(res.paused)
 
         res = self.resume_timer()
         failIf(res.paused)
 
-        while time.time() - a < 3.0 and res.ticks < 2:
+        while time.time() - a < interval * 3 and res.ticks < 2:
             res = self.do_continue()
         failUnlessEqual(2, res.ticks)
-        failUnlessEqual(0, res.num_timers)
 
-    @test(testID='timer-stopall')
-    def stopall_timers(self):
-        """The stop_all class method stops timer and cleans up.
+    @test(testID='call-soon')
+    def call_soon(self):
+        """The call_soon function.
+
+        This arranges to invoke a function as soon as possible, but within
+        Vim's mainloop code (i.e. not within cany callback context).
 
         :<py>:
 
-            def on_expire(timer):
+            def on_expire():
+                print("EXPIRE")
                 res.ticks += 1
 
             res = Struct()
             res.start_time = time.time()
-            timer = vpe.Timer(ms=100, func=on_expire, repeat=-1)
-            timer2 = vpe.Timer(ms=100, func=on_expire)
-            vpe.Timer.stop_all()
+            res.ticks = 0
+            vpe.call_soon(on_expire)
+            vpe.call_soon(on_expire)
             dump(res)
         """
-        self.run_self()
-        res = self.do_continue()
-        failUnlessEqual(0, res.num_timers)
+        res = self.run_self()
+        failUnlessEqual(0, res.ticks)
+        res = self.do_dead_continue()
+        res = self.do_dead_continue()
+        res = self.do_dead_continue()
+        failUnlessEqual(2, res.ticks)
 
-    @test(testID='timer-call-soon')
-    def call_soon(self):
-        """The call_soon function.
+    @test(testID='call-soon-once')
+    def call_soon_once(self):
+        """The call_soon_once function.
+
+        Like call_soon, but only a single call is made for a given token.
 
         :<py>:
 
@@ -548,14 +616,39 @@ class Timers(support.Base):
             res = Struct()
             res.start_time = time.time()
             res.ticks = 0
-            vpe.call_soon(on_expire)
+            vpe.call_soon_once(vpe, on_expire)
+            vpe.call_soon_once(vpe, on_expire)
             dump(res)
         """
         res = self.run_self()
         failUnlessEqual(0, res.ticks)
         res = self.do_dead_continue()
         failUnlessEqual(1, res.ticks)
-        failUnlessEqual(0, res.num_timers)
+
+    @test(testID='call-soon-error')
+    def call_soon_error(self):
+        """Errors for call_soon invocations are logged but otherwises
+        suppressed.
+
+        :<py>:
+
+            def on_expire():
+                assert False
+
+            res = Struct()
+            res.start_time = time.time()
+            res.ticks = 0
+            vpe.log.clear()
+            vpe.call_soon(on_expire)
+            dump(res)
+        """
+        res = self.run_self()
+        failUnlessEqual(0, res.ticks)
+        res = self.do_dead_continue_get_log()
+        failUnlessEqual(0, res.ticks)
+        failUnlessEqual(
+            'VPE: Exception occurred in callback.',
+            self.extract_log_line(res.log, 'callback'))
 
     @test(testID='timer-dead-func-single_shot')
     def dead_callback_single_shot(self):
@@ -571,7 +664,7 @@ class Timers(support.Base):
 
             res = Struct()
             res.start_time = time.time()
-            vpe.Timer(ms=10, func=on_expire)
+            vpe.OneShotTimer(ms=10, func=on_expire)
             del on_expire
             res.ticks = 0
             dump(res)
@@ -581,7 +674,6 @@ class Timers(support.Base):
         while time.time() - a < 1.0 and res.ticks < 1:
             res = self.do_dead_continue()
         failUnlessEqual(1, res.ticks)
-        failUnlessEqual(0, res.num_timers)
 
     @test(testID='timer-dead-method-single_shot')
     def dead_method_single_shot(self):
@@ -599,7 +691,7 @@ class Timers(support.Base):
             res = Struct()
             res.start_time = time.time()
             inst = Test()
-            vpe.Timer(ms=50, func=inst.on_expire)
+            vpe.OneShotTimer(ms=50, func=inst.on_expire)
             del inst
             res.ticks = 0
             dump(res)
@@ -609,14 +701,13 @@ class Timers(support.Base):
         while time.time() - a < 5.0 and res.ticks < 1:
             res = self.do_dead_continue()
         failUnlessEqual(1, res.ticks)
-        failUnlessEqual(0, res.num_timers)
 
     @test(testID='timer-dead-func-repeating')
     def dead_callback_repeating(self):
         """A repeating timer keeps a weak reference to a function.
 
-        This means that is the user drops the reference to the
-        function then the timer becomes dead.
+        This means that if the user drops the reference to the function then
+        the timer becomes dead.
 
         :<py>:
             def on_expire(timer):
@@ -632,6 +723,28 @@ class Timers(support.Base):
         res = self.run_self()
         failUnless(res.dead)
 
+    @test(testID='timer-callback-exception')
+    def timer_callback_raises_exception(self):
+        """A timer callback exception is cleanly handled.
+
+        :<py>:
+            def on_expire(timer):
+                res.ticks += 1
+                if res.ticks == 1:
+                    assert False
+
+            res = Struct()
+            res.start_time = time.time()
+            timer = vpe.Timer(ms=10, func=on_expire, repeat=3)
+            res.ticks = 0
+            dump(res)
+        """
+        res = self.run_self()
+        a = time.time()
+        while time.time() - a < 1.0 and res.ticks < 3:
+            res = self.do_continue()
+        failUnlessEqual(3, res.ticks)
+
 
 class Log(support.Base):
     """Logging buffer support.
@@ -645,8 +758,6 @@ class Log(support.Base):
 
             def clean_log_lines(lines):
                 return [line.partition(': ')[2] for line in lines]
-
-            vpe.timer_stopall()
         """
         super().suiteSetUp()
         self.run_suite_setup()
@@ -666,8 +777,11 @@ class Log(support.Base):
     def create_log(self):
         """Create a Log instance.
 
-        This does not create a Vim buffer, just an internal FIFO to store
-        logged output, until show is invoked.
+        The default maximium length for a log is 500.
+
+        This does not initially create a Vim buffer, just an internal FIFO to
+        store logged output. When the `show` is invoked then the buffer is
+        created and populated fom the FIFO.
 
         The show method will split the window if the buffer is not already
         visible on the current tab.
@@ -675,23 +789,34 @@ class Log(support.Base):
         :<py>:
             res = Struct()
             res.init_buf_count = len(vim.buffers)
-            log = vpe.Log('test-log')
+            log = vpe.Log('test-log', timestamps=False)
+            log('Just for testing')
+            res.maxlen = log.maxlen
             res.log_buf_count = len(vim.buffers)
 
             res.init_win_count = len(vim.windows)
-            log.show()
-            res.log_win_count = len(vim.windows)
+            log.hide()
+            res.log_win_count_a = len(vim.windows)
 
             log.show()
             res.log_win_count_b = len(vim.windows)
+
+            log.show()
+            res.log_win_count_c = len(vim.windows)
+
+            log.hide()
+            res.log_win_count_d = len(vim.windows)
 
             dump(res)
         """
         res = self.run_self()
         failUnlessEqual(res.init_buf_count, res.log_buf_count)
         failUnlessEqual(1, res.init_win_count)
-        failUnlessEqual(2, res.log_win_count)
+        failUnlessEqual(1, res.log_win_count_a)
         failUnlessEqual(2, res.log_win_count_b)
+        failUnlessEqual(2, res.log_win_count_c)
+        failUnlessEqual(1, res.log_win_count_d)
+        failUnlessEqual(500, res.maxlen)
 
     @test(testID='log-internal-buffer')
     def buffer_log(self):
@@ -700,8 +825,8 @@ class Log(support.Base):
         The buffer has a configurable, limited length. This is enforced before
         and after the buffer is shown.
 
-        Each lines is prefixed by a simple time stamp (seconds since log was
-        created).
+        Each lines is prefixed by a simple time stamp (seconds since the log
+        was created).
 
         :<py>:
 
@@ -825,6 +950,10 @@ class AutoCmdGroup(support.CommandsBase):
     The AutoCmdGroup class provides a way to define auto commands that invoke
     Vim functions.
     """
+    # pylint: disable=invalid-name
+    # pylint: disable=missing-class-docstring
+    # pylint: disable=missing-function-docstring
+
     @test(testID='autocmd-create')
     def create_autocmds(self):
         """Create some auto commands in a group.
@@ -834,8 +963,8 @@ class AutoCmdGroup(support.CommandsBase):
             set cpoptions&vim
             augroup test
             autocmd!
-            autocmd BufReadPre <buffer> call VPE_Call("100", "callback")
-            autocmd BufReadPost *.py call VPE_Call("101", "callback")
+            autocmd BufReadPre <buffer> call VPE_Call("{uid_a}", "callback")
+            autocmd BufReadPost *.py call VPE_Call("{uid_b}", "callback")
             augroup END
         """
         def callback():
@@ -845,7 +974,9 @@ class AutoCmdGroup(support.CommandsBase):
             grp.delete_all()
             grp.add('BufReadPre', callback)
             grp.add('BufReadPost', callback, pat='*.py')
-        self.check_commands()
+        uid_a = utils.uid_source.prev_id(1)
+        uid_b = utils.uid_source.prev_id()
+        self.check_commands(uid_a=uid_a, uid_b=uid_b)
 
     @test(testID='autocmd-buf_as_pat')
     def create_buf_as_pat(self):
@@ -856,7 +987,7 @@ class AutoCmdGroup(support.CommandsBase):
             set cpoptions&vim
             augroup test
             autocmd!
-            autocmd BufReadPre <buffer=1> call VPE_Call("100", "callback")
+            autocmd BufReadPre <buffer=1> call VPE_Call("{uid_a}", "callback")
             augroup END
         """
         def callback():
@@ -865,7 +996,8 @@ class AutoCmdGroup(support.CommandsBase):
         with vpe.AutoCmdGroup('test') as grp:
             grp.delete_all()
             grp.add('BufReadPre', callback, pat=vpe.vim.current.buffer)
-        self.check_commands()
+        uid_a = utils.uid_source.prev_id()
+        self.check_commands(uid_a=uid_a)
 
     @test(testID='autocmd-options')
     def create_with_options(self):
@@ -876,7 +1008,7 @@ class AutoCmdGroup(support.CommandsBase):
             set cpoptions&vim
             augroup test
             autocmd!
-            autocmd BufReadPre <buffer> ++once ++nested call VPE_Call("100", "callback")
+            autocmd BufReadPre <buffer> ++once ++nested call VPE_Call("{uid_a}", "callback")
             augroup END
         """
         def callback():
@@ -885,7 +1017,8 @@ class AutoCmdGroup(support.CommandsBase):
         with vpe.AutoCmdGroup('test') as grp:
             grp.delete_all()
             grp.add('BufReadPre', callback, once=True, nested=True)
-        self.check_commands()
+        uid_a = utils.uid_source.prev_id()
+        self.check_commands(uid_a=uid_a)
 
     @test(testID='autocmd-event_handler')
     def create_using_event_handler_mixin(self):
@@ -895,7 +1028,7 @@ class AutoCmdGroup(support.CommandsBase):
 
             set cpoptions&vim
             augroup testxxautocmds
-            autocmd BufReadPre * call VPE_Call("100", "callback")
+            autocmd BufReadPre * call VPE_Call("{uid_a}", "EH_Test.callback")
             augroup END
         """
         class EH_Test(vpe.EventHandler):
@@ -906,8 +1039,9 @@ class AutoCmdGroup(support.CommandsBase):
             def callback(self):
                 pass
 
-        inst = EH_Test()
-        self.check_commands()
+        _inst = EH_Test()
+        uid_a = utils.uid_source.prev_id()
+        self.check_commands(uid_a=uid_a)
 
     @test(testID='autocmd-event_handler-del-all')
     def create_using_event_handler_mixin_del_all(self):
@@ -918,7 +1052,7 @@ class AutoCmdGroup(support.CommandsBase):
             set cpoptions&vim
             augroup testxxautocmds
             autocmd!
-            autocmd BufReadPre * call VPE_Call("100", "callback")
+            autocmd BufReadPre * call VPE_Call("{uid_a}", "EH_Test.callback")
             augroup END
         """
         class EH_Test(vpe.EventHandler):
@@ -930,8 +1064,9 @@ class AutoCmdGroup(support.CommandsBase):
             def callback(self):
                 pass
 
-        inst = EH_Test()
-        self.check_commands()
+        _inst = EH_Test()
+        uid_a = utils.uid_source.prev_id()
+        self.check_commands(uid_a=uid_a)
 
     @test(testID='autocmd-event_handler-bad-name')
     def event_handler_mixin_bad_name(self):
@@ -951,7 +1086,7 @@ class AutoCmdGroup(support.CommandsBase):
             def callback(self):
                 pass
 
-        inst = EH_Test()
+        _inst = EH_Test()
         self.check_commands()
 
 
@@ -982,14 +1117,14 @@ class Miscellaneous(support.CommandsBase):
         self.run_setup()
 
     def do_continue(self):
-       """Contine executions to allow things to flush.
+        """Contine executions to allow things to flush.
 
         :<py>:
 
             res.messages = vim.execute('messages')
             dump(res)
-       """
-       return self.run_continue()
+        """
+        return self.run_continue()
 
     @test(testID='misc-highlight')
     def highlight(self):
@@ -1019,11 +1154,11 @@ class Miscellaneous(support.CommandsBase):
 
         :<py>:
 
-            def callback(*args):
+            def my_callback(*args):
                 res.args = args
 
             res = Struct()
-            cb = vpe.Callback(callback, vim_exprs=(
+            cb = vpe.Callback(my_callback, vim_exprs=(
                 vpe.expr_arg('[1, 2]'), vpe.expr_arg('{"a": 1, "b": 2}'),
                 'hello'))
             res.ret = vim.eval(cb.as_invocation())
@@ -1033,7 +1168,7 @@ class Miscellaneous(support.CommandsBase):
         """
         res = self.run_self()
         failUnlessEqual(([1, 2], {'a': 1, 'b': 2}, 'hello'), res.args)
-        failUnlessEqual('<Callback:callback>', res.repr)
+        failUnlessEqual('<Callback:my_callback>', res.repr)
 
     @test(testID='misc-callback_failure')
     def callback_failure_handling(self):
@@ -1083,7 +1218,7 @@ class Miscellaneous(support.CommandsBase):
         failUnlessEqual(1, res.method_count)
         failIf(res.impossible)
 
-        failUnlessEqual('<DeadCallback:callback_deleted>', res.repr_deleted)
+        failUnlessEqual('<Callback:callback_deleted dead!>', res.repr_deleted)
         failUnlessEqual('<Callback:BadClass.fail>', res.repr_method)
 
     @test(testID='misc-build-dict-arg')
@@ -1108,12 +1243,12 @@ class Miscellaneous(support.CommandsBase):
             vim.command('messages clear')
         """
         self.run_self()
-        v = self.vs.py_eval('vpe.error_msg("Oops!")')
-        messages = self.vs.execute_vim('messages').splitlines()
+        _v = self.vs.py_eval('vpe.error_msg("Oops!")')
+        messages = self.vs.execute_vim_command('messages').splitlines()
         failUnlessEqual('Oops!', messages[-1])
 
     @test(testID='misc-error-msg-soon')
-    def error_msg(self):
+    def error_msg_soon(self):
         """The error_msg soon argument delays execution until 'safe'.
 
         The actual call is invoked when Vim becomes idle.
@@ -1125,8 +1260,8 @@ class Miscellaneous(support.CommandsBase):
             vim.command('messages clear')
         """
         self.run_self()
-        v = self.vs.py_eval('vpe.error_msg("Oops!", soon=True)')
-        messages = self.vs.execute_vim('messages').splitlines()
+        _v = self.vs.py_eval('vpe.error_msg("Oops!", soon=True)')
+        messages = self.vs.execute_vim_command('messages').splitlines()
         failUnlessEqual('Oops!', messages[-1])
 
     @test(testID='misc-warning-msg')
@@ -1138,8 +1273,8 @@ class Miscellaneous(support.CommandsBase):
             vim.command('messages clear')
         """
         self.run_self()
-        v = self.vs.py_eval('vpe.warning_msg("Careful!")')
-        messages = self.vs.execute_vim('messages').splitlines()
+        _v = self.vs.py_eval('vpe.warning_msg("Careful!")')
+        messages = self.vs.execute_vim_command('messages').splitlines()
         failUnlessEqual('Careful!', messages[-1])
 
     @test(testID='misc-echo-msg')
@@ -1151,8 +1286,8 @@ class Miscellaneous(support.CommandsBase):
             vim.command('messages clear')
         """
         self.run_self()
-        v = self.vs.py_eval('vpe.echo_msg("Hello")')
-        messages = self.vs.execute_vim('messages').splitlines()
+        _v = self.vs.py_eval('vpe.echo_msg("Hello")')
+        messages = self.vs.execute_vim_command('messages').splitlines()
         failUnlessEqual('Hello', messages[-1])
 
     @test(testID='misc-pedit')

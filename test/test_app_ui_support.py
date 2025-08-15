@@ -37,6 +37,7 @@ class PanelViewBuffer(support.Base):
 
             displays = app_ui_support.get_display_info()
             win = app_ui_support.get_app_win_info()
+            win = app_ui_support.get_app_win_info()  # For coverage!
             res.displays = displays.displays
 
             display = displays.find_display_for_window(win)

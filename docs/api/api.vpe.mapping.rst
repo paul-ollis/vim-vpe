@@ -157,6 +157,7 @@ calls.
                 pass_info=True,
                 args=(),
                 kwargs: Optional[dict] = None,
+                vim_exprs: Tuple[str, ...] = ()
 
     Set up a key mapping that invokes a Python function.
 

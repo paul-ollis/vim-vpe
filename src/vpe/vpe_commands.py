@@ -17,10 +17,10 @@ from inspect import cleandoc
 from typing import TYPE_CHECKING
 
 from vpe import core, vim
-from vpe.argparse import CommandBase, SubCommandBase, TopLevelSubCommandHandler
+from vpe.argparse import (
+    CommandHandler, SubcommandHandlerBase, TopLevelSubcommandHandler)
 
 if TYPE_CHECKING:
-    from argparse import Namespace
     from argparse import Namespace
 
 # Function to print error messages.
@@ -30,7 +30,7 @@ error_msg = partial(core.error_msg, soon=True)
 echo_msg = partial(core.echo_msg, soon=True)
 
 
-class LogLengthCommand(CommandBase):
+class LogLengthCommand(CommandHandler):
     """The 'log length' sub-command support."""
 
     def add_arguments(self) -> None:
@@ -47,7 +47,7 @@ class LogLengthCommand(CommandBase):
             core.log.set_maxlen(args.maxlen)
 
 
-class LogRedirectCommand(CommandBase):
+class LogRedirectCommand(CommandHandler):
     """The 'log redirect' sub-command support."""
 
     def add_arguments(self) -> None:
@@ -69,10 +69,10 @@ class LogRedirectCommand(CommandBase):
             echo_msg('Stdout/stderr not being redirected to the log')
 
 
-class LogSubCommand(SubCommandBase):
+class LogSubCommand(SubcommandHandlerBase):
     """The 'log' sub-command support."""
 
-    sub_commands = {
+    subcommands = {
         'show': (':simple', 'Show the log file buffer.'),
         'hide': (':simple', 'Hide the log file buffer.'),
         'length': (LogLengthCommand, 'Display/set the log file max length'),
@@ -80,24 +80,25 @@ class LogSubCommand(SubCommandBase):
             LogRedirectCommand, 'Display/set stdout/sterr redirection'),
     }
 
-    def handle_show(self) -> None:
+    def handle_show(self, _args: Namespace) -> None:
         """Handle the 'Vpe log show' command."""
         core.log.show()
 
-    def handle_hide(self) -> None:
+    def handle_hide(self, _args: Namespace) -> None:
         """Handle the 'Vpe log hide' command."""
         core.log.hide()
 
 
-class VPECommandProvider(TopLevelSubCommandHandler):
+class VPECommandProvider(TopLevelSubcommandHandler):
     """A class to provide some VPE support commands."""
 
-    sub_commands = {
+    subcommands = {
         'log': (LogSubCommand, 'Log file management.'),
         'insert_config': (':simple', 'Insert the vpe_config global variable.'),
     }
+    range = True
 
-    def handle_insert_config(self) -> None:
+    def handle_insert_config(self, _args: Namespace) -> None:
         """Execute the 'Vpe insert_config' command."""
         vpe_vars = (
             (

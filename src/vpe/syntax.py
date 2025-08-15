@@ -235,13 +235,13 @@ class Region(SyntaxBase):
         self.syn = syn
         self.syn_cmd = syn_cmd
         self.qual_name = name
-        self.directives: list[Start | Skip | End | MatchGorup] = []
+        self.directives: list[Start | Skip | End | MatchGroupDirective] = []
         self.preview = options.pop('preview', False)
         self.options = convert_syntax_options(self.syn, options)
 
     def matchgroup(self, group: Group | None):
         """Add or remove a matchgroup directive for this region."""
-        self.directives.append(MatchGorup(group))
+        self.directives.append(MatchGroupDirective(group))
 
     def start(self, pat: str, *pats: str, **kwargs) -> "Region":
         """Define a start pattern
@@ -552,23 +552,6 @@ class Syntax(SyntaxBase):
         func, args, kwargs = self._directives[-1]
         return func(*args, **kwargs, preview=True)
 
-    def gen_vim_script(self):
-        with open('/tmp/syntax.vim', mode='wt', encoding='utf-8') as f:
-            if self.clear_prev_syntax:
-                wrappers.commands.syntax('clear', file=f)
-            for syn_name in self.simple_includes:
-                wrappers.commands.runtime(f'syntax/{syn_name}.vim', file=f)
-            for func, args, kwargs in self._directives:
-                func(file=f, *args, **kwargs)
-            for cluster in self.clusters.values():
-                cluster.invoke(file=f)
-            for group in self.groups.values():
-                group.invoke(file=f)
-            for group in self.std_groups.values():
-                group.invoke(file=f)
-            for group in self.groups.values():
-                group.set_highlight(file=f)
-
     def __enter__(self):
         self._directives = []
         return self
@@ -652,7 +635,7 @@ class End(Pattern):
     _pre_pat_names = ('keepend', 'extend', 'excludenl', 'matchgroup')
 
 
-class MatchGorup:
+class MatchGroupDirective:
     """A matchgroup directive for a region."""
     def __init__(self, group: Group | None):
         self.group = group

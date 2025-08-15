@@ -81,9 +81,9 @@ from vpe.wrappers import Vim, vim
 from vpe import channels, mapping, syntax, vpe_commands as _vpe_commands
 from vpe.mapping import MapCallback
 from vpe.wrappers import (
-    Buffer, Buffers, Current, GlobalOptions, Options, Range, Registers, Struct,
-    TabPage, TabPages, VIM_DEFAULT, VI_DEFAULT, Variables, Window, Windows,
-    commands, suppress_vim_invocation_errors)
+    BufListener, Buffer, Buffers, Current, GlobalOptions, Options, Range,
+    Registers, Struct, TabPage, TabPages, VIM_DEFAULT, VI_DEFAULT, Variables,
+    Window, Windows, commands)
 
 __api__ = [
     # Modules documented as part of the API.
@@ -118,6 +118,7 @@ __api__ = [
     'highlight',
     'log',
     'Log',
+    'OneShotTimer',
     'pedit',
     'Popup',
     'PopupAtCursor',
@@ -259,7 +260,7 @@ def _import_possible_plugin(path):
     if os.environ.get('VPE_TEST_MODE', None):
         # We are running tests and only want to install test specific plugins.
         if not path.name.startswith('vpe_test_only_'):
-            return
+            return                                           # pragma: no cover
 
     try:
         # pylint: disable=exec-used
@@ -301,10 +302,11 @@ def _load_plugins(old_plugins_only: bool = False):
             vim.options.runtimepath += str(plugin_dir)
 
     if not old_plugins_only:
-        _load_new_plugins()
+        _load_new_plugins()                                  # pragma: no cover
 
 
 def _load_new_plugins():
+    # pragma: no cover
     discovered_plugins = entry_points(group='vpe.plugins')
     for entry_point in discovered_plugins:
         # TODO: Need to handle plugin errors gracefully.

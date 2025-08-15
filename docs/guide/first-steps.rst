@@ -47,7 +47,7 @@ and examples uses ``vim.vim()`` to make it clear when the standard ``vim``
 module behaviour is being discussed.
 
 
-Vim Options
+Vim options
 -----------
 
 As well as accessing options using dictionary-like syntax, you can also access

@@ -8,7 +8,6 @@ from __future__ import annotations
 import collections
 import itertools
 import pathlib
-import pprint
 import weakref
 from typing import Any, Callable, ClassVar, Iterator, Type
 
@@ -17,13 +16,13 @@ import vim as _vim
 from vpe import common, diffs
 
 __all__ = ('tabpages', 'TabPage', 'Vim', 'Registers', 'vim',
-           'Function', 'windows', 'Window',
+           'windows', 'Window',
            'buffers', 'Buffer', 'Range', 'Struct', 'VI_DEFAULT')
 __api__ = ('Function', 'Commands')
 
 # Type aliases
-ListenerCallbackFunc = Callable[[int, int, int, int, list[dict]], None]
-ListenerCallbackMethod = Callable[[int, int, int, list[dict]], None]
+ListenerCallbackFunc = Callable[['Buffer', int, int, int], None]
+ListenerCallbackMethod = Callable[[int, int, int], None]
 
 # Special values used to reset represent Vi or Vim default values. Currently
 # only used to set options.
@@ -276,45 +275,47 @@ class BufferListContext(list):
 
 
 class BufListener(common.Callback):
-    """A Pythonic wrapping of Vim's listener... functions.
+    """An extension of `Callback` for Vim's buffer change callbacks.
 
     One of these is created by `Buffer.add_listener`. Direct instantiation of
     this class is not recommended or supported.
 
     :func:
     The Python function or method to be called back.
-    :buf:
+    :@buf:
         The `Buffer` instance.
-    :is_method:
-        If set then the buffer is not provided to callbacks.
-    :ops:
-        Include the `diffs.BufOperation` changes as an additional argument:
-    :raw_changes:
+    :@ops:
+        Include the `diffs.Operation` changes as an additional argument:
+    :@raw_changes:
         Include the raw changes as an additional argument:
 
     @listen_id: The unique ID from a :vim:`listener_add` invocation.
     """
 
     def __init__(
-            self, func, buf, is_method: bool, ops: bool = True,
-            raw_changes: bool = False,
+            self, func, buf, ops: bool = True, raw_changes: bool = False,
         ):
         # pylint: disable=too-many-arguments,too-many-positional-arguments
-        super().__init__(func)
-        self.buf = buf
-        self.is_method = is_method
+        def unlisten():
+            vim.listener_flush(buf_num)
+            vim.listener_remove(lid)
+            print(f'Clean: listener_remove({lid})')
+
+        super().__init__(func, cleanup=unlisten)
+        self.buf = weakref.proxy(buf)
         self.ops = ops
         self.raw_changes = raw_changes
-        self.listen_id: int = -1  # Gets set by creator.
+        self.listen_id: int = vim.listener_add(
+            self.as_vim_function(), buf.number)
 
-    def flush(self):
-        """Request that any pending callbacks are invoked for this listener."""
-        vim.listener_flush(self.buf.number)
+        # Values for the unlisten closure.
+        buf_num = buf.number
+        lid = self.listen_id
 
-    def invoke_self(self, vpe_args):
+    def invoke_cb(self, func, vpe_args):
         """Invoke this Callback.
 
-        This extends the `Callback.invoke_self` method.
+        This extends the `Callback.invoke_cb` method.
 
         The vpe_args['args'] are (From Vim's docs):
 
@@ -333,23 +334,25 @@ class BufListener(common.Callback):
 
         Start and end are adjusted so they form a Python range.
 
-        If `ops` is True then a list of operations is provided to the callback.
-        Each entry in the changes is converted to one of a `BufAddOp`,
-        `BufDeleteOp` or `BufChangeOp`.
+        If `ops` is True then a list of operations is provided to the callback
+        as an ``ops`` keyword argument. Each entry in the changes is converted
+        to one of an `AddOp`, `DeleteOp` or `ChangeOp`.
+
+        Similarly, if `raw_changes` is True
+        then the list of operations provided by Vim is provided to the callback
+        as a ``raw_changes`` keyword argument.
         """
         _, start, end, added, changes = vpe_args['args']
         start -= 1
         end -= 1
-        if self.is_method:
-            vpe_args['args'] = start, end, added
-        else:
-            vpe_args['args'] = self.buf, start, end, added
-        if self.ops:
-            vpe_changes = [diffs.BufOperation.create(**ch) for ch in changes]
-            vpe_args['args'] += (vpe_changes,)
-        if self.raw_changes:
-            vpe_args['args'] += (changes,)
-        super().invoke_self(vpe_args)
+        self.py_kwargs = {}
+        vpe_args['args'] = self.buf, start, end, added
+        if self.ops: #?
+            vpe_changes = [diffs.Operation.create(**ch) for ch in changes]
+            self.py_kwargs['ops'] = vpe_changes
+        if self.raw_changes: #?
+            self.py_kwargs['raw_changes'] = changes
+        super().invoke_cb(func, vpe_args)
 
     def stop_listening(self):
         """Stop listening for changes.
@@ -380,6 +383,8 @@ class Range(common.MutableSequenceProxy):
             self._proxied.append(line_or_lines, nr)
 
 
+# TODO:
+#   This should sensibly cope when the underlying Vim buffer has been wiped out.
 class Buffer(common.MutableSequenceProxy):
     """Wrapper around a :vim:`python-buffer`.
 
@@ -551,7 +556,7 @@ class Buffer(common.MutableSequenceProxy):
                 self._proxied.append(line_or_lines)
             else:
                 self._proxied.append(line_or_lines, nr)
-        except vim.error:
+        except vim.error:                                    # pragma: no cover
             # I have seen this happen when appending to the log buffer. Trying
             # to log an error is therefore a *bad* idea.
             #
@@ -671,8 +676,7 @@ class Buffer(common.MutableSequenceProxy):
             arguments:
 
             :buf:
-                The buffer that was changed. Only present if *func* is not a
-                bound method of this instance.
+                The buffer that was changed.
             :start:
                 Start of the range of modified lines (zero based).
             :end:
@@ -681,32 +685,23 @@ class Buffer(common.MutableSequenceProxy):
                 Number of lines added, negative if lines were deleted.
 
         :ops:
-            Include a list of the individal operations to the callback. This is
-            ``True`` by default.
-
-            :changed:
-                A list of diffs.BufOperation instances with details about the
-                changes.
+            ``True`` by default. Include a list of the individal operations to
+            the callback as the ``ops`` keyword argument. A list of
+            diffs.Operation instances with details about the changes.
 
         :raw_changes:
-            Include the raw changes as an additional argument:
-
-            :raw_changes:
-                The unmodified changes provided by the Vim buffer change
-                callback (see :vim:`listener_add` for details).
+            ``False`` by default. Include the unmodified changes as the
+            ``raw_changes`` keyword argument (see :vim:`listener_add` for
+            details).
 
         :return:
             A :py:obj:`BufListener` object.
         """
-        inst = getattr(func, '__self__', None)
-        p_buf = weakref.proxy(self)
-        if inst is self:
-            cb = BufListener(
-                func, p_buf, is_method=True, raw_changes=raw_changes, ops=ops)
-        else:
-            cb = BufListener(
-                func, p_buf, is_method=False, raw_changes=raw_changes, ops=ops)
-        cb.listen_id = vim.listener_add(cb.as_vim_function(), self.number)
+        # Important: Flush pending changes for this buffer so they do not get
+        # delivered the listener that is about to be added.
+        vim.listener_flush(self.number)
+
+        cb = BufListener(func, self, raw_changes=raw_changes, ops=ops)
         return cb
 
     def clear_props(self):
@@ -717,6 +712,15 @@ class Buffer(common.MutableSequenceProxy):
             self, lidx: int, start_cidx: int, end_cidx: int, hl_group: str,
             name: str = ''):
         """Set a highlighting property on a single line.
+
+        The name of the text property is formed from the 'name' if provided and
+        the 'hl_group' otherwise, by prefixing 'vpe:hl:'. For example if
+        ``hl_group='Label'`` and 'name' is not provided then the property is
+        called 'vpe:hl:Label'.
+
+        The text property is created, as a buffer specific property, if it does
+        not already exist. Apart from the ``bufnr`` option, default values are
+        used for the property's options.
 
         :lidx:        The index of the line to hold the property.
         :start_cidx:  The index within the line where the property starts.
@@ -738,41 +742,6 @@ class Buffer(common.MutableSequenceProxy):
             'end_col': end_cidx + 1,
         }
         vim.prop_add(lidx + 1, start_cidx + 1, args)
-
-    def set_property_type(
-            self,
-            name: str,
-            **kwargs):
-        """Register or modify a property type associated with this buffer.
-
-        This is a wrapper around vim.prop_type_add and vim.prop_type_change.
-
-        :kwargs:
-            The same parameters used for vim.prop_type_add's props argument;
-            namely::
-
-                highlight: str
-                priority: int
-                combine: bool
-                override: bool
-                start_incl: bool
-                end_incl: bool
-        """
-        args = kwargs.copy()
-        if not vim.prop_type_get(name):
-            args['bufnr'] = self.number
-            vim.prop_type_add(name, args)
-        else:
-            vim.prop_type_change(name, args)
-
-    def marker_set(self, name: str):
-        """Get the marker set with a given name.
-
-        The marker set for a given name is created on demand.
-        """
-        if name not in self._marker_sets:
-            self._marker_sets[name] = MarkerSet(self, name)
-        return self._marker_sets[name]
 
     def __getattr__(self, name):
         """Make the values from getbufinfo() available as attributes.
@@ -885,7 +854,7 @@ class Window(common.Proxy):
         if win_index >= 0:
             try:
                 return windows[win_index]
-            except IndexError:
+            except IndexError:                               # pragma: no cover
                 return None
         else:
             return None
@@ -1238,6 +1207,7 @@ class Command:
     :keepalt:    Run with the keepalt command modifier. Default = True.
     :preview:    For debugging. Do not execute the command, but return what
                  would be passed to vim.command.
+    :file:       Only intended for testing - do not use. It may disappear.
     """
     # pylint: disable=too-few-public-methods
     mod_names = (
@@ -1286,7 +1256,7 @@ class Command:
         if not preview:
             common.vim_command(cmd)
         if file:
-            file.write(f'{cmd}\n')
+            file.write(f'{cmd}\n')                           # pragma: no cover
         return cmd
 
 
@@ -1448,7 +1418,7 @@ class Vim:
     def __getattr__(self, name):
         # TODO:
         #   Look at ways to use _vim.Function(name) for built-in functions.
-        #   Lookup time and
+
         # Some attributes map to single global objects.
         if name in self._vim_singletons():
             return self._vim_singletons()[name]
@@ -1468,58 +1438,11 @@ class Vim:
 
     def _get_vim_function(self, name):
         try:
-            return Function(name)
+            return common.Function(name)
         except ValueError:
-            raise AttributeError(          # pylint: disable=raise-missing-from
+            # pylint: disable=raise-missing-from
+            raise AttributeError(
                 f'{self.__class__.__name__} object has no attribute {name!r}')
-
-
-class Function(_vim.Function):
-    """Wrapper around a vim.Function.
-
-    This provides some wrapping or decoding of return types.
-    """
-    # pylint: disable=too-few-public-methods
-    def __call__(self, *args, **kwargs):
-        # This can be useful for debugging, but be careful which functions are
-        # selected.
-        # pylint: disable=condition-evals-to-constant
-        if False and 'listen' in self.name:
-            common.call_soon(print, f'Function.__call__: {self.name}'
-                   f' vim.state()={_vim.eval("state()")}')
-            for i, a in enumerate(args):
-                common.call_soon(print, f' args[{i}] ={a}')
-        # pylint: enable=condition-evals-to-constant
-        if suppress_vim_invocation_errors.active:
-            v = super().__call__(*args, **kwargs)  # pylint: disable=no-member
-        else:
-            try:
-                # pylint: disable=no-member
-                v = super().__call__(*args, **kwargs)
-            except Exception as e:
-                args_lines = pprint.pformat(args).splitlines()
-                kwargs_lines = pprint.pformat(kwargs).splitlines()
-                call_soon = common.call_soon
-                call_soon(print, f'VPE: Function.__call__ failed: {type(e)}, {e}')
-                call_soon(print, f'    self.name={self.name}')
-                call_soon(print, f'    self.args={self.args}')
-                call_soon(print, f'    self.self={self.self}')
-                call_soon(print, f'    args={args_lines[0]}')
-                for line in args_lines[1:]:
-                    call_soon(print, f'         {line}')
-                call_soon(print, f'    kwargs={kwargs_lines[0]}')
-                for line in kwargs_lines[1:]:
-                    call_soon(print, f'           {line}')
-                call_soon(print, f'    vim.state()={_vim.eval("state()")}')
-                if isinstance(e, vim.error):
-                    raise common.VimError(e)
-                raise                                            # pragma: no cover
-        if isinstance(v, bytes):
-            try:
-                return v.decode()
-            except UnicodeError:                             # pragma: no cover
-                return v
-        return common.wrap_or_decode(v)
 
 
 def _get_wrapped_buffer(vim_buffer: _vim.Buffer) -> Buffer:
@@ -1533,30 +1456,6 @@ def _get_wrapped_buffer(vim_buffer: _vim.Buffer) -> Buffer:
     if b is None:
         b = Buffer(vim_buffer)
     return b
-
-
-class _ErrorSuppressor:
-    """A context that suppresses logging details of failed Vim functions."""
-
-    def __init__(self):
-        self._count = 0
-
-    @property
-    def active(self) -> bool:
-        """Flag indication that error supporession is active."""
-        return self._count > 0
-
-    def __enter__(self):
-        self._count += 1
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self._count -= 1
-        return exc_val is not None and isinstance(exc_val, vim.error)
-
-
-# Context manager used to prevent logging of Vim function call errors.
-suppress_vim_invocation_errors = _ErrorSuppressor()
 
 
 common.register_wrapper(type(_vim.options), Options)

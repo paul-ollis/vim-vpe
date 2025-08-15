@@ -27,7 +27,7 @@ class ListWrapping(support.Base):
             endfunction
             '''
             vim.command(vim_code)
-            make_list = vpe.wrappers.Function('Make_list')
+            make_list = vpe.common.Function('Make_list')
 
             res = Struct()
             mylist = make_list()
@@ -56,7 +56,7 @@ class DictWrapping(support.Base):
             endfunction
             '''
             vim.command(vim_code)
-            make_dict = vpe.wrappers.Function('Make_dict')
+            make_dict = vpe.common.Function('Make_dict')
         """
         super().suiteSetUp()
         self.run_self()

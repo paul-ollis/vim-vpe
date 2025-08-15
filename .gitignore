@@ -1,4 +1,7 @@
-tags
+/build
+/.ctags.d
+/.dmypy.json
+/.github
 /.pyre
 /release
-/.github
+tags

@@ -7,6 +7,8 @@ exposed *service A*, while the other may expose *service B*. As long as the two
 can interoperate, you're good to go.
 """
 from functools import partial
+import traceback
+import io
 
 from ..lib import hybridmethod
 from .protocol import Connection
@@ -146,13 +148,20 @@ class Slave(object):
         self._conn = None
         self.namespace = {}
 
-    def execute(self, text):
+    def execute(self, text) -> str | None:
         """execute arbitrary code (using ``exec``)"""
-        exec(text, self.namespace)
+        try:
+            exec(text, self.namespace)              # pylint: disable=exec-used
+        except Exception as e:
+            f = io.StringIO()
+            traceback.print_exception(e, file=f)
+            return f.getvalue()
+        else:
+            return None
 
     def eval(self, text):
         """evaluate arbitrary code (using ``eval``)"""
-        return eval(text, self.namespace)
+        return eval(text, self.namespace)           # pylint: disable=eval-used
 
     def getmodule(self, name):
         """imports an arbitrary module"""

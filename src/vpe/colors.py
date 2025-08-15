@@ -1184,7 +1184,7 @@ _to_standard = {
 }
 
 
-def alt_names(name: str) -> List[str]:
+def _alt_names(name: str) -> List[str]:
     """Work out possible alternative names for a given color.
 
     :name:   The color name.
@@ -1222,7 +1222,12 @@ def well_defined_name(name: str) -> str:
     :return: The name converted to a well defined form. If the name is unknown
              then 'Black' is returned.
     """
-    for alt_name in alt_names(name):
+    #-for alt_name in _alt_names(name):
+    #-    if ' ' not in alt_name:
+    #-        if (alt_name in _xterm_color_table
+    #-                or alt_name in _extra_color_table):
+    #-            return alt_name
+    for alt_name in _alt_names(name):
         if ' ' not in alt_name:
             return alt_name
 
@@ -1242,7 +1247,8 @@ def to_256_num(name: str):
         _, name = _extra_color_table.get(name, (None, name))
 
     if name not in _xterm_color_table:
-        return 0
+        # A naughty fallback in the case of a bug!
+        return 0                                             # pragma: no cover
 
     return _xterm_color_table[name][1]
 

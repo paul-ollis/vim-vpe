@@ -120,6 +120,7 @@ class TabPages(support.Base):
                 first, second, third, fourth, fifth, last)]
             dump(res)
         """
+        # TODO: Vim -bug: I have seem Vim segfault when this test is run.
         res = self.run_self()
         failUnlessEqual((1, 2), res.first_pair)
         failUnlessEqual(

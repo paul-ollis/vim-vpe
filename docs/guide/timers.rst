@@ -46,13 +46,10 @@ Timer housekeeping
 ~~~~~~~~~~~~~~~~~~
 
 VPE performs a small amount of behind-the-scenes housekeeping for some `Timer`
-instances. Obviously this housekeeping might not work properly if you mix use of
-the `Timer` class with direct invocation of the Vim functions. So you should
-avoid using ``vim.timer_stop``, *etc.* for timers started using the `Timer`
-class.
-
-Vim provides a :vim:`timer_stopall()` as a kind of emergency stop. VPE provides
-`vpe.timer_stopall` which will also perform VPE's timer housekeeping.
+instances. Obviously this housekeeping might not work properly if you mix use
+of the `Timer` class with direct invocation of the Vim functions. So you should
+generally avoid using ``vim.timer_stop``, *etc.* for timers started using the
+`Timer` class.
 
 
 .. _using_call_soon:

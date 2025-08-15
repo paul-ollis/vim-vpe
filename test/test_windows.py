@@ -1,9 +1,10 @@
 """Special handling of windows."""
 # pylint: disable=deprecated-method
+# pylint: disable=wrong-import-order
+# pylint: disable=unused-wildcard-import,wildcard-import
 
 from functools import partial
 
-# pylint: disable=unused-wildcard-import,wildcard-import
 from cleversheep3.Test.Tester import *
 from cleversheep3.Test.Tester import Collection
 from cleversheep3.Test.Tester import test, runModule
@@ -351,6 +352,39 @@ class Windows(support.Base):
         failUnlessEqual((60, 80), res.buf_bottom)
         failUnlessEqual((49, 69), res.buf_mid)
 
+    @test(testID='win-id-to-window')
+    def window_id_to_window(self):
+        """The Window for a given window-ID can be found.
+
+        :<py>:
+
+            res = Struct()
+            vpe.commands.wincmd('o')
+            vpe.commands.wincmd('s')
+            win = vim.current.window
+            res.n_windows = len(vim.windows)
+
+            win_a_id = vim.win_getid(1)
+            win = vpe.Window.win_id_to_window(win_a_id)
+            res.win_a_number = win.number
+
+            win_b_id = vim.win_getid(2)
+            win = vpe.Window.win_id_to_window(win_b_id)
+            res.win_b_number = win.number
+
+            non_id = 1
+            while non_id in (win_a_id, win_b_id):
+                non_id += 1
+            res_non_win = vpe.Window.win_id_to_window(non_id)
+
+            dump(res)
+        """
+        res = self.run_self()
+        failUnlessEqual(2, res.n_windows)
+        failUnlessEqual(1, res.win_a_number)
+        failUnlessEqual(2, res.win_b_number)
+        failUnless(res.non_win is None)
+
 
 class Layout(support.Base):
     """VPE support windows layout.
@@ -671,7 +705,3 @@ class Layout(support.Base):
         failUnlessEqual('        Win[3] = 4', lines[5])
         failUnlessEqual('    Win[4] = 8', lines[6])
         failUnlessEqual('    Win[5] = 8', lines[7])
-
-
-if __name__ == '__main__':
-    runModule()

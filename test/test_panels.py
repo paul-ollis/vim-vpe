@@ -365,7 +365,7 @@ class ConfigPanel(support.Base):
 
     @test(testID='cview-navigate')
     def navigate_a_config_view(self):
-        """A config view's fields are navigated using the TAB key.
+        r"""A config view's fields are navigated using the TAB key.
 
         TAB moves to the next field and Shift-TAB moves to the previous field.
 
@@ -381,30 +381,30 @@ class ConfigPanel(support.Base):
         self.setup_test_config_view()
         res = self.run_self()
 
-        self.vs.execute(support.clean_code_block('''
+        self.vs.execute_python_code(support.clean_code_block(r'''
             res.indices.append(buf.data.field_idx)
             vpe.feedkeys(r'\<Tab>')
         '''))
-        self.vs.execute(support.clean_code_block('''
+        self.vs.execute_python_code(support.clean_code_block(r'''
             res.indices.append(buf.data.field_idx)
             vpe.feedkeys(r'\<Tab>')
         '''))
-        self.vs.execute(support.clean_code_block('''
+        self.vs.execute_python_code(support.clean_code_block(r'''
             res.indices.append(buf.data.field_idx)
             vpe.feedkeys(r'\<Tab>')
         '''))
-        self.vs.execute(support.clean_code_block('''
+        self.vs.execute_python_code(support.clean_code_block(r'''
             res.indices.append(buf.data.field_idx)
             vpe.feedkeys(r'\<Tab>')
         '''))
-        self.vs.execute(support.clean_code_block('''
+        self.vs.execute_python_code(support.clean_code_block(r'''
             res.indices.append(buf.data.field_idx)
             vpe.feedkeys(r'\<S-Tab>')
         '''))
-        self.vs.execute(support.clean_code_block('''
+        self.vs.execute_python_code(support.clean_code_block(r'''
             res.indices.append(buf.data.field_idx)
         '''))
-        self.vs.execute(support.clean_code_block('''
+        self.vs.execute_python_code(support.clean_code_block(r'''
             dump(res)
         '''))
 
@@ -425,22 +425,22 @@ class ConfigPanel(support.Base):
         self.setup_test_config_view()
         res = self.run_self()
 
-        self.vs.execute(support.clean_code_block('''
+        self.vs.execute_python_code(support.clean_code_block(r'''
             vpe.feedkeys(r'\<C-\>\<C-N>\<Tab>\<Space>')
         '''))
-        self.vs.execute(support.clean_code_block('''
+        self.vs.execute_python_code(support.clean_code_block(r'''
             vpe.feedkeys(r'\<Tab>\<Space>')
         '''))
-        self.vs.execute(support.clean_code_block('''
+        self.vs.execute_python_code(support.clean_code_block(r'''
             vpe.feedkeys(r'\<Tab>\<Space>')
         '''))
-        self.vs.execute(support.clean_code_block('''
+        self.vs.execute_python_code(support.clean_code_block(r'''
             vpe.feedkeys(r'\<Tab>\<Space>\<Space>\<Space>\<Space>')
         '''))
-        self.vs.execute(support.clean_code_block('''
+        self.vs.execute_python_code(support.clean_code_block(r'''
             vpe.feedkeys(r'\<Tab>\<Space>')
         '''))
-        self.vs.execute(support.clean_code_block('''
+        self.vs.execute_python_code(support.clean_code_block(r'''
             res.lines = list(buf)
             dump(res)
         '''))
@@ -466,22 +466,22 @@ class ConfigPanel(support.Base):
         self.setup_test_config_view()
         res = self.run_self()
 
-        self.vs.execute(support.clean_code_block('''
+        self.vs.execute_python_code(support.clean_code_block(r'''
             vpe.feedkeys(r'\<Tab>\<S-Space>')
         '''))
-        self.vs.execute(support.clean_code_block('''
+        self.vs.execute_python_code(support.clean_code_block(r'''
             vpe.feedkeys(r'\<Tab>\<S-Space>')
         '''))
-        self.vs.execute(support.clean_code_block('''
+        self.vs.execute_python_code(support.clean_code_block(r'''
             vpe.feedkeys(r'\<Tab>\<S-Space>')
         '''))
-        self.vs.execute(support.clean_code_block('''
+        self.vs.execute_python_code(support.clean_code_block(r'''
             vpe.feedkeys(r'\<Tab>\<S-Space>')
         '''))
-        self.vs.execute(support.clean_code_block('''
+        self.vs.execute_python_code(support.clean_code_block(r'''
             vpe.feedkeys(r'\<Tab>\<S-Space>')
         '''))
-        self.vs.execute(support.clean_code_block('''
+        self.vs.execute_python_code(support.clean_code_block(r'''
             res.lines = list(buf)
             dump(res)
         '''))
@@ -495,7 +495,7 @@ class ConfigPanel(support.Base):
 
     @test(testID='cview-edit')
     def edit_field(self):
-        """A config view's fields can be edited using <Enter>.
+        r"""A config view's fields can be edited using <Enter>.
 
         :<py>:
 
@@ -507,13 +507,13 @@ class ConfigPanel(support.Base):
         self.setup_test_config_view()
         res = self.run_self()
 
-        self.vs.execute(support.clean_code_block('''
+        self.vs.execute_python_code(support.clean_code_block(r'''
             vpe.feedkeys(r'\<Tab>\<Enter>')
         '''))
-        self.vs.execute(support.clean_code_block('''
+        self.vs.execute_python_code(support.clean_code_block(r'''
             vpe.feedkeys(r'\<BS>99\<Enter>')
         '''))
-        self.vs.execute(support.clean_code_block('''
+        self.vs.execute_python_code(support.clean_code_block('''
             res.lines = list(buf)
             dump(res)
         '''))
@@ -527,7 +527,7 @@ class ConfigPanel(support.Base):
 
     @test(testID='cview-edit-bad')
     def edit_field_bad_value(self):
-        """Invalid values are handled gracefully.
+        r"""Invalid values are handled gracefully.
 
         :<py>:
 
@@ -539,10 +539,10 @@ class ConfigPanel(support.Base):
         self.setup_test_config_view()
         res = self.run_self()
 
-        self.vs.execute(support.clean_code_block('''
+        self.vs.execute_python_code(support.clean_code_block(r'''
             vpe.feedkeys(r'\<BS>Hello\<Enter>')
         '''))
-        self.vs.execute(support.clean_code_block('''
+        self.vs.execute_python_code(support.clean_code_block('''
             res.lines = list(buf)
             dump(res)
         '''))
@@ -556,7 +556,7 @@ class ConfigPanel(support.Base):
 
     @test(testID='cview-edit-oor')
     def edit_field_oor_value(self):
-        """Out of range values are handled gracefully.
+        r"""Out of range values are handled gracefully.
 
         :<py>:
 
@@ -568,10 +568,10 @@ class ConfigPanel(support.Base):
         self.setup_test_config_view()
         res = self.run_self()
 
-        self.vs.execute(support.clean_code_block('''
+        self.vs.execute_python_code(support.clean_code_block(r'''
             vpe.feedkeys(r'\<BS>0\<Enter>')
         '''))
-        self.vs.execute(support.clean_code_block('''
+        self.vs.execute_python_code(support.clean_code_block('''
             res.lines = list(buf)
             dump(res)
         '''))

@@ -162,6 +162,87 @@ _vpe_args_
     This differs from EventHandler by the use of ``self`` as the default
     pattern.
 
+.. rubric:: BufListener
+
+.. py:class:: BufListener(func,buf,ops: bool = True,raw_changes: bool = False)
+
+    An extension of `Callback` for Vim's buffer change callbacks.
+
+    One of these is created by `Buffer.add_listener`. Direct instantiation of
+    this class is not recommended or supported.
+
+    The Python function or method to be called back.
+
+    **Parameters**
+
+    .. container:: parameters itemdetails
+
+        *buf*
+            The `Buffer` instance.
+        *ops*
+            Include the `diffs.Operation` changes as an additional argument:
+        *raw_changes*
+            Include the raw changes as an additional argument:
+
+
+    **Attributes**
+
+        .. py:attribute:: buf
+
+            The `Buffer` instance.
+
+        .. py:attribute:: listen_id
+
+            The unique ID from a :vim:`listener_add` invocation.
+
+        .. py:attribute:: ops
+
+            Include the `diffs.Operation` changes as an additional argument:
+
+        .. py:attribute:: raw_changes
+
+            Include the raw changes as an additional argument:
+
+
+    **Methods**
+
+        .. py:method:: invoke_cb(func,vpe_args)
+
+            Invoke this Callback.
+
+            This extends the `Callback.invoke_cb` method.
+
+            The vpe_args['args'] are (From Vim's docs):
+
+            bufnr
+                The buffer that was changed
+            start
+                First changed line number
+            end
+                First line number below the change
+            added
+                Number of lines added, negative if lines were deleted
+            changes
+                A List of items with details about the changes
+
+            The ``bufnr`` is ignored, since this is just self.buf.number.
+
+            Start and end are adjusted so they form a Python range.
+
+            If `ops` is True then a list of operations is provided to the callback
+            as an ``ops`` keyword argument. Each entry in the changes is converted
+            to one of an `AddOp`, `DeleteOp` or `ChangeOp`.
+
+            Similarly, if `raw_changes` is True
+            then the list of operations provided by Vim is provided to the callback
+            as a ``raw_changes`` keyword argument.
+
+        .. py:method:: stop_listening()
+
+            Stop listening for changes.
+
+            This permanently disables this listener.
+
 .. rubric:: Buffer
 
 .. py:class:: Buffer(buffer)
@@ -317,8 +398,7 @@ _vpe_args_
                     arguments:
 
                     :buf:
-                        The buffer that was changed. Only present if *func* is not a
-                        bound method of this instance.
+                        The buffer that was changed.
                     :start:
                         Start of the range of modified lines (zero based).
                     :end:
@@ -327,19 +407,14 @@ _vpe_args_
                         Number of lines added, negative if lines were deleted.
 
                 *ops*: bool
-                    Include a list of the individal operations to the callback. This is
-                    ``True`` by default.
-
-                    :changed:
-                        A list of diffs.BufOperation instances with details about the
-                        changes.
+                    ``True`` by default. Include a list of the individal operations to
+                    the callback as the ``ops`` keyword argument. A list of
+                    diffs.Operation instances with details about the changes.
 
                 *raw_changes*: bool
-                    Include the raw changes as an additional argument:
-
-                    :raw_changes:
-                        The unmodified changes provided by the Vim buffer change
-                        callback (see :vim:`listener_add` for details).
+                    ``False`` by default. Include the unmodified changes as the
+                    ``raw_changes`` keyword argument (see :vim:`listener_add` for
+                    details).
 
 
             **Return value**
@@ -453,12 +528,6 @@ _vpe_args_
 
             This will update the buffer, even if 'modifiable' is not set.
 
-        .. py:method:: marker_set(name: str)
-
-            Get the marker set with a given name.
-
-            The marker set for a given name is created on demand.
-
         .. py:method:: range(a: int,b: int) -> Range
 
             Get a `Range` for the buffer.
@@ -500,6 +569,14 @@ _vpe_args_
 
             Set a highlighting property on a single line.
 
+            The name of the text property is formed from the 'name' if provided and
+            the 'hl_group' otherwise, by prefixing 'vpe:hl:'. For example if
+            ``hl_group='Label'`` and 'name' is not provided then the property is
+            called 'vpe:hl:Label'.
+
+            The text property is created, as a buffer specific property, if it does
+            not already exist. Apart from the ``bufnr`` option, default values are
+            used for the property's options.
 
             **Parameters**
 
@@ -515,27 +592,6 @@ _vpe_args_
                     The name of the highlight group to use.
                 *name*: str
                     An optional name for the property.
-
-        .. py:method:: set_property_type(name: str,**kwargs)
-
-            Register or modify a property type associated with this buffer.
-
-            This is a wrapper around vim.prop_type_add and vim.prop_type_change.
-
-            **Parameters**
-
-            .. container:: parameters itemdetails
-
-                *kwargs*
-                    The same parameters used for vim.prop_type_add's props argument;
-                    namely::
-
-                        highlight: str
-                        priority: int
-                        combine: bool
-                        override: bool
-                        start_incl: bool
-                        end_incl: bool
 
         .. py:method:: store(key: Any) -> Struct
 
@@ -623,12 +679,14 @@ _vpe_args_
     .. code::
 
         Callback(
-                func,
-                py_args=(),
-                py_kwargs=None,
-                vim_exprs=(),
-                pass_bytes=False,
-                once=False,
+                func: Callable[[...], None],
+                py_args: tuple[Any, ...] = (),
+                py_kwargs: dict[str, Any] | None = None,
+                vim_exprs: tuple[Any, ...] = (),
+                pass_bytes: bool = False,
+                once: bool = False,
+                cleanup: Callable[[], None] | None = None,
+                meta: Any | None = None,
 
     Wrapper for a function to be called from Vim.
 
@@ -659,7 +717,7 @@ _vpe_args_
             'args': ['hello', 123]
         }
 
-    Then it calls this class's `invoke` method:
+    Then it calls this class's `invoke` classmethod:
 
     ::
 
@@ -668,9 +726,12 @@ _vpe_args_
     The `invoke` class method extracts the UID and uses it to find the
     Callback instance.
 
-    @callbacks   A class level mapping from `uid` to `Callback` instance. This
-                 is used to lookup the correct function during the execution of
-                 VPE_Call.
+    Note that a strong reference to each `Callback` instance is automatically
+    stored, but only while a strong reference to the function exists.
+
+    @callbacks    A class level mapping from `uid` to `Callback` instance. This
+                  is used to lookup the correct function during the execution
+                  of VPE_Call.
 
     **Parameters**
 
@@ -690,6 +751,13 @@ _vpe_args_
             strings.
         *once*
             If True then the callback will only ever be invoked once.
+        *cleanup*
+            If supplied then this is callable taking no arguments.
+            It is invoked to perform any special clean up actions when
+            the function is no longer referenced.
+        *meta*
+            Arbitrary meta-data to be stored in the Callback's `meta`
+            attribute.
         *kwargs*
             Additional info to store with the callback. This is used
             by subclasses - see 'MapCallback' for an example.
@@ -702,28 +770,55 @@ _vpe_args_
             The number of times the wrapped function or method has been
             invoked.
 
+        .. py:attribute:: meta
+
+            Arbitrary meta-data to be stored in the Callback's `meta`
+            attribute.
+
+        .. py:attribute:: once
+
+            If True then the callback will only ever be invoked once.
+
+        .. py:attribute:: pass_bytes
+
+            If true then vim byte-strings will not be decoded to Python
+            strings.
+
+        .. py:attribute:: py_args
+
+            Addition positional arguments to be passed to *func*.
+
+        .. py:attribute:: py_kwargs
+
+            Additional keyword arguments to be passed to *func*.
+
         .. py:attribute:: uid
 
             The unique ID for this wrapping. It is the string form of an
             integer.
 
+        .. py:attribute:: vim_exprs
+
+            Expressions used as positional arguments for the VPE_Call
+            helper function.
+
     **Methods**
 
         .. py:method:: as_call()
 
-            Format a command of the form 'call VPE_xxx(...)'
+            Format a command of the form 'call VPE_Call("42", ...)'.
 
             The result can be used as a colon prompt command.
 
         .. py:method:: as_invocation()
 
-            Format a command of the form 'VPE_xxx(...)'
+            Format an expression of the form 'VPE_Call("42", ...)'.
 
             The result is a valid Vim script expression.
 
         .. py:method:: as_vim_function()
 
-            Create a vim.Function that will route to this callback.
+            Create a ``vim.Function`` that will route to this callback.
 
         .. py:method:: format_call_fail_message()
 
@@ -738,16 +833,15 @@ _vpe_args_
 
             This may be over-ridden by subclasses.
 
-        .. py:method:: invoke_self(vpe_args)
+        .. py:method:: invoke_cb(func: Callable,vpe_args: dict)
 
             Invoke this Callback.
 
-            This is invoked on the `Callback` instance found by `invoke`. The
-            callback is invoked with as:
+            This invokes the function as:
 
             .. code-block:: py
 
-                self(*args, *vim_args, **kwargs)
+                func(*args, *vim_args, **kwargs)
 
             Where args and kwargs are those provided when this instance was
             created. The vim_args arr the 'args' from the vpe_args dictionary.
@@ -756,7 +850,7 @@ _vpe_args_
 
             .. container:: parameters itemdetails
 
-                *vpe_args*
+                *vpe_args*: dict
                     A dictionary containing:
 
                     uid
@@ -764,10 +858,6 @@ _vpe_args_
                         instance.
                     args
                         Any additional arguments passed to the callback by Vim.
-
-        .. py:method:: on_del(ref)
-
-            "Handle deletion of weak reference to method's instance.
 
     **Class methods**
 
@@ -1019,6 +1109,14 @@ _vpe_args_
 
     **Properties**
 
+        .. py:property:: lines() -> list[str]
+
+            The lines currently in the log.
+
+            This is used by the VPE test suite. It is not really intended to
+            general use and unlikely to be generally useful. Note that each access
+            to this property creates a new list.
+
         .. py:property:: maxlen() -> int
 
             The current maximum length.
@@ -1095,6 +1193,31 @@ _vpe_args_
                 *s*
                     The string to write.
 
+.. rubric:: OneShotTimer
+
+.. py:class:: OneShotTimer(ms: int,func: Callable[[...], None])
+
+    A version of `Timer` that can be used 'set-and-forget'.
+
+    This version makes sure that a reference to the function and the
+    `OneShotTimer` instance is saved until the timer fires. This means that
+    this type of code will work:
+
+    .. code-block:: py
+
+        def one_shot_example():
+            def fire():
+                print('Bang!')
+            OneShotTimer(1000, fire)
+
+    The callback function is invoked without arguments.
+
+    **Methods**
+
+        .. py:method:: invoke_cb(func: Callable,vpe_args: dict)
+
+            Invoke the callback as a result of the timer firing.
+
 .. rubric:: Options
 
 .. py:class:: Options(vim_options)
@@ -1145,9 +1268,12 @@ _vpe_args_
         *name*
             An optional name for the Popup. If provided then a named
             `ScratchBuffer` is used for the content rather than letting Vim
-            *etc*.) can be provided as keyword arguments. The exceptions
-            are filter and callback. Over ride the `on_key` and `on_close`
-            methods instead.
+            create one.
+
+        *p_options*
+            Vim popup_create() options can be provided as keyword
+            arguments. The exceptions are filter and callback. Over ride
+            the `on_key` and `on_close` methods instead.
 
     **Properties**
 
@@ -1579,11 +1705,11 @@ _vpe_args_
     .. code::
 
         Timer(
-                ms,
-                func,
-                repeat=None,
-                pass_timer=True,
-                no_hard_ref=False,
+                ms: int | float,
+                func: Callable[[...], None],
+                repeat: int | None = None,
+                pass_timer: bool = True,
+                meta: Any | None = None,
                 args=(),
 
     Pythonic way to use Vim's timers.
@@ -1607,23 +1733,18 @@ _vpe_args_
     `remaining` and `paused`. The methods `pause`, `stop` and `resume` allow
     an active timer to be controlled.
 
-    A timer with ms == 0 is a special case, used to schedule an action to occur
-    as soon as possible once Vim is waiting for user input. Consequently the
-    repeat argument is forced to be 1 and the pass_timer argument is forced to
-    be ``False``.
-
-    If the created timer instamce has a repeat count of 1, then
-    a hard reference to the function is stored. This means that the code that
-    creates the timer does not need to keep a reference, allowing single-shot
-    timers to be 'set-and-forget'. The *no_hard_ref* argument can be used to
-    prevent this.
+    A timer with ms == 0 is a special case. It is used to schedule an action to
+    occur as soon as possible once Vim is waiting for user input. Consequently
+    the repeat argument is forced to be 1 and the pass_timer argument is forced
+    to be ``False``.
 
     **Parameters**
 
     .. container:: parameters itemdetails
 
         *ms*
-            The timer's interval in milliseconds.
+            The timer's interval in milliseconds. The value ``int(ms)``
+            is used.
         *func*
             The function to be invoked when the timer fires. This is
             called with the firing `Timer` instance as the only
@@ -1632,9 +1753,9 @@ _vpe_args_
             How many times to fire. This defaults to a single firing.
         *pass_timer*
             Set this false to prevent the timer being passed to func.
-        *no_hard_ref*
-            Set ``True`` to prevent a hard reference to the *func* being
-            held by this timer.
+        *meta*
+            Arbitrary meta-data to be stored in the Callback's `meta`
+            attribute.
         *args*
             Optional positional arguments to pass to func.
         *kwargs*
@@ -1662,6 +1783,11 @@ _vpe_args_
 
             Optional keyword arguments to pass to func.
 
+
+        .. py:attribute:: meta
+
+            Arbitrary meta-data to be stored in the Callback's `meta`
+            attribute.
 
     **Properties**
 
@@ -1696,9 +1822,9 @@ _vpe_args_
 
             Take action when a timer is finished.
 
-        .. py:method:: on_del(ref)
+        .. py:method:: invoke_cb(func: Callable,vpe_args: dict)
 
-            "Handle deletion of weak reference to method's instance.
+            Invoke the callback as a result of the timer firing.
 
         .. py:method:: pause()
 
@@ -1717,19 +1843,6 @@ _vpe_args_
             Stop the timer.
 
             This invokes vim's timer_stop function.
-
-    **Class methods**
-
-        .. py:classmethod:: num_instances() -> int
-
-            The number of `Timer` instances.
-
-        .. py:classmethod:: stop_all()
-
-            Stop all timers and clean up.
-
-            Use this in preference to vim.timer_stopall, to ensure that VPE cleans
-            up its underlying administrative structures.
 
 .. rubric:: Variables
 
@@ -1866,7 +1979,7 @@ _vpe_args_
 
 .. rubric:: VimError
 
-.. py:class:: VimError(error: vim.error)
+.. py:class:: VimError(error: _vim.error)
 
     A parsed version of vim.error.
 
@@ -2067,8 +2180,8 @@ _vpe_args_
                 func: Callable,
                 nargs: int | str = 0,
                 complete: str = '',
-                range: bool | str = '',
-                count: str = '',
+                range: bool | int | str = '',
+                count: int | str = '',
                 addr: str = '',
                 bang: bool = False,
                 bar: bool = False,
@@ -2106,11 +2219,11 @@ _vpe_args_
         *complete*: str
             Argument completion mode (see :vim:`command-complete`). Does
             not currently support 'custom' or 'customlist'.
-        *range*: bool | str
+        *range*: bool | int | str
             The permitted type of range; must follow the rules for
             :vim:`:command-range`, except that the N value may be an
             integer.
-        *count*: str
+        *count*: int | str
             The permitted type of count; must follow the rules for
             :vim:`:command-count`, except that the N value may be an
             integer. Use count=0 to get the same behaviour as '-count'.
@@ -2236,7 +2349,7 @@ _vpe_args_
                 default: bool = False,
                 link: str | None = None,
                 disable: bool = False,
-                dump: bool = False,
+                debug: bool = False,
                 file: TextIO = None,
 
     Execute a highlight command.
@@ -2272,7 +2385,7 @@ _vpe_args_
             If set then the generated command has the form ``highlight
             default...``.
 
-        *dump*: bool
+        *debug*: bool
             Print the command's arguments, for debugging use.
 
         *kwargs*
@@ -2308,12 +2421,6 @@ _vpe_args_
 .. py:function:: script_py_path() -> str
 
     Derive a python script name from the current Vim script name.
-
-.. rubric:: timer_stopall
-
-.. py:function:: timer_stopall()
-
-    Convenience function that invokes `Timer.stop_all`.
 
 .. rubric:: warning_msg
 

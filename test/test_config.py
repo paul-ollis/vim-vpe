@@ -1,10 +1,13 @@
 """Tests for the VPE configuration support."""
 
+# pylint: disable=unused-wildcard-import,wildcard-import
+# pylint: disable=deprecated-method
+# pylint: disable=wrong-import-order
+
 import os
 import shutil
 from pathlib import Path
 
-# pylint: disable=unused-wildcard-import,wildcard-import
 from cleversheep3.Test.Tester import *
 from cleversheep3.Test.Tester import runModule, test
 
@@ -92,7 +95,7 @@ class BoolOption(support.Base):
             bopt.description)
 
     @test(testID='conf-bool-field-support')
-    def bool_option_descr(self):
+    def bool_option_supports_ui_fields(self):
         """A Bool option provides support for UI fields.
 
         This helps support the UI configuration panel.
@@ -205,7 +208,7 @@ class IntOption(support.Base):
         """
         iopt = config.Int('test_int', 2)
         failUnlessEqual(2, iopt.value)
-        ret = iopt.set(-987654321)
+        iopt.set(-987654321)
         failUnlessEqual(-987654321, iopt.value)
 
         failUnlessEqual('-987654321', repr(iopt))
@@ -260,14 +263,23 @@ class StringOption(support.Base):
     This simply holds a string.
     """
     @test(testID='conf-string')
-    def choice_option_init(self):
+    def stringe_option_init(self):
         """A String option requires a name and optiional default value."""
         sopt = config.String('test_string', default_value='Hi')
         failUnlessEqual('test_string', sopt.name)
         failUnlessEqual('Hi', sopt.default_value)
+        failUnlessEqual('Hi', sopt.value)
+
+    @test(testID='conf-string-set')
+    def stringe_option_set(self):
+        """A String can bet set."""
+        sopt = config.String('test_string', default_value='Hi')
+        failUnlessEqual('Hi', sopt.value)
+        sopt.set('modified')
+        failUnlessEqual('modified', sopt.value)
 
 
-class Config(support.Base):
+class ConfigSupport(support.Base):
     """The VPE config.Config class.
 
     This holds a set of config options. The values can be read from and saved
@@ -303,8 +315,8 @@ class Config(support.Base):
         failUnlessEqual('one', conf.test_choice)
         failUnlessEqual(2, conf.test_int)
 
-    @test(testID='conf--get')
-    def config_add(self):
+    @test(testID='conf-get')
+    def config_get(self):
         """Options can be accessed using the get method.
 
         Option values appear as attributes of the Config object.
@@ -376,10 +388,10 @@ class Config(support.Base):
         conf.add_(copt)
         conf.add_(iopt)
 
-        options = conf.options_()
-        failUnless(options['test_bool'].value is True)
-        failUnlessEqual(2, options['test_int'].value)
-        failUnlessEqual('one', options['test_choice'].value)
+        result = conf.options_()
+        failUnless(result['test_bool'].value is True)
+        failUnlessEqual(2, result['test_int'].value)
+        failUnlessEqual('one', result['test_choice'].value)
 
 
 if __name__ == '__main__':

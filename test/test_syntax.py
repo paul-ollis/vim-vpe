@@ -478,6 +478,118 @@ class Regions(support.CommandsBase):
                 region.end('endf', matchgroup=grp_a)
         self.check_commands()
 
+    @test(testID='syntax-region-matchgroup-add')
+    def syntax_region_matchgroup_add(self):
+        """A matchgroup can be added to a region.
 
-if __name__ == '__main__':
-    runModule()
+        :<vim>:
+
+            keepalt syntax clear
+            keepalt syntax region TestMain matchgroup=TestGroupB start="fun" end="endf"
+        """
+        with syntax.Syntax('Test') as syn:
+            grp = syn.group('Main')
+            grp_b = syn.group('GroupB')
+            with grp.region() as region:
+                region.matchgroup(grp_b)
+                region.start('fun')
+                region.end('endf')
+        self.check_commands()
+
+    @test(testID='syntax-region-spell')
+    def syntax_region_spell(self):
+        """A region can contain the Spell group.
+
+        :<vim>:
+
+            keepalt syntax clear
+            keepalt syntax region TestMain start="fun" end="endf" contains=@Spell
+        """
+        with syntax.Syntax('Test') as syn:
+            grp = syn.group('Main')
+            with grp.region(spell=True) as region:
+                region.start('fun')
+                region.end('endf')
+        self.check_commands()
+
+    @test(testID='syntax-region-nospell')
+    def syntax_region_nopspell(self):
+        """A region can contain the NoSpell group.
+
+        :<vim>:
+
+            keepalt syntax clear
+            keepalt syntax region TestMain start="fun" end="endf" contains=@NoSpell
+        """
+        with syntax.Syntax('Test') as syn:
+            grp = syn.group('Main')
+            with grp.region(spell=False) as region:
+                region.start('fun')
+                region.end('endf')
+        self.check_commands()
+
+    @test(testID='syntax-region-spell-and_contains-1')
+    def syntax_region_spell_contains_1(self):
+        """Options spell=True, contains=grp is correctly handled.
+
+        :<vim>:
+
+            keepalt syntax clear
+            keepalt syntax region TestMain start="fun" end="endf" contains=@Spell,TestStuff
+        """
+        with syntax.Syntax('Test') as syn:
+            grp = syn.group('Main')
+            grp_b = syn.group('Stuff')
+            with grp.region(spell=True, contains=grp_b) as region:
+                region.start('fun')
+                region.end('endf')
+        self.check_commands()
+
+    @test(testID='syntax-region-spell-and_contains-2')
+    def syntax_region_spell_contains_2(self):
+        """Options spell=True, contains=None is correctly handled.
+
+        :<vim>:
+
+            keepalt syntax clear
+            keepalt syntax region TestMain start="fun" end="endf" contains=@Spell
+        """
+        with syntax.Syntax('Test') as syn:
+            grp = syn.group('Main')
+            with grp.region(spell=True, contains=None) as region:
+                region.start('fun')
+                region.end('endf')
+        self.check_commands()
+
+    @test(testID='syntax-region-spell-and_contains-3')
+    def syntax_region_spell_contains_3(self):
+        """Options spell=None, contains=None is correctly handled.
+
+        :<vim>:
+
+            keepalt syntax clear
+            keepalt syntax region TestMain start="fun" end="endf"
+        """
+        with syntax.Syntax('Test') as syn:
+            grp = syn.group('Main')
+            with grp.region(spell=None, contains=None) as region:
+                region.start('fun')
+                region.end('endf')
+        self.check_commands()
+
+    @test(testID='syntax-region-containedin')
+    def syntax_region_spell_containedin(self):
+        """Options containedin is correctly handled.
+
+        :<vim>:
+
+            keepalt syntax clear
+            keepalt syntax region TestMain start="fun" end="endf" containedin=TestStuff
+        """
+        with syntax.Syntax('Test') as syn:
+            grp = syn.group('Main')
+            grp_b = syn.group('Stuff')
+            with grp.region(spell=None, containedin=grp_b) as region:
+                region.start('fun')
+                region.end('endf')
+        self.check_commands()

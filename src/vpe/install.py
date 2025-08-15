@@ -1,7 +1,8 @@
 """Script to 'install' VPE.
 
-This simply installs $HOME/.vim/plugin/000-vpe.vim, which performs the Vim
-plugin aspects required by the Vim Python Extensions.
+This installs $HOME/.vim/plugin/000-vpe.vim, which performs the Vim plugin
+aspects required by the Vim Python Extensions. It also install the VPE help
+file and generates its tags.
 """
 
 from importlib.resources import files

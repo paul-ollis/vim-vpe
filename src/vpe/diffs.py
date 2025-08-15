@@ -45,11 +45,6 @@ class Operation:
         self.col = col - 1
 
     @property
-    def operation(self) -> Literal['add', 'delete', 'change']:
-        """The operation name - this is deprecated; use `name`."""
-        return self.name
-
-    @property
     def count(self) -> int:
         """The number of lines affected.
 
@@ -126,6 +121,11 @@ class Operation:
         for key in ('lnum', 'end', 'added', 'col'):
             yield key, self.__getitem__(key)
 
+    def __eq__(self, other: Operation):
+        return (
+            self.a == other.a and self.b == other.b
+            and self.delta == other.delta and self.col == other.col)
+
     def __repr__(self):
         name = self.__class__.__name__
         return f'<{name}:{self.a}.{self.col}-{self.b},{self.count}>'
@@ -138,26 +138,15 @@ class AddOp(Operation):
     """A buffer addition operation."""
     name: ClassVar[str] = 'add'
 
-    def apply_to(self, buf: MutableSequence[str]):           # pragma: no cover
-        """Apply this change to the supplied buffer."""
-        buf[self.a:self.a] = [''] * self.count
-
 
 class DeleteOp(Operation):
     """A buffer deletion operation."""
     name: ClassVar[str] = 'delete'
 
-    def apply_to(self, buf: MutableSequence[str]):           # pragma: no cover
-        """Apply this change to the supplied buffer."""
-        del buf[self.a:self.b]
-
 
 class ChangeOp(Operation):
     """A buffer change operation."""
     name: ClassVar[str] = 'change'
-
-    def apply_to(self, buf: MutableSequence[str]):           # pragma: no cover
-        """Apply this change to the supplied buffer - a null operation."""
 
     def __repr__(self):
         name = self.__class__.__name__

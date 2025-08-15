@@ -30,6 +30,7 @@ docs = [
 ]
 
 [tool.setuptools.package-data]
+'vpe' = ['py.typed']
 'vpe.resources' = ['000-vpe.vim', 'vpe-help.txt']
 
 [project.scripts]

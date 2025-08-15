@@ -343,9 +343,15 @@ A pythonic API for creating syntax highlighting definitions.
         *group*
             A group instance.
 
-.. rubric:: MatchGorup
+.. rubric:: MatchGroup
 
-.. py:class:: MatchGorup(group: Group | None)
+.. py:class:: MatchGroup(group: 'Group')
+
+    A matchgroup option.
+
+.. rubric:: MatchGroupDirective
+
+.. py:class:: MatchGroupDirective(group: Group | None)
 
     A matchgroup directive for a region.
 
@@ -354,12 +360,6 @@ A pythonic API for creating syntax highlighting definitions.
         .. py:method:: arg_str() -> str
 
             Format matchgroup as an directove in a region command.
-
-.. rubric:: MatchGroup
-
-.. py:class:: MatchGroup(group: 'Group')
-
-    A matchgroup option.
 
 .. rubric:: NamedSyntaxItem
 

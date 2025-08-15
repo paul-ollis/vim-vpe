@@ -88,11 +88,3 @@ You should not normally need to import this module directly.
             .. code-block:: py
 
                 vpe.commands.tabonly(silent=True)
-
-.. rubric:: Function
-
-.. py:class:: Function(name: str,args: Optional[ListType[Any]] = None)
-
-    Wrapper around a vim.Function.
-
-    This provides some wrapping or decoding of return types.

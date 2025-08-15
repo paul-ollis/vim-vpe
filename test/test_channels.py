@@ -111,7 +111,7 @@ class Server(threading.Thread):
                 buf = await self.handle_json(buf, writer)
 
     async def handle_raw(self, buf, writer):
-        resp = f'{buf}-re'
+        resp = f'{buf}-resp'
         writer.write(resp.encode())
         await writer.drain()
         await asyncio.sleep(0.5)
@@ -290,6 +290,7 @@ class JsonChannel(Channel):
         failIf(res.is_open)
         self.server.start()
         res = self.do_connect()
+        # TODO: Flakey: Have seen next line fail!
         failUnless(res.is_open)
 
     @test(testID='channel-connect-ok')
@@ -638,7 +639,58 @@ class RawChannel(Channel):
             self.control.delay(0.01)
             res = self.do_recv()
         failUnlessEqual(2, len(res.messages))
+        failUnlessEqual(['Hello-resp', 'resp'], res.messages)
 
+    @test(testID='channel-raw-bytes')
+    def raw_channel_bytes(self):
+        """Use of a raw channel and bytes.
 
-if __name__ == '__main__':
-    runModule()
+        When bytes are provided, VPE converts the value to an an equivalent
+        string (by decoding as latin-1).
+
+        :<py>:
+
+            ch = MyChannel('localhost:8887')
+
+            res = Struct()
+            res.messages = ch.messages
+            resp = ch.send(b'Hello')
+
+            res.messages = ch.messages
+            res.resp = resp
+            dump(res)
+        """
+        self.server.start()
+        res = self.run_self()
+
+        a = time.time()
+        while time.time() - a < 5.0 and len(res.messages) < 2:
+            self.control.delay(0.01)
+            res = self.do_recv()
+        failUnlessEqual(2, len(res.messages))
+        failUnlessEqual(['Hello-resp', 'resp'], res.messages)
+
+    @test(testID='channel-raw-explicit-read')
+    def raw_channel_explicit_read(self):
+        """Use of a raw channel, explicit read (not using callback).
+
+        :<py>:
+
+            ch = MyChannel('localhost:8887')
+
+            res = Struct()
+            res.messages = ch.messages
+            ch.send('Hello')
+            res.data = ch.read(timeout_ms=100)
+            ch.messages = ['dummy']
+
+            res.messages = ch.messages
+            dump(res)
+        """
+        self.server.start()
+        res = self.run_self()
+
+        a = time.time()
+        while time.time() - a < 5.0 and len(res.messages) < 1:
+            self.control.delay(0.01)
+        failUnlessEqual('Hello-resp', res.data)

@@ -37,7 +37,7 @@ __all__ = [
     'PopupNotification', 'PopupDialog', 'PopupMenu', 'ScratchBuffer',
     'Log', 'error_msg', 'warning_msg', 'echo_msg', 'log',
     'saved_winview', 'highlight', 'pedit', 'popup_clear',
-    'timer_stopall', 'find_buffer_by_name', 'feedkeys', 'get_display_buffer',
+    'find_buffer_by_name', 'feedkeys', 'get_display_buffer',
     'define_command', 'temp_active_window', 'CommandHandler',
     'EventHandler', 'BufEventHandler', 'temp_active_buffer',
     'saved_current_window',
@@ -370,6 +370,16 @@ class Log:
         """The current maximum length."""
         return self.fifo.maxlen
 
+    @property
+    def lines(self) -> list[str]:
+        """The lines currently in the log.
+
+        This is used by the VPE test suite. It is not really intended to
+        general use and unlikely to be generally useful. Note that each access
+        to this property creates a new list.
+        """
+        return [s.rstrip() for s in list(self.fifo)]
+
     def redirect(self):
         """Redirect stdout/stderr to the log."""
         if not self.saved_out:
@@ -399,6 +409,10 @@ class Log:
 
         self.fifo.extend(lines)
         buf = self.buf
+        if buf is not None and not buf.valid:
+            # The Vim buffer has been wiped out.
+            buf = None
+            self.buf = None
         if buf:
             with buf.modifiable():
                 buf.append(lines)
@@ -563,9 +577,11 @@ class Popup:
     :content:   The content for the window.
     :name:      An optional name for the Popup. If provided then a named
                 `ScratchBuffer` is used for the content rather than letting Vim
-                *etc*.) can be provided as keyword arguments. The exceptions
-                are filter and callback. Over ride the `on_key` and `on_close`
-                methods instead.
+                create one.
+
+    :p_options: Vim popup_create() options can be provided as keyword
+                arguments. The exceptions are filter and callback. Over ride
+                the `on_key` and `on_close` methods instead.
     """
     _popups: dict = {}
     _create_func = 'popup_create'
@@ -633,7 +649,7 @@ class Popup:
             if self._buf:
                 self._id = getattr(wrappers.vim, self._create_func)(
                     self._buf.number, self.p_options)
-            else:
+            else:                                           # pragma: defensive
                 print('DEBUG: Dead temporary popup')
         else:
             wrappers.vim.popup_show(self._id)
@@ -651,6 +667,10 @@ class Popup:
         """
         wrappers.vim.popup_setoptions(self._id, p_options)
 
+    # TODO:
+    #     This is reflecting the Vim API, but I cannot figure out why it should
+    #     be needed along with ``popup_setoptions``. Swift deprecation might be
+    #     on the cards.
     def move(self, **p_options) -> None:
         """Set a number of move options at once.
 
@@ -725,7 +745,7 @@ class Popup:
                    a filter callback using Vimscript.
         :return:   True if the key should be considered consumed.
         """
-        # pylint: disable=unused-argument,no-self-use
+        # pylint: disable=unused-argument
         return False
 
     def _on_close(self, _id, close_arg):
@@ -909,8 +929,7 @@ class expr_arg:
     def __str__(self):
         return self.arg
 
-    def __repr__(self):
-        return self.arg
+    __repr__ = __str__
 
 
 # TODO: This could probably be a more generic mechanism baked into Callback.
@@ -1091,7 +1110,7 @@ def highlight(
         default: bool = False,
         link: str | None = None,
         disable: bool = False,
-        dump: bool = False,
+        debug: bool = False,
         file: TextIO or None = None,
         **kwargs):
     """Execute a highlight command.
@@ -1123,33 +1142,34 @@ def highlight(
         If set then the generated command has the form ``highlight
         default...``.
 
-    :dump:
+    :debug:
         Print the command's arguments, for debugging use.
 
     :kwargs:
         The remaining keyword arguments act like the :vim:`:highlight`
         command's keyword arguments.
     """
+    # pylint: disable=too-many-arguments
     _convert_colour_names(kwargs)
     args = []
     if link:
         args.append('link')
         args.append(group)
         args.append(link)
-        if dump:
+        if debug:
             print(f'HL {args=}')
         return wrappers.commands.highlight(*args, file=file)
     if group:
         args.append(group)
     if clear:
         args[0:0] = ['clear']
-        if dump:
+        if debug:
             print(f'HL {args=}')
         return wrappers.commands.highlight(*args, file=file)
 
     if disable:
         args.append('NONE')
-        if dump:
+        if debug:
             print(f'HL {args=}')
         return wrappers.commands.highlight(*args, file=file)
 
@@ -1160,7 +1180,7 @@ def highlight(
         if value:
             args.append(f'{name}={value!r}')
 
-    if dump:
+    if debug:
         print(f'HL {args=}')
     ret = wrappers.commands.highlight(*args, file=file)
     return ret
@@ -1304,11 +1324,11 @@ def _double_quote(expr):
 
 def define_command(
         name: str, func: Callable, *, nargs: int | str = 0,
-        complete: str = '', range: bool | str = '', count: str = '',
+        complete: str = '', range: bool | int | str = '',
+        count: int | str = '',
         addr: str = '', bang: bool = False, bar: bool = False,
         register: bool = False, buffer: bool = False, replace: bool = True,
         pass_info: bool = True, args=(), kwargs: dict | None = None):
-        # pylint: disable=too-many-locals,redefined-builtin
     """Create a user defined command that invokes a Python function.
 
     When the command is executed, the function is invoked as:<py>:
@@ -1350,6 +1370,8 @@ def define_command(
     :args:      Additional arguments to pass to the mapped function.
     :kwargs:    Additional keyword arguments to pass to the mapped function.
     """
+    # pylint: disable=too-many-locals,redefined-builtin
+    # pylint: disable=too-many-arguments
     cmd_args: list[expr_arg | int] = [
         expr_arg('<line1>'), expr_arg('<line2>'), expr_arg('<range>'),
         expr_arg('<count>'), expr_arg('<q-bang>'), expr_arg('<q-mods>'),
@@ -1431,11 +1453,6 @@ class CommandHandler:
             return func
 
         return wrapper
-
-
-def timer_stopall():
-    """Convenience function that invokes `Timer.stop_all`."""
-    common.Timer.stop_all()
 
 
 def popup_clear(force=False):
@@ -1553,12 +1570,12 @@ def log_status():
     """Dump useful diagnostic information to the VPE log.
 
     The output is intended for things like diagnosing issues with VPE or to
-    help plug-in development. The details of the output may change
-    significantly between VPE releases.
+    help plug-in development. The details of the output may change a lot
+    between VPE releases.
     """
     # pylint: disable=protected-access
     log(f'Popup._popups = {len(Popup._popups)}')
-    log(f'Callback.callbacks = {len(common.Callback.callbacks)}')
+    log(f'Callback.callbacks = {common.func_reference_store.callback_count()}')
 
 
 def _setup_keys():

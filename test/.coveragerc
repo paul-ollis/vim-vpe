@@ -3,6 +3,9 @@ source =
     ../src/vpe
 omit =
     */minirpyc/*
+    ../src/vpe/rpy_support.py
+    ../src/vpe/rpyc_support.py
+    ../src/vpe/install.py
 
 [paths]
 cygwin_match =
@@ -12,8 +15,11 @@ cygwin_match =
 
 [report]
 exclude_lines =
+    pragma: defensive$
     pragma: no cover$
     pragma: no cover windows$
+    pragma: unreachable$
+    pragma: temp-nocover$
 
     # Don't complain if tests don't hit defensive assertion code:
     raise AssertionError
@@ -21,6 +27,13 @@ exclude_lines =
 
     # Don't complain if non-runnable code isn't run:
     if __name__ == .__main__.:
+
+exclude_also =
+    if debug:
+    if TYPE_CHECKING:
+    def _load_new_plugins
+    def _to_std_num\(name: str\)
+    class HighlightSpec:
 
 omit =
     */minirpyc/*
