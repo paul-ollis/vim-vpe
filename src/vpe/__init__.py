@@ -8,9 +8,6 @@ module. It is intended that a Vim instance can be uses as a replacement for the
     # Now use 'vim' as an extended version of the *vim* module.
     # ...
 
-This is compatible with versions of Vim from 8.0. It also needs Python 3.6 or
-newer.
-
 @vim:
     A replacement for (and wrapper around) the :vim:`python-vim` module.
 
@@ -84,6 +81,8 @@ from vpe.wrappers import (
     BufListener, Buffer, Buffers, Current, GlobalOptions, Options, Range,
     Registers, Struct, TabPage, TabPages, VIM_DEFAULT, VI_DEFAULT, Variables,
     Window, Windows, commands)
+
+__version__ = '0.7.0-a'
 
 __api__ = [
     # Modules documented as part of the API.
@@ -162,9 +161,6 @@ __api__ = [
     'Window',
     'Windows',
 ]
-__version_tuple__ = 0, 8, 0
-__release__ = '-alpha'
-version = f'{".".join(str(p) for p in __version_tuple__)}{__release__}'
 
 PLUGIN_SUBDIR = 'vpe_plugins'
 

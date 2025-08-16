@@ -462,7 +462,7 @@ class VpeCommands(support.Base):
         #       which affects the behaviour of echo_msg.
         #
         #       Currently it seems that trying to capture to a register is
-        #       fragile.
+        #       fragile. Some a number of tests here are crippled.
         #
         res = self.run_self()
         self.cleanup_screen()
@@ -510,3 +510,19 @@ class VpeCommands(support.Base):
         failUnless(res.lines[0].endswith(': Hello 1'))
         failUnless(res.lines[1].endswith(': Hello 2'))
         failUnless(res.lines[2].endswith(': Hello 3'))
+
+    @test(testID='vpe-commands-log-length')
+    def vpe_version(self):
+        r"""Command ``Vpe version`` simply shows the version.
+
+        The current log maximum length is queried by ``Vpe log length``.
+
+        :<py>:
+
+            res = Struct()
+            vpe.vim.command('Vpe version')
+            dump(res)
+        """
+        # TODO: See vpe_log_redirect_off_on for how to capture echo_msg output
+        #       correctly. This test is simplistic coverage without checking!
+        _res = self.run_self()

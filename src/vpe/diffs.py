@@ -4,7 +4,6 @@ from __future__ import annotations
 import warnings
 
 from collections.abc import Iterator, MutableSequence
-from typing import Literal
 
 from typing import ClassVar
 
@@ -92,8 +91,8 @@ class Operation:
         """
         warnings.warn(
             f'Dictionary access to {self.__class__.__name__} is deprecated'
-            ' and is scheduled for removal in version 0.9.'
-            'anUse attributes a, b, count and col instead.',
+            ' and is scheduled for removal in version 1.0.'
+            '\nUse attributes a, b, count and col instead.',
             category=DeprecationWarning)
         if key == 'lnum':
             return self.a + 1
@@ -116,7 +115,7 @@ class Operation:
         warnings.warn(
             f'Dictionary access to {self.__class__.__name__} is deprecated'
             ' and is scheduled for removal in version 0.9.'
-            'Use attributes a, b, count and col instead.',
+            '\nUse attributes a, b, count and col instead.',
             DeprecationWarning)
         for key in ('lnum', 'end', 'added', 'col'):
             yield key, self.__getitem__(key)

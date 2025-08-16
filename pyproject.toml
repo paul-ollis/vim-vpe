@@ -23,7 +23,8 @@ license-files = ["LICENCE"]
 
 [project.optional-dependencies]
 test = [
-    'cleversheep3@git+https://github.com/paul-ollis/cleversheep3.git',
+    # TODO: This type of dependency prevents upload to PyPi.
+    # 'cleversheep3@git+https://github.com/paul-ollis/cleversheep3.git',
 ]
 docs = [
     'sphinx_rtd_theme',

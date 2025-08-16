@@ -8,10 +8,12 @@
 
 
 :status:
-    This is version 0.8.
+    This is version 0.7.0-a.
+
+    The Version 0.7 line is intended to be the stepping stone for version 1.0.
 
     Although it has not yet reached a version 1.0 release, I make heavy, daily
-    use of VPE within my Vim  environment without problems.
+    use of VPE within my Vim environment without problems.
 
     While the API should be considered unstable, it has actually proven fairly
     stable, with only a few, minor incompatible changes since version 0.1.
@@ -47,17 +49,28 @@ Quick start
 This is just a brief introduction. For more complete documentation see the
 `online documentation`_.
 
+
 Installation
 ~~~~~~~~~~~~
+
+If you have a pre 0.7 VPE installation then head on over to
+
+    https://vim-vpe.readthedocs.io/en/latest/#installation
+
+for details on removing that version.
 
 .. code-block:: bash
 
     python -m pip install --user git+https://github.com/paul-ollis/vim-vpe.git
 
-On some systems you may to add the ``--break-system-packages`` option. (VPE does
-not pull in other Python packages, so your system is safe.)
+On some systems you may have to add the ``--break-system-packages`` option.
+(VPE does not pull in other Python packages, so your system is safe.)
 
-Then install Vim initialisation, support code and Vim help file.
+At this point you should be able to run Vim and enter the command ``Vpe
+version`` to verify the basic installation has worked.
+
+Then install Vim initialisation support code and the Vim help file. From within
+Vim run the commands:
 
 .. code-block:: vim
 
@@ -119,7 +132,7 @@ This is a brief list of VPE's features.
   <https://vimhelp.org/map.txt.html#:nmap>`_.
 
 - Pythonic support for using `popup-windows
-  <https://vimhelp.org/popup.txt.html#popup-window>`_. (Requires Vim 8.2.)
+  <https://vimhelp.org/popup.txt.html#popup-window>`_.
 
 - Pythonic support for using
   `timers <https://vimhelp.org/eval.txt.html#timers>`_.
@@ -128,6 +141,6 @@ This is a brief list of VPE's features.
   <https://vimhelp.org/autocmd.txt.html#autocommands>`_ that invoke Python
   functions.
 
-- Python support for `channels <https://vimhelp.org/channel.txt.html>`_.
+- Pythonic support for `channels <https://vimhelp.org/channel.txt.html>`_.
 
 - Logging to a buffer. Useful when developing and debugging plug-ins.

@@ -25,15 +25,15 @@ class TestInfo(support.Base):
     """General information features."""
     @test(testID='version')
     def version(self):
-        """VPE provides a version function.
+        """VPE provides a __version__ string.
 
         :<py>:
             res = Struct()
-            res.version = vpe.version
+            res.version = vpe.__version__
             dump(res)
         """
         res = self.run_self()
-        failUnlessEqual('0.8.0-alpha', res.version)
+        failUnlessEqual('0.7.0-a', res.version)
 
 
 class DisplayBuffer(support.Base):

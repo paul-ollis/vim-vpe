@@ -31,9 +31,6 @@ module. It is intended that a Vim instance can be uses as a replacement for the
     # Now use 'vim' as an extended version of the *vim* module.
     # ...
 
-This is compatible with versions of Vim from 8.0. It also needs Python 3.6 or
-newer.
-
 The VPE module uses certain global Vim variables for its own internal purposes.
 The names are chosen to be suitably obscure, but obviously associated with VPE.
 

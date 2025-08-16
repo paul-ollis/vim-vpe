@@ -47,7 +47,7 @@ trying to import `vpe` within a new Vim session and checking the version.
 
 .. sidebar:: 000-vpe.vim
 
-    The reason for using the name 000-vpe.vim it to make sure that VPE is
+    The reason for using the name 000-vpe.vim is to make sure that VPE is
     fully initialised *very* early on. This means that other Vim plugins can
     make use of VPE if desired.
 

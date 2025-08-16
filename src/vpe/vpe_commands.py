@@ -16,6 +16,7 @@ from functools import partial
 from inspect import cleandoc
 from typing import TYPE_CHECKING
 
+import vpe
 from vpe import core, vim
 from vpe.argparse import (
     CommandHandler, SubcommandHandlerBase, TopLevelSubcommandHandler)
@@ -95,6 +96,7 @@ class VPECommandProvider(TopLevelSubcommandHandler):
     subcommands = {
         'log': (LogSubCommand, 'Log file management.'),
         'insert_config': (':simple', 'Insert the vpe_config global variable.'),
+        'version': (':simple', 'Display the VPE version number.'),
     }
     range = True
 
@@ -145,6 +147,10 @@ class VPECommandProvider(TopLevelSubcommandHandler):
             else:
                 lines.append(f'let g:vpe_config.{name} = 1')
         buf[row-1:row-1] = lines
+
+    def handle_version(self, _args: Namespace) -> None:
+        """Execute the 'Vpe version' command."""
+        echo_msg(f'VPE version {vpe.__version__}')
 
 
 def init():

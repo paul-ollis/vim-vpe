@@ -23,8 +23,8 @@ executing Vim program. Detailed help is available - ``:help if_pyth.txt`` and
 https://vimhelp.org/if_pyth.txt.html. The rest of this guide assumes that you
 are reasonably familiar with this module.
 
-In order to take advantage of VPE, the starting point is to import ``vim`` from
-`vpe`.
+In order to take advantage of VPE, a good starting point is to import ``vim``
+from `vpe`.
 
 .. code-block:: python
 
