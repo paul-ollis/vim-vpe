@@ -46,12 +46,12 @@ Plug-in loading and initialisation
 Loading
 -------
 
-VPE plug-ins are loaded after Vim completes it normal starup an plug-in loading
+VPE plug-ins are loaded after Vim completes it normal startup an plug-in loading
 (by using the :vim:`VimEnter` auto command).
 
 VPE scans the vpe_plugins directory for auto-loadable plug-in modules and
 packages. Each plug-in found is loaded by simply importing it as a sub-module
-or sub-pakage of the ``vpe_plugins`` namespace package. For example if your plugin
+or sub-package of the ``vpe_plugins`` namespace package. For example if your plugin
 file is my_plugin.py then VPE will effectively import it as:
 
 .. code-block:: py
@@ -71,7 +71,7 @@ Since a plug-in is imported, its top level code performs any necessary
 initialisation. This will, of course, only be executed the first time it is
 imported
 
-If a plug-in is not able to load propely, for example because a required third
+If a plug-in is not able to load properly, for example because a required third
 party Python library is missing, then it can raise the `vpe.Finish` exception to
 abort loading and provide some details. For example::
 

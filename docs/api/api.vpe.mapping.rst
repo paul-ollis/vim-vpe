@@ -171,7 +171,7 @@ calls.
 
     By default the first argument passed to the mapped function is a
     `MappingInfo` object. The *pass_info* argument can be used to prevent this.
-    Additional arguments can be speficied using *args* and *kwargs*.
+    Additional arguments can be specified using *args* and *kwargs*.
 
     For convenience, mode specific versions are provided (`nmap`, `xmap`,
     `omap` and `imap`). See those for details of what he mapped function can

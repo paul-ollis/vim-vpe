@@ -185,7 +185,7 @@ managed by a `PanelViewBuffer`.
 
         .. py:method:: add_panel(panel: Panel)
 
-            Add a panel an the end of the panel list.
+            Add a panel to the end of the panel list.
 
         .. py:method:: format_panel(panel: Panel)
 

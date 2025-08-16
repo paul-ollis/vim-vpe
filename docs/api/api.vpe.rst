@@ -19,7 +19,7 @@ Module vpe
 
 .. py:module:: vpe
 
-Enhanced module for using Python3 in Vim.
+Enhanced module for using Python 3 in Vim.
 
 This provides the Vim class, which is a wrapper around Vim's built-in *vim*
 module. It is intended that a Vim instance can be uses as a replacement for the
@@ -161,7 +161,7 @@ _vpe_args_
 
 .. rubric:: BufListener
 
-.. py:class:: BufListener(func,buf,ops: bool = True,raw_changes: bool = False)
+.. py:class:: BufListener(func, buf, ops: bool = True, raw_changes: bool = False)
 
     An extension of `Callback` for Vim's buffer change callbacks.
 
@@ -357,7 +357,7 @@ _vpe_args_
 
         .. py:property:: vars() -> Variables
 
-            The buffar vars wrapped as a `Variables` instance.
+            The buffer vars wrapped as a `Variables` instance.
 
         .. py:property:: windows() -> list[int]
 
@@ -404,7 +404,7 @@ _vpe_args_
                         Number of lines added, negative if lines were deleted.
 
                 *ops*: bool
-                    ``True`` by default. Include a list of the individal operations to
+                    ``True`` by default. Include a list of the individual operations to
                     the callback as the ``ops`` keyword argument. A list of
                     diffs.Operation instances with details about the changes.
 
@@ -544,7 +544,7 @@ _vpe_args_
 
         .. py:method:: retrieve_store(key: Any) -> Struct | None
 
-            Retrive a given buffer store if it exists.
+            Retrieve a given buffer store if it exists.
 
             This is similar to `store`, but no new store is created.
 
@@ -625,7 +625,7 @@ _vpe_args_
                     disp.buf.append('Another line')
 
             When the context ends, the modifiable option is reset to its original
-            value. An alterative approach is:
+            value. An alternative approach is:
 
             .. code-block:: py
 
@@ -1054,7 +1054,7 @@ _vpe_args_
 
 .. rubric:: Log
 
-.. py:class:: Log(name: str,maxlen: int = 500,timestamps: bool = True)
+.. py:class:: Log(name: str, maxlen: int = 500, timestamps: bool = True)
 
     Support for logging to a display buffer.
 

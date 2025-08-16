@@ -140,7 +140,7 @@ values in an INI style configuration file and makes option values available as
             If, for example, `name` is 'omega' then (on Linux) the file
             ~/.vim/config.d/omega.ini will be loaded. Any existing option values
             not found in the file are left unchanged. Any value in the file that
-            does not match a defined otion is simply ignored.
+            does not match a defined option is simply ignored.
 
         .. py:method:: options_() -> Dict[str, vpe.config.Option]
 

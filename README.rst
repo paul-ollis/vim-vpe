@@ -96,7 +96,7 @@ enhancements.
   .. code:: python
 
       vim.cursor(4, 10)            # Position cursor at row 4, column 10.
-      m = vim.execute('messages')  # Get all the recent Vim messagse.
+      m = vim.execute('messages')  # Get all the recent Vim messages.
 
 - The attributes buffers, current, options, tabpages, vars, vvars and windows
   provide enhanced access to the corresponding Vim objects. For example

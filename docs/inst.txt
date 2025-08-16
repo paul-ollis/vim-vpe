@@ -102,7 +102,7 @@ objects into Vim's Python namespace and the Python interpreter's builtin
 namespace. This matches how VPE worked before version 0.8. However this
 is rather invasive and quite possibly not what you really want.
 
-This behavious can be controlled using configuration values stored in a global
+This behaviour can be controlled using configuration values stored in a global
 ``vpe_config`` dictionary. To do this you should create the configuration in
 your $HOME/.vimrc or $HOME/.vim/vimrc file. Edit your vimrc file, place the
 cursor at a suitable location and run the command:

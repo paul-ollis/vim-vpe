@@ -48,7 +48,7 @@ You should not normally need to import this module directly.
         Provides keyword style arguments. See also the `syntax` module.
 
     `vpe.error_msg`
-        Writes a message with error highlightling, but does not raise a
+        Writes a message with error highlighting, but does not raise a
         vim.error.
 
     `mapping`

@@ -142,7 +142,7 @@ Pythonic wrappers for Vim's channels.
 
                 *message*: str
                     The received message. This is always a string, even for raw
-                    channels. Vim replaces any NUL chracters with newlines, so pure
+                    channels. Vim replaces any NULL characters with newlines, so pure
                     binary messages cannot be handled using on_message.
 
         .. py:method:: read(timeout_ms: Optional[int] = None)
@@ -165,7 +165,7 @@ Pythonic wrappers for Vim's channels.
 
         .. py:method:: settimeout(timeout_ms: Optional[int] = None)
 
-            Set the default teimout for the channel.
+            Set the default timeout for the channel.
 
             Related vim function = :vim:`ch_setoptions`.
 
@@ -207,7 +207,7 @@ Pythonic wrappers for Vim's channels.
                 noblock: Optional[bool] = None,
                 waittime: Optional[int] = None,
 
-    Pythonic wrapper around a Vim channel in javascript mode.
+    Pythonic wrapper around a Vim channel in JavaScript mode.
 
 .. rubric:: JsonChannel
 
@@ -221,7 +221,7 @@ Pythonic wrappers for Vim's channels.
                 noblock: Optional[bool] = None,
                 waittime: Optional[int] = None,
 
-    Pythonic wrapper around a Vim channel in json mode.
+    Pythonic wrapper around a Vim channel in JSON mode.
 
 .. rubric:: NLChannel
 
@@ -315,7 +315,7 @@ Pythonic wrappers for Vim's channels.
     .. container:: parameters itemdetails
 
         *varname*
-            The name of the a vim variable currently referencing the
+            The name of a vim variable currently referencing the
             :vim:`Channel`.
 
 

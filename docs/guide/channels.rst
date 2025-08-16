@@ -97,7 +97,7 @@ The Channel class
 Introduction
 ------------
 
-VPE provides the |Channel| cnd related classes as the basis for socket and pipe
+VPE provides the |Channel| and related classes as the basis for socket and pipe
 I/O. A |Channel| provides a Pythonic, object oriented, interface to the various
 Vim ``ch_...`` functions. |Channel| is a base class from which four API classes
 are ultimately derived.
@@ -113,7 +113,7 @@ Python code should use one of the above four classes.
 
 Here is an approximate mapping from vim's functions to |Channel| methods.
 
-.. _compatability-table:
+.. _compatibility-table:
 
 ==================  ============================================================
 Vim function        |Channel| method
@@ -147,7 +147,7 @@ Vim function        |Channel| method
 Channel paradigm
 ----------------
 
-The channel classes are intended to be used by inheritence. Below is some code
+The channel classes are intended to be used by inheritance. Below is some code
 showing the basic pattern.
 
 .. code-block:: python
@@ -206,7 +206,7 @@ In the above example, the timer is set to fire every second forever. The
 if the connection is already active. The |on_connect| method is a good place to
 stop the timer running.
 
-A |Channel| always sets a the |callback| and |close_cb| options on channel. So
+A |Channel| always sets the |callback| and |close_cb| options on the channel. So
 incoming messages are handled asynchronously, invoking the |on_message| method.
 
 The |close_cb| option is used by the |Channel| to properly clean things up. As
@@ -220,7 +220,7 @@ Channel functions
 
 The |channels| module also provides a set of very thin wrapper around most of
 the Vim 'ch\_...' functions. All those listed in the :ref:`mapping
-table<compatability-table>` above are provided, except for |ch_canread|,
+table<compatibility-table>` above are provided, except for |ch_canread|,
 |ch_readraw|, |ch_readblob|, |ch_open| and |ch_logfile|. These wrappers are
 provided mainly for use by the |Channel| class, but you can use them in your own
 code.

@@ -1,10 +1,10 @@
 The VPE and other logs
 ======================
 
-If you do any non-trivial Python scripting within Vim, it is verly likely that
+If you do any non-trivial Python scripting within Vim, it is very likely that
 you will find it helpful to be able to write log message. Python programmers
 often simply use calls to ``print()`` for this and this can be useful from
-within Vim. However, such output will typicall cause the Vim window to scroll
+within Vim. However, such output will typically cause the Vim window to scroll
 and wait for the user to press a key. This can be inconvenient during Python
 scripting development.
 
@@ -38,7 +38,7 @@ The easiest way to make the VPE log buffer visible is to use `Log.show`.
 The log buffer has some special behaviours.
 
 - The text in the log buffer is shown with a simple time stamp of seconds and
-  hundreths of a second.
+  hundredths of a second.
 
 - The number of lines in the buffer is limited. When the limit is reached,
   older lines are deleted. The default length is 500 lines, but this can be
@@ -83,7 +83,7 @@ This may well change in the future.
 Other logs
 ----------
 
-The `vpe.log` object is actualy just a specific instance of the `vpe.Log`
+The `vpe.log` object is actually just a specific instance of the `vpe.Log`
 class. VPE only creates the `vpe.log` automatically, but it can be more useful
 to create your own `Log` for your script or plug-in. This keeps your plug-in's
 log output nicely separate.

@@ -14,7 +14,7 @@ Defining commands
 VPE provides the |define_command| function as a way to create commands that
 invoke Python functions or methods. In other words, you can define commands
 that are implemented using Python functions (implementation functions). It maps
-fairly closely to Vim's :vim:`:command`. Here is a very trival example:
+fairly closely to Vim's :vim:`:command`. Here is a very trivial example:
 
 .. code-block:: python
 

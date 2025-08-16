@@ -66,7 +66,7 @@ provided are:
             This is a modified version from the Python 3.11 standard library. This
             version stops processing arguments when a subcommand is encountered.
             The upshot is that optional arguments are get properly associated with
-            the correct main command or subcommmand.
+            the correct main command or subcommand.
 
         .. py:method:: error(message)
 
@@ -365,7 +365,7 @@ provided are:
 
             .. container:: returnvalue itemdetails
 
-                A list strings representing the the possible completions.
+                A list strings representing the possible completions.
 
 .. rubric:: unique_match
 

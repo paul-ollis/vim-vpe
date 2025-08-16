@@ -72,11 +72,11 @@ know the actual type.
 
         .. py:method:: iter_windows()
 
-            Iterate throught the leaf windows.
+            Iterate through the leaf windows.
 
         .. py:method:: set_widths_from_layout(layout: LayoutElement)
 
-            Update the widths using another layour element.
+            Update the widths using another layout element.
 
 
             **Parameters**

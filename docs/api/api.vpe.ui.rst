@@ -104,7 +104,7 @@ This is still being developed. The API and behaviour is likely to change.
 
 .. py:class:: ConfigPanelBuffer(*args,**kwargs)
 
-    A `PanelViewBuffer` thats supports configuration panels.
+    A `PanelViewBuffer` that supports configuration panels.
 
     This tracks instances of `ConfigPanel` and sets up key mappings to navigate
     and modify the fields within them.
@@ -159,7 +159,7 @@ This is still being developed. The API and behaviour is likely to change.
 
         .. py:method:: on_selected_field_change()
 
-            Perform common processing when the selecetd field is changed.
+            Perform common processing when the selected field is changed.
 
             This is intended to be over-ridden by subclasses.
 
@@ -445,5 +445,5 @@ This is still being developed. The API and behaviour is likely to change.
         *s*: str
             The string to justify.
         *width*: int
-            The field width. Postive values mean left justified, negative mean
+            The field width. Positive values mean left justified, negative mean
             right justified.

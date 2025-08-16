@@ -26,10 +26,10 @@ Currently this only works on X.Org based desktops.
             A sequence (w, h) giving the window's undecorated size in
             character cells.
         *dims_corners*
-            A sequence of pixel coordiates for the windows corners, in
+            A sequence of pixel coordinates for the windows corners, in
             the order TL, TR, BR, BL. For TR and BR the X value is with
-            repect to the right hand edge of the display. For BL and BR
-            the Y value is with repect to the lower edge of the
+            respect to the right hand edge of the display. For BL and BR
+            the Y value is with respect to the lower edge of the
             display.
         *borders*
             The pixel sizes of the window decoration borders in the
@@ -55,10 +55,10 @@ Currently this only works on X.Org based desktops.
 
         .. py:attribute:: dims_corners
 
-            A sequence of pixel coordiates for the windows corners, in
+            A sequence of pixel coordinates for the windows corners, in
             the order TL, TR, BR, BL. For TR and BR the X value is with
-            repect to the right hand edge of the display. For BL and BR
-            the Y value is with repect to the lower edge of the
+            respect to the right hand edge of the display. For BL and BR
+            the Y value is with respect to the lower edge of the
             display.
 
         .. py:attribute:: dims_pixels
@@ -153,7 +153,7 @@ Currently this only works on X.Org based desktops.
             .. container:: parameters itemdetails
 
                 *w*: AppWin
-                    The window bein searched for.
+                    The window being searched for.
 
 .. rubric:: attach_vars
 
