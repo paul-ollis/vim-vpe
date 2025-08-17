@@ -26,7 +26,7 @@ Attributes and methods
 The `Window` class provides all the attributes and methods of Vim's window
 class. However some attribute types and return values are different. In such
 cases, the VPE value is compatible with the Vim type. The differences are listed
-in the folling table.
+in the following table.
 
     ====================  =================  =================
     Attrribute            Vim type           VPE type

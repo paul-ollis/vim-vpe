@@ -102,7 +102,7 @@ shown below. ::
 
 A `ScratchBuffer` has its attributes set to prevent direct user modification of
 the contents. The |modifiable| method provides a context manager that makes it
-easy to update the buffer contents programatically. For example to add a line,
+easy to update the buffer contents programmatically. For example to add a line,
 just do:
 
 .. code-block:: py
@@ -165,7 +165,7 @@ extended by subclasses - |init_options| and |on_first_showing|. The
 |init_options| method is the place to set any special buffer specific option
 values. The |on_first_showing| method is invoked once, the first time the
 buffer becomes visible in a window. This is useful for performing any
-initialisation that depends on the buffer being current, such as defning syntax
+initialisation that depends on the buffer being current, such as defining syntax
 highlighting.
 
 .. code-block:: py

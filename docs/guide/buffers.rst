@@ -53,10 +53,10 @@ Attributes and methods
 The `Buffer` class provides all the attributes and methods of Vim's buffer
 class. However some attribute types and return values are different. In such
 cases, the VPE value is compatible with the Vim type. The differences are listed
-in the folling table.
+in the following table.
 
     ====================  =================  =================
-    Attrribute or method  Vim type           VPE type
+    Attribute or method   Vim type           VPE type
     --------------------  -----------------  -----------------
     vars                  vim.dictionary     `Variables`
     options               vim.options        `Options`

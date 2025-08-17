@@ -190,11 +190,11 @@ Vim's global functions are available as methods.
 This is much more convenient that using the ``vim``  module's ``eval``
 function, supporting much more Pythonic code.
 
-Vim functions invoked via ``vpe.vim`` mtehods return suitable Python types.
-This is simliar to invoking function via ``vim.vpe().Function``
+Vim functions invoked via ``vpe.vim`` methods return suitable Python types.
+This is similar to invoking function via ``vim.vpe().Function``
 (:vim:`python-funcion`), but VPE's type conversion is more extensive.
 
-If a exception occurs when the function is invoked, VPE logs fairely detailed
+If a exception occurs when the function is invoked, VPE logs fairly detailed
 information about the function call.
 
 Functions provided by the standard ``vim`` module take precedence. So
@@ -215,7 +215,7 @@ replaced by enhanced VPE alternatives. For example:
     buffers = vpe.vim.buffers   # The vpe.Buffers object.
     b = buffers[1]              # A vpe.Buffer object.
 
-In some cases the VPE substituted object is jsut a very thin wrapper around the
+In some cases the VPE substituted object is just a very thin wrapper around the
 underling ``vim`` module object. For example, the `vpe.Buffers` object does not
 add any methods, but it supplies `vpe.Buffer` objects which *do* provide
 enhanced features.

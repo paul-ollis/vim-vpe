@@ -217,7 +217,7 @@ takes an additional, initial argument ``mode``, which must be one of the
 strings 'normal', 'visual', 'op-pending' or 'insert'.
 
 The |map| function can be more convenient when, for example, creating mappings
-base on some form os user configuration.
+based on some form of user configuration.
 
 
 Plain old mappings

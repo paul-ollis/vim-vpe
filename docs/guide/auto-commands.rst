@@ -40,7 +40,7 @@ would be something like:
 
 The correspondence with the Vim script should be fairly clear. The ``pat``
 argument act in a similar way to the ``{pat}}`` of the :vim:`:autocmd`.
-It can be omiitted if you want the event only to be handled for the current
+It can be omitted if you want the event only to be handled for the current
 buffer (so it is not actually necessary in the above example). If you set it
 to a |Buffer| instance then the handler is installed for just that buffer.
 Or you can pass a string, which is treated in the same way as :vim:`:autocmd`.
