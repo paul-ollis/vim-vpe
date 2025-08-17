@@ -340,14 +340,16 @@ def _init_vpe_plugins(old_plugins_only: bool = False):
     """
     plugin_dir = Path(dot_vim_dir()) / f'pack/{PLUGIN_SUBDIR}'
 
-    spec = importlib.machinery.ModuleSpec('vpe_plugins', None, is_package=True)
-    package = importlib.util.module_from_spec(spec)
-    package.__path__.append(str(plugin_dir))
-    sys.modules[PLUGIN_SUBDIR] = package
+    if plugin_dir.is_dir():
 
-    init_path = plugin_dir / '__init__.py'
-    if not init_path.exists():
-        init_path.write_text('')
+        spec = importlib.machinery.ModuleSpec('vpe_plugins', None, is_package=True)
+        package = importlib.util.module_from_spec(spec)
+        package.__path__.append(str(plugin_dir))
+        sys.modules[PLUGIN_SUBDIR] = package
+
+        init_path = plugin_dir / '__init__.py'
+        if not init_path.exists():
+            init_path.write_text('')
 
     _load_plugins(old_plugins_only=old_plugins_only)
 
