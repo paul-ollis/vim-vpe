@@ -63,6 +63,8 @@ silently fail. Vim's timers provide a way to work around such problems.
 
 .. code-block:: py
 
+    # COUNTEREXAMPLE - DO NOT IMITATE
+
     def check_files_exists(src, dst):
         """Check that the source and destination files actually exist.
 
