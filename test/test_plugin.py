@@ -4,6 +4,7 @@
 import os
 import shutil
 import time
+from contextlib import contextmanager
 from pathlib import Path
 from typing import List
 
@@ -44,10 +45,15 @@ def install_test_plugins(dot_vim_dir: str):
     return init, added_dirs, added_files
 
 
-class TestPlugin(support.Base):
+class TestPluginBase(support.Base):
     """Core VPE plug-in behaviour."""
     added_paths: List[str]
     init_py: str
+    dot_vim_dir: str
+
+
+class TestPlugin(TestPluginBase):
+    """Core VPE plug-in behaviour."""
 
     def suiteSetUp(self):
         """Make sure Vim gets restarted with test plug-ins in place.
@@ -60,14 +66,17 @@ class TestPlugin(support.Base):
         """
         super().suiteSetUp()
         res = self.run_suite_setup()
+        self.dot_vim_dir = res.dot_vim_dir
         self.stop_vim_session()
-        self.init_py, *self.added_paths = install_test_plugins(res.dot_vim_dir)
+        self.init_py, *self.added_paths = install_test_plugins(
+            self.dot_vim_dir)
+
         super().suiteSetUp()
-        res = self.run_suite_setup()
+        _res = self.run_suite_setup()
 
     def suiteTearDown(self):
         """Clean up added plug-in files."""
-        super().suiteSetUp()
+        super().suiteTearDown()
         added_dirs, added_files = self.added_paths
         for p in added_files:
             try:
@@ -170,6 +179,55 @@ class TestPlugin(support.Base):
         res = self.run_self()
         failUnlessEqual(1, res.plugin_hook_loaded)
         failUnlessEqual(1, res.plugin_hook_ok)
+
+
+class TestPluginDirMissing(TestPluginBase):
+    """Correct behaviour of the plugin direcroy does not exist."""
+
+    def suiteSetUp(self):
+        """Setup this suite.
+
+        :<py>:
+            res = Struct()
+            res.dot_vim_dir = vpe.dot_vim_dir()
+            dump(res)
+        """
+        super().suiteSetUp()
+        res = self.run_suite_setup()
+        self.dot_vim_dir = res.dot_vim_dir
+
+    @contextmanager
+    def hide_vpe_plugin_dir(self):
+        """Hide the $HOME/.vim/pack/vpe_plugins directory temporarily."""
+        plugin_dir_path = Path(self.dot_vim_dir) / 'pack' / 'vpe_plugins'
+        if plugin_dir_path.exists():
+            renamed = plugin_dir_path.rename(
+                plugin_dir_path.parent / 'vpe_plugins.hide-for-test')
+        else:
+            renamed = None
+        try:
+            yield None
+        finally:
+            if renamed is not None:
+                renamed.rename(plugin_dir_path)
+
+    @test(testID='plugin-handle-missing-vpe_plugins-dir')
+    def load_handles_missing_plugins_dir(self):
+        """Issue #5: If there is no plugins directory no loading is attempted.
+
+        This test is really here to verify that VPE's initialisation does not
+        produce errors due to missing files/directories.
+
+        :<py>:
+            res = Struct()
+            vpe.post_init(old_plugins_only=True)
+            dump(res)
+        """
+        self.stop_vim_session()
+        with self.hide_vpe_plugin_dir():
+            self.init()
+            # The test will fail if this generates an error.
+            _res = self.run_self()
 
 
 if __name__ == '__main__':
