@@ -65,7 +65,7 @@ A pythonic API for creating syntax highlighting definitions.
 
             Include Vim syntax file, adding its groups to this cluster.
 
-            This does a :vim:`syn-include` operation with a cluster name.
+            This does a :vim:`syn-include` operation with a a cluster name.
 
             **Parameters**
 
@@ -128,7 +128,7 @@ A pythonic API for creating syntax highlighting definitions.
             namespace.
         *contained*
             If true then all matches, keywords and regions this creates
-            automatically have the contained option set.
+            automtically have the contained option set.
 
     .. py:class:: region_type(syn: 'Syntax',syn_cmd: Callable,name: str,**options)
 
@@ -217,9 +217,9 @@ A pythonic API for creating syntax highlighting definitions.
             .. container:: parameters itemdetails
 
                 *keyword*
-                    The first keyword to add.
+                    The first tkeyword to add.
                 *keywords*
-                    Additional keywords to add.
+                    Additional tkeywords to add.
                 *options*
                     Options for the set of keywords.
 
@@ -618,7 +618,7 @@ A pythonic API for creating syntax highlighting definitions.
                 namespace.
             *contained*
                 If true then all matches, keywords and regions this creates
-                automatically have the contained option set.
+                automtically have the contained option set.
 
         .. py:class:: region_type(syn: 'Syntax',syn_cmd: Callable,name: str,**options)
 
@@ -707,9 +707,9 @@ A pythonic API for creating syntax highlighting definitions.
                 .. container:: parameters itemdetails
 
                     *keyword*
-                        The first keyword to add.
+                        The first tkeyword to add.
                     *keywords*
-                        Additional keywords to add.
+                        Additional tkeywords to add.
                     *options*
                         Options for the set of keywords.
 
