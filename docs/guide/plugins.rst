@@ -46,7 +46,7 @@ Plug-in loading and initialisation
 Loading
 -------
 
-VPE plug-ins are loaded after Vim completes it normal startup an plug-in loading
+VPE plug-ins are loaded after Vim completes its normal startup an plug-in loading
 (by using the :vim:`VimEnter` auto command).
 
 VPE scans the vpe_plugins directory for auto-loadable plug-in modules and

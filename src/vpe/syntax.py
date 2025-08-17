@@ -297,7 +297,7 @@ class Group(NamedSyntaxItem):
     :std:       If true then the group is treated as not in the Syntax object's
                 namespace.
     :contained: If true then all matches, keywords and regions this creates
-                automtically have the contained option set.
+                automatically have the contained option set.
     """
     region_type = Region
     _pre_pat_names = 'excludenl', 'keepend', 'grouphere', 'groupthere'
@@ -320,8 +320,8 @@ class Group(NamedSyntaxItem):
     def add_keyword(self, keyword, *keywords, **options):
         """Add one or more keywords to this syntax group.
 
-        :keyword:  The first tkeyword to add.
-        :keywords: Additional tkeywords to add.
+        :keyword:  The first keyword to add.
+        :keywords: Additional keywords to add.
         :options:  Options for the set of keywords.
         """
         keywords = keyword, *keywords
@@ -606,7 +606,7 @@ class Pattern(SyntaxBase):
             self.pat = prefix + self.pat
 
     def arg_str(self) -> str:
-        """Format pattern as an argument to a ayntax command."""
+        """Format pattern as an argument to a syntax command."""
         s = [opt.vim_fmt() for opt in self.pre_pat_options.values()]
         if self.matchgroup:
             s.append(f'matchgroup={self.matchgroup.qual_name}')
@@ -693,7 +693,7 @@ class Cluster(NamedSyntaxItem):
     def include(self, path_name):
         """Include Vim syntax file, adding its groups to this cluster.
 
-        This does a :vim:`syn-include` operation with a a cluster name.
+        This does a :vim:`syn-include` operation with a cluster name.
 
         :path_name: The path name of the syntax file to include. If this is
                     a relative path, the file is searched for within the

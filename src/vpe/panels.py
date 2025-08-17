@@ -206,7 +206,7 @@ class PanelViewBuffer(vpe.ScratchBuffer):
         return len(self.panels)
 
     def add_panel(self, panel: Panel):
-        """Add a panel an the end of the panel list."""
+        """Add a panel at the end of the panel list."""
         self.insert_panel(panel, len(self.panels))
 
     @can_cause_changes

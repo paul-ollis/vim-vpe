@@ -297,7 +297,7 @@ class BufListener(common.Callback):
     this class is not recommended or supported.
 
     :func:
-    The Python function or method to be called back.
+        The Python function or method to be called back.
     :@buf:
         The `Buffer` instance.
     :@ops:
@@ -442,7 +442,7 @@ class Buffer(common.MutableSequenceProxy):
         return self._store[key]
 
     def retrieve_store(self, key: Any) -> Struct | None:
-        """Retrive a given buffer store if it exists.
+        """Retrieve a given buffer store if it exists.
 
         This is similar to `store`, but no new store is created.
 
@@ -494,7 +494,7 @@ class Buffer(common.MutableSequenceProxy):
 
     @property
     def vars(self) -> "Variables":
-        """The buffar vars wrapped as a `Variables` instance."""
+        """The buffer vars wrapped as a `Variables` instance."""
         return Variables(self._proxied.vars)
 
     @property
@@ -609,7 +609,7 @@ class Buffer(common.MutableSequenceProxy):
                 disp.buf.append('Another line')
 
         When the context ends, the modifiable option is reset to its original
-        value. An alterative approach is:<py>:
+        value. An alternative approach is:<py>:
 
             with disp_buf.temp_options as opt:
                 opt.modifiable = True
@@ -701,7 +701,7 @@ class Buffer(common.MutableSequenceProxy):
                 Number of lines added, negative if lines were deleted.
 
         :ops:
-            ``True`` by default. Include a list of the individal operations to
+            ``True`` by default. Include a list of the individual operations to
             the callback as the ``ops`` keyword argument. A list of
             diffs.Operation instances with details about the changes.
 
@@ -809,7 +809,7 @@ class Window(common.Proxy):
 
     @property
     def vars(self) -> "Variables":
-        """The buffar vars wrapped as a `Variables` instance."""
+        """The buffer vars wrapped as a `Variables` instance."""
         return Variables(self._proxied.vars)
 
     def temp_options(self, **presets) -> TemporaryOptions:
@@ -904,7 +904,7 @@ class TabPage(common.Proxy):
 
     @property
     def vars(self):
-        """The buffar vars wrapped as a `Variables` instance."""
+        """The buffer vars wrapped as a `Variables` instance."""
         return Variables(self._proxied.vars)
 
 
@@ -1311,7 +1311,7 @@ class Commands:
         Provides keyword style arguments. See also the `syntax` module.
 
     `vpe.error_msg`
-        Writes a message with error highlightling, but does not raise a
+        Writes a message with error highlighting, but does not raise a
         vim.error.
 
     `mapping`

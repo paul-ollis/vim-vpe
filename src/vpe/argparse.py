@@ -195,7 +195,7 @@ class ArgumentParser(argparse.ArgumentParser):
         This is a modified version from the Python 3.11 standard library. This
         version stops processing arguments when a subcommand is encountered.
         The upshot is that optional arguments are get properly associated with
-        the correct main command or subcommmand.
+        the correct main command or subcommand.
         """
         args = list(args)
         namespace = argparse.Namespace()
@@ -631,7 +631,7 @@ class VimCommandHandler:
         """Attempt command line completion for a command.
 
         :return:
-            A list strings representing the the possible completions.
+            A list strings representing the possible completions.
         """
         try:
             vim_args = dict(getattr(wrappers.vim.vars, '_vpe_args_'))

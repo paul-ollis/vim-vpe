@@ -59,7 +59,7 @@ class VimChannel:
     This manages keeping the underlying Vim channel object alive, by storing
     it in a global Vim variable.
 
-    :varname: The name of the a vim variable currently referencing the
+    :varname: The name of the vim variable currently referencing the
               :vim:`Channel`.
 
     @varname: The name of a Vim variable holding a reference to the underlying
@@ -288,7 +288,7 @@ class Channel:
 
         :message:
             The received message. This is always a string, even for raw
-            channels. Vim replaces any NUL chracters with newlines, so pure
+            channels. Vim replaces any NUL characters with newlines, so pure
             binary messages cannot be handled using on_message.
         """
 
@@ -356,7 +356,7 @@ class Channel:
         return ch_read(self.vch, options)
 
     def settimeout(self, timeout_ms: Optional[int] = None):
-        """Set the default teimout for the channel.
+        """Set the default timeout for the channel.
 
         Related vim function = :vim:`ch_setoptions`.
 
@@ -444,12 +444,12 @@ class NLChannel(Channel):
 
 
 class JsonChannel(SyncChannel):
-    """Pythonic wrapper around a Vim channel in json mode."""
+    """Pythonic wrapper around a Vim channel in JSON mode."""
     _mode_arg: str = 'json'
 
 
 class JSChannel(SyncChannel):
-    """Pythonic wrapper around a Vim channel in javascript mode."""
+    """Pythonic wrapper around a Vim channel in JavaScript mode."""
     _mode_arg: str = 'js'
 
 

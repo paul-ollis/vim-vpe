@@ -1,4 +1,4 @@
-"""Enhanced module for using Python3 in Vim.
+"""Enhanced module for using Python 3 in Vim.
 
 This provides the Vim class, which is a wrapper around Vim's built-in *vim*
 module. It is intended that a Vim instance can be uses as a replacement for the

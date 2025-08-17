@@ -228,7 +228,7 @@ class Config:
         If, for example, `name` is 'omega' then (on Linux) the file
         ~/.vim/config.d/omega.ini will be loaded. Any existing option values
         not found in the file are left unchanged. Any value in the file that
-        does not match a defined otion is simply ignored.
+        does not match a defined option is simply ignored.
         """
         path = Path(vpe.dot_vim_dir()) / f'{CONFIG_SUBDIR}/{self._name}.ini'
         try:

@@ -22,7 +22,7 @@ def format_str(s: str, width: int) -> str:
     string.
 
     :s:     The string to justify.
-    :width: The field width. Postive values mean left justified, negative mean
+    :width: The field width. Positive values mean left justified, negative mean
             right justified.
     """
     if width > 0:
@@ -398,7 +398,7 @@ class ConfigPanel(panels.Panel):
 
 class ConfigPanelBuffer(
         panels.PanelViewBuffer, mapping.KeyHandler, vpe.BufEventHandler):
-    """A `PanelViewBuffer` thats supports configuration panels.
+    """A `PanelViewBuffer` that supports configuration panels.
 
     This tracks instances of `ConfigPanel` and sets up key mappings to navigate
     and modify the fields within them.
@@ -493,7 +493,7 @@ class ConfigPanelBuffer(
         """
 
     def on_selected_field_change(self):
-        """Perform common processing when the selecetd field is changed.
+        """Perform common processing when the selected field is changed.
 
         This is intended to be over-ridden by subclasses.
         """

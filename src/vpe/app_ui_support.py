@@ -72,10 +72,10 @@ class AppWin:
                     pixels.
     :@dims_cells:   A sequence (w, h) giving the window's undecorated size in
                     character cells.
-    :@dims_corners: A sequence of pixel coordiates for the windows corners, in
+    :@dims_corners: A sequence of pixel coordinates for the windows corners, in
                     the order TL, TR, BR, BL. For TR and BR the X value is with
-                    repect to the right hand edge of the display. For BL and BR
-                    the Y value is with repect to the lower edge of the
+                    respect to the right hand edge of the display. For BL and
+                    BR the Y value is with respect to the lower edge of the
                     display.
     :@borders:      The pixel sizes of the window decoration borders in the
                     order, left, right, top, bottom.
@@ -147,7 +147,7 @@ class Displays:
         The position of the windows top-left corner is used for the
         determination.
 
-        :w: The window bein searched for.
+        :w: The window being searched for.
         """
         for display in self.displays:
             if display.contains_window(w):

@@ -63,7 +63,7 @@ class LayoutElement:
                 win.adjust_width(widths[win.id])
 
     def iter_windows(self):
-        """Iterate throught the leaf windows."""
+        """Iterate through the leaf windows."""
         if self.type_name == 'Win':
             yield self
         else:
