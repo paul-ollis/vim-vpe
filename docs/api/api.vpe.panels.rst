@@ -143,7 +143,7 @@ managed by a `PanelViewBuffer`.
 
                 The start line index for any following panel.
 
-        .. py:method:: set_view(view: PanelViewBuffer,uid: int)
+        .. py:method:: set_view(view: PanelViewBuffer, uid: int)
 
             Set the parent `PanelViewBuffer`.
 
@@ -159,7 +159,7 @@ managed by a `PanelViewBuffer`.
 
 .. rubric:: PanelViewBuffer
 
-.. py:class:: PanelViewBuffer(*args,**kwargs)
+.. py:class:: PanelViewBuffer(*args, **kwargs)
 
     A `ScratchBuffer` organised as vertical sequence of panels.
 
@@ -185,13 +185,13 @@ managed by a `PanelViewBuffer`.
 
         .. py:method:: add_panel(panel: Panel)
 
-            Add a panel an the end of the panel list.
+            Add a panel at the end of the panel list.
 
         .. py:method:: format_panel(panel: Panel)
 
             Make a panel refresh itself.
 
-        .. py:method:: insert_panel(panel: Panel,index: int)
+        .. py:method:: insert_panel(panel: Panel, index: int)
 
             Insert a panel into the panel list.
 
@@ -265,7 +265,7 @@ managed by a `PanelViewBuffer`.
                 *panel*: Panel
                     The panel to remove. It *must* be present.
 
-        .. py:method:: schedule_win_op(key,func,*args)
+        .. py:method:: schedule_win_op(key, func, *args)
 
             Schedule an operation for when the buffer appears in a window.
 

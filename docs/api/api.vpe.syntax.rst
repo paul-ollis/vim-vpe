@@ -8,7 +8,7 @@ A pythonic API for creating syntax highlighting definitions.
 
 .. rubric:: Cluster
 
-.. py:class:: Cluster(syn,name)
+.. py:class:: Cluster(syn, name)
 
     A cluster of groups.
 
@@ -24,7 +24,7 @@ A pythonic API for creating syntax highlighting definitions.
 
     **Methods**
 
-        .. py:method:: add(group1: Union[Group, str],*groups: Union[Group, str])
+        .. py:method:: add(group1: Union[Group, str], *groups: Union[Group, str])
 
             Add groups to the cluster.
 
@@ -40,7 +40,7 @@ A pythonic API for creating syntax highlighting definitions.
                 *groups*: Union
                     Additional groups to be added.
 
-        .. py:method:: group(name,**options)
+        .. py:method:: group(name, **options)
 
             Create and add a new group.
 
@@ -65,7 +65,7 @@ A pythonic API for creating syntax highlighting definitions.
 
             Include Vim syntax file, adding its groups to this cluster.
 
-            This does a :vim:`syn-include` operation with a a cluster name.
+            This does a :vim:`syn-include` operation with a cluster name.
 
             **Parameters**
 
@@ -104,13 +104,13 @@ A pythonic API for creating syntax highlighting definitions.
 
 .. rubric:: End
 
-.. py:class:: End(pat,*pats,lidx=None,lrange=None,**options)
+.. py:class:: End(pat, *pats, lidx=None, lrange=None, **options)
 
     An end pattern.
 
 .. rubric:: Group
 
-.. py:class:: Group(syn,name,std=False,contained=False)
+.. py:class:: Group(syn, name, std=False, contained=False)
 
     A named syntax group.
 
@@ -128,9 +128,9 @@ A pythonic API for creating syntax highlighting definitions.
             namespace.
         *contained*
             If true then all matches, keywords and regions this creates
-            automtically have the contained option set.
+            automatically have the contained option set.
 
-    .. py:class:: region_type(syn: 'Syntax',syn_cmd: Callable,name: str,**options)
+    .. py:class:: region_type(syn: 'Syntax', syn_cmd: Callable, name: str, **options)
 
         A context manager for adding a region  to a group.
 
@@ -150,7 +150,7 @@ A pythonic API for creating syntax highlighting definitions.
 
         **Methods**
 
-            .. py:method:: end(pat: str,*pats: str,**kwargs) -> Region
+            .. py:method:: end(pat: str, *pats: str, **kwargs) -> Region
 
                 Define an end pattern
 
@@ -171,7 +171,7 @@ A pythonic API for creating syntax highlighting definitions.
 
                 Add or remove a matchgroup directive for this region.
 
-            .. py:method:: skip(pat: str,*pats: str,**kwargs) -> Region
+            .. py:method:: skip(pat: str, *pats: str, **kwargs) -> Region
 
                 Define a skip pattern
 
@@ -188,7 +188,7 @@ A pythonic API for creating syntax highlighting definitions.
                     *kwargs*
                         Additional options for the region skip.
 
-            .. py:method:: start(pat: str,*pats: str,**kwargs) -> Region
+            .. py:method:: start(pat: str, *pats: str, **kwargs) -> Region
 
                 Define a start pattern
 
@@ -207,7 +207,7 @@ A pythonic API for creating syntax highlighting definitions.
 
     **Methods**
 
-        .. py:method:: add_keyword(keyword,*keywords,**options)
+        .. py:method:: add_keyword(keyword, *keywords, **options)
 
             Add one or more keywords to this syntax group.
 
@@ -217,9 +217,9 @@ A pythonic API for creating syntax highlighting definitions.
             .. container:: parameters itemdetails
 
                 *keyword*
-                    The first tkeyword to add.
+                    The first keyword to add.
                 *keywords*
-                    Additional tkeywords to add.
+                    Additional keywords to add.
                 *options*
                     Options for the set of keywords.
 
@@ -256,7 +256,14 @@ A pythonic API for creating syntax highlighting definitions.
                 *options*
                     Additional options for the match.
 
-        .. py:method:: add_region(start: str,end: str,skip: Optional[str] = None,**options)
+        .. py:method:: add_region(...)
+
+            .. code::
+
+                add_region(
+                        start: str,
+                        end: str,
+                        skip: Optional[str] = None,
 
             Add a syntax region for this group.
 
@@ -329,7 +336,7 @@ A pythonic API for creating syntax highlighting definitions.
 
 .. rubric:: LocationGroup
 
-.. py:class:: LocationGroup(name,group)
+.. py:class:: LocationGroup(name, group)
 
     A grouphere or groupthere option.
 
@@ -363,7 +370,7 @@ A pythonic API for creating syntax highlighting definitions.
 
 .. rubric:: NamedSyntaxItem
 
-.. py:class:: NamedSyntaxItem(syn: 'Syntax',name: str,std=False)
+.. py:class:: NamedSyntaxItem(syn: 'Syntax', name: str, std=False)
 
     A syntax item with an assigned name.
 
@@ -418,7 +425,7 @@ A pythonic API for creating syntax highlighting definitions.
 
 .. rubric:: Pattern
 
-.. py:class:: Pattern(pat,*pats,lidx=None,lrange=None,**options)
+.. py:class:: Pattern(pat, *pats, lidx=None, lrange=None, **options)
 
     A syntax pattern.
 
@@ -443,11 +450,11 @@ A pythonic API for creating syntax highlighting definitions.
 
         .. py:method:: arg_str() -> str
 
-            Format pattern as an argument to a ayntax command.
+            Format pattern as an argument to a syntax command.
 
 .. rubric:: Region
 
-.. py:class:: Region(syn: 'Syntax',syn_cmd: Callable,name: str,**options)
+.. py:class:: Region(syn: 'Syntax', syn_cmd: Callable, name: str, **options)
 
     A context manager for adding a region  to a group.
 
@@ -467,7 +474,7 @@ A pythonic API for creating syntax highlighting definitions.
 
     **Methods**
 
-        .. py:method:: end(pat: str,*pats: str,**kwargs) -> Region
+        .. py:method:: end(pat: str, *pats: str, **kwargs) -> Region
 
             Define an end pattern
 
@@ -488,7 +495,7 @@ A pythonic API for creating syntax highlighting definitions.
 
             Add or remove a matchgroup directive for this region.
 
-        .. py:method:: skip(pat: str,*pats: str,**kwargs) -> Region
+        .. py:method:: skip(pat: str, *pats: str, **kwargs) -> Region
 
             Define a skip pattern
 
@@ -505,7 +512,7 @@ A pythonic API for creating syntax highlighting definitions.
                 *kwargs*
                     Additional options for the region skip.
 
-        .. py:method:: start(pat: str,*pats: str,**kwargs) -> Region
+        .. py:method:: start(pat: str, *pats: str, **kwargs) -> Region
 
             Define a start pattern
 
@@ -524,7 +531,7 @@ A pythonic API for creating syntax highlighting definitions.
 
 .. rubric:: SimpleOption
 
-.. py:class:: SimpleOption(name: str,value: bool)
+.. py:class:: SimpleOption(name: str, value: bool)
 
     A simple syntax option.
 
@@ -546,19 +553,19 @@ A pythonic API for creating syntax highlighting definitions.
 
 .. rubric:: Skip
 
-.. py:class:: Skip(pat,*pats,lidx=None,lrange=None,**options)
+.. py:class:: Skip(pat, *pats, lidx=None, lrange=None, **options)
 
     A skip pattern.
 
 .. rubric:: Start
 
-.. py:class:: Start(pat,*pats,lidx=None,lrange=None,**options)
+.. py:class:: Start(pat, *pats, lidx=None, lrange=None, **options)
 
     A start pattern.
 
 .. rubric:: StdCluster
 
-.. py:class:: StdCluster(syn,name)
+.. py:class:: StdCluster(syn, name)
 
     A cluster of groups, not in a `Syntax` object's namespace.
 
@@ -576,13 +583,13 @@ A pythonic API for creating syntax highlighting definitions.
 
 .. rubric:: SyncGroup
 
-.. py:class:: SyncGroup(syn,name,std=False,contained=False)
+.. py:class:: SyncGroup(syn, name, std=False, contained=False)
 
     A group use for synchronisation.
 
 .. rubric:: Syntax
 
-.. py:class:: Syntax(group_prefix,clear: bool = True)
+.. py:class:: Syntax(group_prefix, clear: bool = True)
 
     Context manager for defining syntax highlighting.
 
@@ -600,7 +607,7 @@ A pythonic API for creating syntax highlighting definitions.
             Whether to clear any previous syntax for the current buffer.
             This is ``True`` by default.
 
-    .. py:class:: group_type(syn,name,std=False,contained=False)
+    .. py:class:: group_type(syn, name, std=False, contained=False)
 
         A named syntax group.
 
@@ -618,9 +625,9 @@ A pythonic API for creating syntax highlighting definitions.
                 namespace.
             *contained*
                 If true then all matches, keywords and regions this creates
-                automtically have the contained option set.
+                automatically have the contained option set.
 
-        .. py:class:: region_type(syn: 'Syntax',syn_cmd: Callable,name: str,**options)
+        .. py:class:: region_type(syn: 'Syntax', syn_cmd: Callable, name: str, **options)
 
             A context manager for adding a region  to a group.
 
@@ -640,7 +647,7 @@ A pythonic API for creating syntax highlighting definitions.
 
             **Methods**
 
-                .. py:method:: end(pat: str,*pats: str,**kwargs) -> Region
+                .. py:method:: end(pat: str, *pats: str, **kwargs) -> Region
 
                     Define an end pattern
 
@@ -661,7 +668,7 @@ A pythonic API for creating syntax highlighting definitions.
 
                     Add or remove a matchgroup directive for this region.
 
-                .. py:method:: skip(pat: str,*pats: str,**kwargs) -> Region
+                .. py:method:: skip(pat: str, *pats: str, **kwargs) -> Region
 
                     Define a skip pattern
 
@@ -678,7 +685,7 @@ A pythonic API for creating syntax highlighting definitions.
                         *kwargs*
                             Additional options for the region skip.
 
-                .. py:method:: start(pat: str,*pats: str,**kwargs) -> Region
+                .. py:method:: start(pat: str, *pats: str, **kwargs) -> Region
 
                     Define a start pattern
 
@@ -697,7 +704,7 @@ A pythonic API for creating syntax highlighting definitions.
 
         **Methods**
 
-            .. py:method:: add_keyword(keyword,*keywords,**options)
+            .. py:method:: add_keyword(keyword, *keywords, **options)
 
                 Add one or more keywords to this syntax group.
 
@@ -707,9 +714,9 @@ A pythonic API for creating syntax highlighting definitions.
                 .. container:: parameters itemdetails
 
                     *keyword*
-                        The first tkeyword to add.
+                        The first keyword to add.
                     *keywords*
-                        Additional tkeywords to add.
+                        Additional keywords to add.
                     *options*
                         Options for the set of keywords.
 
@@ -746,7 +753,14 @@ A pythonic API for creating syntax highlighting definitions.
                     *options*
                         Additional options for the match.
 
-            .. py:method:: add_region(start: str,end: str,skip: Optional[str] = None,**options)
+            .. py:method:: add_region(...)
+
+                .. code::
+
+                    add_region(
+                            start: str,
+                            end: str,
+                            skip: Optional[str] = None,
 
                 Add a syntax region for this group.
 
@@ -803,13 +817,13 @@ A pythonic API for creating syntax highlighting definitions.
 
                 Set up highlight definition for this group.
 
-    .. py:class:: sync_group_type(syn,name,std=False,contained=False)
+    .. py:class:: sync_group_type(syn, name, std=False, contained=False)
 
         A group use for synchronisation.
 
     **Methods**
 
-        .. py:method:: cluster(name,*add_groups)
+        .. py:method:: cluster(name, *add_groups)
 
             Create a cluster within this `syntax` object's namespace.
 
@@ -833,7 +847,7 @@ A pythonic API for creating syntax highlighting definitions.
                 *name*: str
                     The name of the group.
 
-        .. py:method:: group(name,link_to=None,**options)
+        .. py:method:: group(name, link_to=None, **options)
 
             Create a group within this `syntax` object's namespace.
 
@@ -868,7 +882,7 @@ A pythonic API for creating syntax highlighting definitions.
 
             This can be useful during debugging a new syntax.
 
-        .. py:method:: schedule(func,*args,**kwargs)
+        .. py:method:: schedule(func, *args, **kwargs)
 
             Add a syntax command to those scheduled for later execution.
 
@@ -908,7 +922,7 @@ A pythonic API for creating syntax highlighting definitions.
                 *name*
                     The group's full name.
 
-        .. py:method:: sync_group(name,**options)
+        .. py:method:: sync_group(name, **options)
 
             Create a sync group within this `syntax` object's namespace.
 
@@ -960,7 +974,7 @@ A pythonic API for creating syntax highlighting definitions.
 
 .. rubric:: convert_syntax_options
 
-.. py:function:: convert_syntax_options(syn,options) -> dict
+.. py:function:: convert_syntax_options(syn, options) -> dict
 
     Convert values in a dictionary of option to `Option` instances.
 
@@ -997,7 +1011,7 @@ A pythonic API for creating syntax highlighting definitions.
 
 .. rubric:: extract_keys
 
-.. py:function:: extract_keys(source_dict: dict,*keys: Any) -> dict
+.. py:function:: extract_keys(source_dict: dict, *keys: Any) -> dict
 
     Extract a set of named items from a dictionary.
 

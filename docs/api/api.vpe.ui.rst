@@ -34,7 +34,7 @@ This is still being developed. The API and behaviour is likely to change.
 
 .. rubric:: ChoiceField
 
-.. py:class:: ChoiceField(_values=(),opt_var=None,**kwargs)
+.. py:class:: ChoiceField(_values=(), opt_var=None, **kwargs)
 
     A field holding one of a list of choices.
 
@@ -102,9 +102,9 @@ This is still being developed. The API and behaviour is likely to change.
 
 .. rubric:: ConfigPanelBuffer
 
-.. py:class:: ConfigPanelBuffer(*args,**kwargs)
+.. py:class:: ConfigPanelBuffer(*args, **kwargs)
 
-    A `PanelViewBuffer` thats supports configuration panels.
+    A `PanelViewBuffer` that supports configuration panels.
 
     This tracks instances of `ConfigPanel` and sets up key mappings to navigate
     and modify the fields within them.
@@ -159,7 +159,7 @@ This is still being developed. The API and behaviour is likely to change.
 
         .. py:method:: on_selected_field_change()
 
-            Perform common processing when the selecetd field is changed.
+            Perform common processing when the selected field is changed.
 
             This is intended to be over-ridden by subclasses.
 
@@ -430,7 +430,7 @@ This is still being developed. The API and behaviour is likely to change.
 
 .. rubric:: format_str
 
-.. py:function:: format_str(s: str,width: int) -> str
+.. py:function:: format_str(s: str, width: int) -> str
 
     Format a string within a given field width.
 
@@ -445,5 +445,5 @@ This is still being developed. The API and behaviour is likely to change.
         *s*: str
             The string to justify.
         *width*: int
-            The field width. Postive values mean left justified, negative mean
+            The field width. Positive values mean left justified, negative mean
             right justified.

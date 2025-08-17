@@ -17,7 +17,7 @@ calls.
 
     **Methods**
 
-        .. py:method:: auto_map_keys(pass_info: bool = False,debug: bool = False)
+        .. py:method:: auto_map_keys(pass_info: bool = False, debug: bool = False)
 
             Set up mappings for methods.
 
@@ -49,7 +49,7 @@ calls.
 
 .. rubric:: MapCallback
 
-.. py:class:: MapCallback(*args,**kwargs)
+.. py:class:: MapCallback(*args, **kwargs)
 
     Wrapper for a function to be invoked by a key mapping.
 
@@ -75,7 +75,7 @@ calls.
 
 .. rubric:: MappingInfo
 
-.. py:class:: MappingInfo(mode: str,keys: str)
+.. py:class:: MappingInfo(mode: str, keys: str)
 
     Information passed to a key mapping callback handler.
 
@@ -171,7 +171,7 @@ calls.
 
     By default the first argument passed to the mapped function is a
     `MappingInfo` object. The *pass_info* argument can be used to prevent this.
-    Additional arguments can be speficied using *args* and *kwargs*.
+    Additional arguments can be specified using *args* and *kwargs*.
 
     For convenience, mode specific versions are provided (`nmap`, `xmap`,
     `omap` and `imap`). See those for details of what he mapped function can

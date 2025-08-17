@@ -16,7 +16,7 @@ provided are:
 
 .. rubric:: AmbiguousSubcommand
 
-.. py:class:: AmbiguousSubcommand(message,choices: list[str])
+.. py:class:: AmbiguousSubcommand(message, choices: list[str])
 
     Exception raised when a subcommand is ambiguous.
 
@@ -53,7 +53,7 @@ provided are:
 
     **Methods**
 
-        .. py:method:: add_argument(*args,**kwargs)
+        .. py:method:: add_argument(*args, **kwargs)
 
             Define how a single command-line argument should be parsed.
 
@@ -66,13 +66,13 @@ provided are:
             This is a modified version from the Python 3.11 standard library. This
             version stops processing arguments when a subcommand is encountered.
             The upshot is that optional arguments are get properly associated with
-            the correct main command or subcommmand.
+            the correct main command or subcommand.
 
         .. py:method:: error(message)
 
             Raise an ArgumentError.
 
-        .. py:method:: exit(status=0,message=None)
+        .. py:method:: exit(status=0, message=None)
 
             Raise ArgumentError.
 
@@ -126,7 +126,7 @@ provided are:
 
 .. rubric:: CommandHandler
 
-.. py:class:: CommandHandler(command_name: str,parent: CommandHandler | None)
+.. py:class:: CommandHandler(command_name: str, parent: CommandHandler | None)
 
     A class providing a Vim user command or subcommand.
 
@@ -246,7 +246,7 @@ provided are:
 
 .. rubric:: SubcommandHandlerBase
 
-.. py:class:: SubcommandHandlerBase(command_name: str,parent: SubcommandHandlerBase | None)
+.. py:class:: SubcommandHandlerBase(command_name: str, parent: SubcommandHandlerBase | None)
 
     Base for a command that has subcommands.
 
@@ -280,7 +280,7 @@ provided are:
 
                 A list strings representing the possible completions.
 
-        .. py:method:: handle_no_subcommand(cmd_info: common.CommandInfo,args: Namespace)
+        .. py:method:: handle_no_subcommand(cmd_info: common.CommandInfo, args: Namespace)
 
             Handle the case of no subcommand being provided.
 
@@ -331,13 +331,13 @@ provided are:
 
 .. rubric:: VimCommandHandler
 
-.. py:class:: VimCommandHandler(command_name: str,*args,**kwargs)
+.. py:class:: VimCommandHandler(command_name: str, *args, **kwargs)
 
     Base for user defined Vim commands.
 
     **Methods**
 
-        .. py:method:: handle_main_command(cmd_info: common.CommandInfo,*vim_cmd_args: str)
+        .. py:method:: handle_main_command(cmd_info: common.CommandInfo, *vim_cmd_args: str)
 
             Parse and execute the main command.
 
@@ -365,11 +365,11 @@ provided are:
 
             .. container:: returnvalue itemdetails
 
-                A list strings representing the the possible completions.
+                A list strings representing the possible completions.
 
 .. rubric:: unique_match
 
-.. py:function:: unique_match(text: str,choices: list[str]) -> tuple[str, list[str]]
+.. py:function:: unique_match(text: str, choices: list[str]) -> tuple[str, list[str]]
 
     Try to find a unique match within choices that starts with text.
 

@@ -19,7 +19,7 @@ Module vpe
 
 .. py:module:: vpe
 
-Enhanced module for using Python3 in Vim.
+Enhanced module for using Python 3 in Vim.
 
 This provides the Vim class, which is a wrapper around Vim's built-in *vim*
 module. It is intended that a Vim instance can be uses as a replacement for the
@@ -161,19 +161,19 @@ _vpe_args_
 
 .. rubric:: BufListener
 
-.. py:class:: BufListener(func,buf,ops: bool = True,raw_changes: bool = False)
+.. py:class:: BufListener(func, buf, ops: bool = True, raw_changes: bool = False)
 
     An extension of `Callback` for Vim's buffer change callbacks.
 
     One of these is created by `Buffer.add_listener`. Direct instantiation of
     this class is not recommended or supported.
 
-    The Python function or method to be called back.
-
     **Parameters**
 
     .. container:: parameters itemdetails
 
+        *func*
+            The Python function or method to be called back.
         *buf*
             The `Buffer` instance.
         *ops*
@@ -203,7 +203,7 @@ _vpe_args_
 
     **Methods**
 
-        .. py:method:: invoke_cb(func,vpe_args)
+        .. py:method:: invoke_cb(func, vpe_args)
 
             Invoke this Callback.
 
@@ -357,7 +357,7 @@ _vpe_args_
 
         .. py:property:: vars() -> Variables
 
-            The buffar vars wrapped as a `Variables` instance.
+            The buffer vars wrapped as a `Variables` instance.
 
         .. py:property:: windows() -> list[int]
 
@@ -404,7 +404,7 @@ _vpe_args_
                         Number of lines added, negative if lines were deleted.
 
                 *ops*: bool
-                    ``True`` by default. Include a list of the individal operations to
+                    ``True`` by default. Include a list of the individual operations to
                     the callback as the ``ops`` keyword argument. A list of
                     diffs.Operation instances with details about the changes.
 
@@ -420,7 +420,7 @@ _vpe_args_
 
                 A :py:obj:`BufListener` object.
 
-        .. py:method:: append(line_or_lines,nr=None)
+        .. py:method:: append(line_or_lines, nr=None)
 
             Append one or more lines to the buffer.
 
@@ -525,7 +525,7 @@ _vpe_args_
 
             This will update the buffer, even if 'modifiable' is not set.
 
-        .. py:method:: range(a: int,b: int) -> Range
+        .. py:method:: range(a: int, b: int) -> Range
 
             Get a `Range` for the buffer.
 
@@ -544,7 +544,7 @@ _vpe_args_
 
         .. py:method:: retrieve_store(key: Any) -> Struct | None
 
-            Retrive a given buffer store if it exists.
+            Retrieve a given buffer store if it exists.
 
             This is similar to `store`, but no new store is created.
 
@@ -625,7 +625,7 @@ _vpe_args_
                     disp.buf.append('Another line')
 
             When the context ends, the modifiable option is reset to its original
-            value. An alterative approach is:
+            value. An alternative approach is:
 
             .. code-block:: py
 
@@ -830,7 +830,7 @@ _vpe_args_
 
             This may be over-ridden by subclasses.
 
-        .. py:method:: invoke_cb(func: Callable,vpe_args: dict)
+        .. py:method:: invoke_cb(func: Callable, vpe_args: dict)
 
             Invoke this Callback.
 
@@ -913,7 +913,7 @@ _vpe_args_
 
     **Static methods**
 
-        .. py:staticmethod:: command(name: str,**kwargs) -> Callable[[Callable], Callable]
+        .. py:staticmethod:: command(name: str, **kwargs) -> Callable[[Callable], Callable]
 
             Decorator to make a user command invoke a method.
 
@@ -993,7 +993,7 @@ _vpe_args_
 
     **Methods**
 
-        .. py:method:: auto_define_event_handlers(group_name: str,delete_all=False)
+        .. py:method:: auto_define_event_handlers(group_name: str, delete_all=False)
 
             Set up mappings for event handling methods.
 
@@ -1011,7 +1011,7 @@ _vpe_args_
 
     **Static methods**
 
-        .. py:staticmethod:: handle(name: str,**kwargs) -> Callable[[Callable], Callable]
+        .. py:staticmethod:: handle(name: str, **kwargs) -> Callable[[Callable], Callable]
 
             Decorator to make an event invoke a method.
 
@@ -1054,7 +1054,7 @@ _vpe_args_
 
 .. rubric:: Log
 
-.. py:class:: Log(name: str,maxlen: int = 500,timestamps: bool = True)
+.. py:class:: Log(name: str, maxlen: int = 500, timestamps: bool = True)
 
     Support for logging to a display buffer.
 
@@ -1192,7 +1192,7 @@ _vpe_args_
 
 .. rubric:: OneShotTimer
 
-.. py:class:: OneShotTimer(ms: int,func: Callable[[...], None])
+.. py:class:: OneShotTimer(ms: int, func: Callable[[...], None])
 
     A version of `Timer` that can be used 'set-and-forget'.
 
@@ -1211,7 +1211,7 @@ _vpe_args_
 
     **Methods**
 
-        .. py:method:: invoke_cb(func: Callable,vpe_args: dict)
+        .. py:method:: invoke_cb(func: Callable, vpe_args: dict)
 
             Invoke the callback as a result of the timer firing.
 
@@ -1226,7 +1226,7 @@ _vpe_args_
 
 .. rubric:: Popup
 
-.. py:class:: Popup(content,name: str = '',**p_options)
+.. py:class:: Popup(content, name: str = '', **p_options)
 
     A Pythonic way to use Vim's popup windows.
 
@@ -1325,7 +1325,7 @@ _vpe_args_
                     The value passed to `close`. This will be -1 if the user
                     forcefully closed the popup.
 
-        .. py:method:: on_key(key: str,byte_seq: bytes) -> bool
+        .. py:method:: on_key(key: str, byte_seq: bytes) -> bool
 
             Invoked when the popup receives a keypress.
 
@@ -1398,7 +1398,7 @@ _vpe_args_
 
 .. rubric:: PopupAtCursor
 
-.. py:class:: PopupAtCursor(content,name: str = '',**p_options)
+.. py:class:: PopupAtCursor(content, name: str = '', **p_options)
 
     Popup configured to appear near the cursor.
 
@@ -1406,7 +1406,7 @@ _vpe_args_
 
 .. rubric:: PopupBeval
 
-.. py:class:: PopupBeval(content,name: str = '',**p_options)
+.. py:class:: PopupBeval(content, name: str = '', **p_options)
 
     Popup configured to appear near (v:beval_line, v:beval_col).
 
@@ -1414,7 +1414,7 @@ _vpe_args_
 
 .. rubric:: PopupDialog
 
-.. py:class:: PopupDialog(content,name: str = '',**p_options)
+.. py:class:: PopupDialog(content, name: str = '', **p_options)
 
     Popup configured as a dialogue.
 
@@ -1423,13 +1423,13 @@ _vpe_args_
 
     **Methods**
 
-        .. py:method:: on_key(key,byte_seq)
+        .. py:method:: on_key(key, byte_seq)
 
             Invoke popup_filter_yesno to handle keys for this popup.
 
 .. rubric:: PopupMenu
 
-.. py:class:: PopupMenu(content,name: str = '',**p_options)
+.. py:class:: PopupMenu(content, name: str = '', **p_options)
 
     Popup configured as a menu.
 
@@ -1438,13 +1438,13 @@ _vpe_args_
 
     **Methods**
 
-        .. py:method:: on_key(key,byte_seq)
+        .. py:method:: on_key(key, byte_seq)
 
             Invoke popup_filter_menu to handle keys for this popup.
 
 .. rubric:: PopupNotification
 
-.. py:class:: PopupNotification(content,name: str = '',**p_options)
+.. py:class:: PopupNotification(content, name: str = '', **p_options)
 
     Popup configured as a short lived notification (default 3s).
 
@@ -1465,7 +1465,7 @@ _vpe_args_
 
     **Methods**
 
-        .. py:method:: append(line_or_lines,nr=None)
+        .. py:method:: append(line_or_lines, nr=None)
 
             Append one or more lines to the range.
 
@@ -1507,7 +1507,7 @@ _vpe_args_
 
             The reg_name may also be an integer value in the range 0-9.
 
-        .. py:method:: __setitem__(reg_name: str | int,value: Any)
+        .. py:method:: __setitem__(reg_name: str | int, value: Any)
 
             Allow setting registers as dictionary entries.
 
@@ -1515,7 +1515,7 @@ _vpe_args_
 
 .. rubric:: ScratchBuffer
 
-.. py:class:: ScratchBuffer(name,buffer,simple_name=None)
+.. py:class:: ScratchBuffer(name, buffer, simple_name=None)
 
     A scratch buffer.
 
@@ -1594,7 +1594,7 @@ _vpe_args_
                 *name*
                     The extension part of the name
 
-        .. py:method:: show(splitlines: int = 0,splitcols: int = 0) -> bool
+        .. py:method:: show(splitlines: int = 0, splitcols: int = 0) -> bool
 
             Make this buffer visible.
 
@@ -1659,7 +1659,7 @@ _vpe_args_
 
         .. py:property:: vars()
 
-            The buffar vars wrapped as a `Variables` instance.
+            The buffer vars wrapped as a `Variables` instance.
 
 .. rubric:: TabPages
 
@@ -1819,7 +1819,7 @@ _vpe_args_
 
             Take action when a timer is finished.
 
-        .. py:method:: invoke_cb(func: Callable,vpe_args: dict)
+        .. py:method:: invoke_cb(func: Callable, vpe_args: dict)
 
             Invoke the callback as a result of the timer firing.
 
@@ -1851,7 +1851,7 @@ _vpe_args_
 
 .. rubric:: Vim
 
-.. py:class:: Vim(*args,**kwargs)
+.. py:class:: Vim(*args, **kwargs)
 
     A wrapper around and replacement for the *vim* module.
 
@@ -1946,7 +1946,7 @@ _vpe_args_
 
     **Static methods**
 
-        .. py:staticmethod:: __new__(cls,*args,**kwargs)
+        .. py:staticmethod:: __new__(cls, *args, **kwargs)
 
             Ensure only a single Vim instance ever exists.
 
@@ -2029,7 +2029,7 @@ _vpe_args_
 
         .. py:property:: vars() -> Variables
 
-            The buffar vars wrapped as a `Variables` instance.
+            The buffer vars wrapped as a `Variables` instance.
 
         .. py:property:: visible_line_range() -> tuple[int, int]
 
@@ -2117,7 +2117,7 @@ _vpe_args_
 
 .. rubric:: call_soon
 
-.. py:function:: call_soon(func: Callable,*args: Any,**kwargs: Any)
+.. py:function:: call_soon(func: Callable, *args: Any, **kwargs: Any)
 
     Arrange to call a function 'soon'.
 
@@ -2144,7 +2144,7 @@ _vpe_args_
 
 .. rubric:: call_soon_once
 
-.. py:function:: call_soon_once(token: Any,func: Callable,*args: Any,**kwargs: Any)
+.. py:function:: call_soon_once(token: Any, func: Callable, *args: Any, **kwargs: Any)
 
     Arrange to call a function 'soon', but only once.
 
@@ -2265,7 +2265,7 @@ _vpe_args_
 
 .. rubric:: echo_msg
 
-.. py:function:: echo_msg(*args,soon=False)
+.. py:function:: echo_msg(*args, soon=False)
 
     Like `error_msg`, but for information.
 
@@ -2281,7 +2281,7 @@ _vpe_args_
 
 .. rubric:: error_msg
 
-.. py:function:: error_msg(*args,soon=False)
+.. py:function:: error_msg(*args, soon=False)
 
     A print-like function that writes an error message.
 
@@ -2391,7 +2391,7 @@ _vpe_args_
 
 .. rubric:: pedit
 
-.. py:function:: pedit(path: str,silent=True,noerrors=False)
+.. py:function:: pedit(path: str, silent=True, noerrors=False)
 
     Edit file in the preview window.
 
@@ -2421,7 +2421,7 @@ _vpe_args_
 
 .. rubric:: warning_msg
 
-.. py:function:: warning_msg(*args,soon=False)
+.. py:function:: warning_msg(*args, soon=False)
 
     A print-like function that writes a warning message.
 

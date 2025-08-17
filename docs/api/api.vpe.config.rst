@@ -16,7 +16,7 @@ values in an INI style configuration file and makes option values available as
 
 .. rubric:: Bool
 
-.. py:class:: Bool(name,default_value=False,description='')
+.. py:class:: Bool(name, default_value=False, description='')
 
     A boolean `config.Option`.
 
@@ -37,7 +37,7 @@ values in an INI style configuration file and makes option values available as
 
 .. rubric:: Choice
 
-.. py:class:: Choice(name,choices=(),default_value=None,description='')
+.. py:class:: Choice(name, choices=(), default_value=None, description='')
 
     A `config.Option` that can take one of a set of values.
 
@@ -140,7 +140,7 @@ values in an INI style configuration file and makes option values available as
             If, for example, `name` is 'omega' then (on Linux) the file
             ~/.vim/config.d/omega.ini will be loaded. Any existing option values
             not found in the file are left unchanged. Any value in the file that
-            does not match a defined otion is simply ignored.
+            does not match a defined option is simply ignored.
 
         .. py:method:: options_() -> Dict[str, vpe.config.Option]
 
@@ -199,7 +199,7 @@ values in an INI style configuration file and makes option values available as
 
 .. rubric:: Option
 
-.. py:class:: Option(name,default_value,description='')
+.. py:class:: Option(name, default_value, description='')
 
     Details about a given option value.
 
@@ -277,7 +277,7 @@ values in an INI style configuration file and makes option values available as
 
 .. rubric:: String
 
-.. py:class:: String(name,default_value='',description='')
+.. py:class:: String(name, default_value='', description='')
 
     A string value option.
 

@@ -51,7 +51,7 @@ enhancements.
   - Most of Vim’s functions appear as members, for example:
       >
       vim.cursor(4, 10)            # Position cursor at row 4, column 10.
-      m = vim.execute('messages')  # Get all the recent Vim messagse.
+      m = vim.execute('messages')  # Get all the recent Vim messages.
 <
   - The attributes buffers, current, options, tabpages, vars, vvars and windows
     provide enhanced access to the corresponding Vim objects. For example
@@ -90,7 +90,7 @@ This is a brief list of VPE’s features.
 ===============================================================================~
 3. Module vpe~                                                 *vpe.module-vpe*
 
-Enhanced module for using Python3 in Vim.
+Enhanced module for using Python 3 in Vim.
 
 This provides the Vim class, which is a wrapper around Vim’s built-in vim
 module. It is intended that a Vim instance can be uses as a replacement for the
@@ -215,9 +215,10 @@ class vpe.BufListener(func, buf, ops: bool = True, raw_changes: bool = False)
   One of these is created by |vpe.Buffer.add_listener|. Direct instantiation of
   this class is not recommended or supported.
 
-  The Python function or method to be called back.
-
   Parameters
+
+    func
+      The Python function or method to be called back.
 
     buf
       The |Buffer| instance.
@@ -380,7 +381,7 @@ class vpe.Buffer(buffer)                                  *Buffer* *vpe.Buffer*
       properties. It is more  efficient to use the |vars| attribute.
 
     property vars -> |Variables|                       *vars* *vpe.Buffer.vars*
-      The buffar vars wrapped as a |Variables| instance.
+      The buffer vars wrapped as a |Variables| instance.
 
     property windows -> list[int]                          *vpe.Buffer.windows*
       A list of window IDs for windows that are displaying this buffer.
@@ -419,7 +420,7 @@ class vpe.Buffer(buffer)                                  *Buffer* *vpe.Buffer*
           Number of lines added, negative if lines were deleted.
 
         ops: bool
-          True by default. Include a list of the individal operations to the
+          True by default. Include a list of the individual operations to the
           callback as the ops keyword argument. A list of diffs.Operation
           instances with details about the changes.
 
@@ -533,7 +534,7 @@ class vpe.Buffer(buffer)                                  *Buffer* *vpe.Buffer*
           range; i.e. the range is inclusive, unlike Python ranges.
 
     retrieve_store(key: Any) -> |Struct| | None     *vpe.Buffer.retrieve_store*
-      Retrive a given buffer store if it exists.
+      Retrieve a given buffer store if it exists.
 
       This is similar to |store|, but no new store is created.
 
@@ -607,7 +608,7 @@ class vpe.Buffer(buffer)                                  *Buffer* *vpe.Buffer*
             disp.buf.append('Another line')
 <
       When the context ends, the modifiable option is reset to its original
-      value. An alterative approach is:
+      value. An alternative approach is:
         >
         with disp_buf.temp_options as opt:
             opt.modifiable = True
@@ -1449,7 +1450,7 @@ class vpe.TabPage(obj=None)                             *TabPage* *vpe.TabPage*
   Properties
 
     property vars                                            *vpe.TabPage.vars*
-      The buffar vars wrapped as a |Variables| instance.
+      The buffer vars wrapped as a |Variables| instance.
 
 class vpe.TabPages(obj=None)                          *TabPages* *vpe.TabPages*
   Wrapper around the built-in vim.tabpages.
@@ -1736,7 +1737,7 @@ class vpe.Window(window)                                  *Window* *vpe.Window*
   Properties
 
     property vars -> |Variables|                              *vpe.Window.vars*
-      The buffar vars wrapped as a |Variables| instance.
+      The buffer vars wrapped as a |Variables| instance.
 
                                                 *vpe.Window.visible_line_range*
     property visible_line_range -> tuple[int, int]
@@ -2086,9 +2087,9 @@ vpe.warning_msg(*args, soon=False)                            *vpe.warning_msg*
         cells.
 
       dims_corners
-        A sequence of pixel coordiates for the windows corners, in the order
-        TL, TR, BR, BL. For TR and BR the X value is with repect to the right
-        hand edge of the display. For BL and BR the Y value is with repect to
+        A sequence of pixel coordinates for the windows corners, in the order
+        TL, TR, BR, BL. For TR and BR the X value is with respect to the right
+        hand edge of the display. For BL and BR the Y value is with respect to
         the lower edge of the display.
 
       borders
@@ -2112,9 +2113,9 @@ vpe.warning_msg(*args, soon=False)                            *vpe.warning_msg*
         cells.
 
       dims_corners                         *app_ui_support.AppWin.dims_corners*
-        A sequence of pixel coordiates for the windows corners, in the order
-        TL, TR, BR, BL. For TR and BR the X value is with repect to the right
-        hand edge of the display. For BL and BR the Y value is with repect to
+        A sequence of pixel coordinates for the windows corners, in the order
+        TL, TR, BR, BL. For TR and BR the X value is with respect to the right
+        hand edge of the display. For BL and BR the Y value is with respect to
         the lower edge of the display.
 
       dims_pixels                           *app_ui_support.AppWin.dims_pixels*
@@ -2191,7 +2192,7 @@ vpe.warning_msg(*args, soon=False)                            *vpe.warning_msg*
         Parameters
 
           w: AppWin
-            The window bein searched for.
+            The window being searched for.
 
   app_ui_support.attach_vars(**kwargs)             *app_ui_support.attach_vars*
     Decorator to attach variables to a function.
@@ -2271,7 +2272,7 @@ vpe.warning_msg(*args, soon=False)                            *vpe.warning_msg*
         This is a modified version from the Python 3.11 standard library. This
         version stops processing arguments when a subcommand is encountered.
         The upshot is that optional arguments are get properly associated with
-        the correct main command or subcommmand.
+        the correct main command or subcommand.
 
       error(message)                            *argparse.ArgumentParser.error*
         Raise an ArgumentError.
@@ -2513,7 +2514,7 @@ vpe.warning_msg(*args, soon=False)                            *vpe.warning_msg*
 
         Return value
 
-        A list strings representing the the possible completions.
+        A list strings representing the possible completions.
 
                                                         *argparse.unique_match*
   argparse.unique_match(text: str, choices: list[str]) -> tuple[str, list[str]]
@@ -2649,7 +2650,7 @@ vpe.warning_msg(*args, soon=False)                            *vpe.warning_msg*
 
           message: str
             The received message. This is always a string, even for raw
-            channels. Vim replaces any NUL chracters with newlines, so pure
+            channels. Vim replaces any NUL characters with newlines, so pure
             binary messages cannot be handled using on_message.
 
       read(timeout_ms: int | None = None)               *channels.Channel.read*
@@ -2668,7 +2669,7 @@ vpe.warning_msg(*args, soon=False)                            *vpe.warning_msg*
 
                                                   *channels.Channel.settimeout*
       settimeout(timeout_ms: int | None = None)
-        Set the default teimout for the channel.
+        Set the default timeout for the channel.
 
         Related vim function = |ch_setoptions|.
 
@@ -2699,7 +2700,7 @@ vpe.warning_msg(*args, soon=False)                            *vpe.warning_msg*
               noblock: Optional[bool] = None,
               waittime: Optional[int] = None,
 <
-    Pythonic wrapper around a Vim channel in javascript mode.
+    Pythonic wrapper around a Vim channel in JavaScript mode.
 
   class channels.JsonChannel(...)                        *channels.JsonChannel*
       >
@@ -2709,7 +2710,7 @@ vpe.warning_msg(*args, soon=False)                            *vpe.warning_msg*
               noblock: Optional[bool] = None,
               waittime: Optional[int] = None,
 <
-    Pythonic wrapper around a Vim channel in json mode.
+    Pythonic wrapper around a Vim channel in JSON mode.
 
   class channels.NLChannel(...)                            *channels.NLChannel*
       >
@@ -2782,7 +2783,7 @@ vpe.warning_msg(*args, soon=False)                            *vpe.warning_msg*
     Parameters
 
       varname
-        The name of the a vim variable currently referencing the |Channel|.
+        The name of the vim variable currently referencing the |Channel|.
 
     Attributes
 
@@ -2915,7 +2916,7 @@ vpe.warning_msg(*args, soon=False)                            *vpe.warning_msg*
         If, for example, |name| is ‘omega’ then (on Linux) the file
         ~/.vim/config.d/omega.ini will be loaded. Any existing option values
         not found in the file are left unchanged. Any value in the file that
-        does not match a defined otion is simply ignored.
+        does not match a defined option is simply ignored.
 
       options_() -> Dict[str, vpe.config.Option]       *config.Config.options_*
         Get the dictionary of options.
@@ -3038,7 +3039,7 @@ vpe.warning_msg(*args, soon=False)                            *vpe.warning_msg*
   -----------------------------------------------------------------------------~
   3.5. Module vpe.core~                 *vpe.module-core* *vpe.module-vpe-core*
 
-  Enhanced module for using Python3 in Vim.
+  Enhanced module for using Python 3 in Vim.
 
   This provides the Vim class, which is a wrapper around Vim’s built-in vim
   module. It is intended that a Vim instance can be uses as a replacement for
@@ -3158,8 +3159,14 @@ vpe.warning_msg(*args, soon=False)                            *vpe.warning_msg*
 
     Class methods
 
-                                                       *diffs.Operation.create*
-      classmethod create(lnum: int, end: int, added: int, col: int = 1) -> |Operation|
+      classmethod create(...)                          *diffs.Operation.create*
+          >
+          create(
+                  lnum: int,
+                  end: int,
+                  added: int,
+                  col: int = 1
+<
         Create the appropriate Operation subclass.
 
         Parameters
@@ -3179,7 +3186,14 @@ vpe.warning_msg(*args, soon=False)                            *vpe.warning_msg*
             The starting column for a change.
 
                             *from_vim_change* *diffs.Operation.from_vim_change*
-      classmethod from_vim_change(lnum: int, end: int, added: int, col: int = 1) -> |Operation|
+      classmethod from_vim_change(...)
+          >
+          from_vim_change(
+                  lnum: int,
+                  end: int,
+                  added: int,
+                  col: int = 1
+<
         Create the appropriate Operation subclass.
 
         Parameters
@@ -3340,7 +3354,7 @@ vpe.warning_msg(*args, soon=False)                            *vpe.warning_msg*
 
     By default the first argument passed to the mapped function is a
     |MappingInfo| object. The pass_info argument can be used to prevent this.
-    Additional arguments can be speficied using args and kwargs.
+    Additional arguments can be specified using args and kwargs.
 
     For convenience, mode specific versions are provided (|nmap|, |xmap|,
     |omap| and |imap|). See those for details of what he mapped function can
@@ -3598,7 +3612,7 @@ vpe.warning_msg(*args, soon=False)                            *vpe.warning_msg*
     Methods
 
       add_panel(panel: |Panel|)              *panels.PanelViewBuffer.add_panel*
-        Add a panel an the end of the panel list.
+        Add a panel at the end of the panel list.
 
       format_panel(panel: |Panel|)        *panels.PanelViewBuffer.format_panel*
         Make a panel refresh itself.
@@ -3724,7 +3738,7 @@ vpe.warning_msg(*args, soon=False)                            *vpe.warning_msg*
       include(path_name)                               *syntax.Cluster.include*
         Include Vim syntax file, adding its groups to this cluster.
 
-        This does a |syn-include| operation with a a cluster name.
+        This does a |syn-include| operation with a cluster name.
 
         Parameters
 
@@ -3770,7 +3784,7 @@ vpe.warning_msg(*args, soon=False)                            *vpe.warning_msg*
 
       contained
         If true then all matches, keywords and regions this creates
-        automtically have the contained option set.
+        automatically have the contained option set.
 
                                                      *syntax.Group.region_type*
     class region_type(syn: 'Syntax', syn_cmd: Callable, name: str, **options)
@@ -3852,10 +3866,10 @@ vpe.warning_msg(*args, soon=False)                            *vpe.warning_msg*
         Parameters
 
           keyword
-            The first tkeyword to add.
+            The first keyword to add.
 
           keywords
-            Additional tkeywords to add.
+            Additional keywords to add.
 
           options
             Options for the set of keywords.
@@ -3891,8 +3905,13 @@ vpe.warning_msg(*args, soon=False)                            *vpe.warning_msg*
           options
             Additional options for the match.
 
-                                                      *syntax.Group.add_region*
-      add_region(start: str, end: str, skip: str | None = None, **options)
+      add_region(...)                                 *syntax.Group.add_region*
+          >
+          add_region(
+                  start: str,
+                  end: str,
+                  skip: Optional[str] = None,
+<
         Add a syntax region for this group.
 
         This is only suitable for simple region definitions. Only a single
@@ -4038,7 +4057,7 @@ vpe.warning_msg(*args, soon=False)                            *vpe.warning_msg*
     Methods
 
       arg_str() -> str                                 *syntax.Pattern.arg_str*
-        Format pattern as an argument to a ayntax command.
+        Format pattern as an argument to a syntax command.
 
                                                        *Region* *syntax.Region*
   class syntax.Region(syn: 'Syntax', syn_cmd: Callable, name: str, **options)
@@ -4185,7 +4204,7 @@ vpe.warning_msg(*args, soon=False)                            *vpe.warning_msg*
 
         contained
           If true then all matches, keywords and regions this creates
-          automtically have the contained option set.
+          automatically have the contained option set.
 
                                          *syntax.Syntax.group_type.region_type*
       class region_type(syn: 'Syntax', syn_cmd: Callable, name: str, **options)
@@ -4268,10 +4287,10 @@ vpe.warning_msg(*args, soon=False)                            *vpe.warning_msg*
           Parameters
 
             keyword
-              The first tkeyword to add.
+              The first keyword to add.
 
             keywords
-              Additional tkeywords to add.
+              Additional keywords to add.
 
             options
               Options for the set of keywords.
@@ -4307,8 +4326,13 @@ vpe.warning_msg(*args, soon=False)                            *vpe.warning_msg*
             options
               Additional options for the match.
 
-                                          *syntax.Syntax.group_type.add_region*
-        add_region(start: str, end: str, skip: str | None = None, **options)
+        add_region(...)                   *syntax.Syntax.group_type.add_region*
+            >
+            add_region(
+                    start: str,
+                    end: str,
+                    skip: Optional[str] = None,
+<
           Add a syntax region for this group.
 
           This is only suitable for simple region definitions. Only a single
@@ -4594,7 +4618,7 @@ vpe.warning_msg(*args, soon=False)                            *vpe.warning_msg*
         Select a specific field.
 
   class ui.ConfigPanelBuffer(*args, **kwargs)            *ui.ConfigPanelBuffer*
-    A |PanelViewBuffer| thats supports configuration panels.
+    A |PanelViewBuffer| that supports configuration panels.
 
     This tracks instances of |ConfigPanel| and sets up key mappings to navigate
     and modify the fields within them.
@@ -4637,7 +4661,7 @@ vpe.warning_msg(*args, soon=False)                            *vpe.warning_msg*
 
                                 *ui.ConfigPanelBuffer.on_selected_field_change*
       on_selected_field_change()
-        Perform common processing when the selecetd field is changed.
+        Perform common processing when the selected field is changed.
 
         This is intended to be over-ridden by subclasses.
 
@@ -4866,7 +4890,7 @@ vpe.warning_msg(*args, soon=False)                            *vpe.warning_msg*
         The string to justify.
 
       width: int
-        The field width. Postive values mean left justified, negative mean
+        The field width. Positive values mean left justified, negative mean
         right justified.
 
   -----------------------------------------------------------------------------~
@@ -4926,7 +4950,7 @@ vpe.warning_msg(*args, soon=False)                            *vpe.warning_msg*
         on its format because it may change in future releases.
 
       iter_windows()                       *windows.LayoutElement.iter_windows*
-        Iterate throught the leaf windows.
+        Iterate through the leaf windows.
 
                                  *windows.LayoutElement.set_widths_from_layout*
       set_widths_from_layout(layout: |LayoutElement|)
@@ -5026,7 +5050,7 @@ vpe.warning_msg(*args, soon=False)                            *vpe.warning_msg*
         Provides keyword style arguments. See also the |syntax| module.
 
       |error_msg|
-        Writes a message with error highlightling, but does not raise a
+        Writes a message with error highlighting, but does not raise a
         vim.error.
 
       |mapping|

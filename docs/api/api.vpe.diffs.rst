@@ -8,25 +8,25 @@ Types involved in tracking changes.
 
 .. rubric:: AddOp
 
-.. py:class:: AddOp(lnum: int,end: int,added: int,col: int)
+.. py:class:: AddOp(lnum: int, end: int, added: int, col: int)
 
     A buffer addition operation.
 
 .. rubric:: ChangeOp
 
-.. py:class:: ChangeOp(lnum: int,end: int,added: int,col: int)
+.. py:class:: ChangeOp(lnum: int, end: int, added: int, col: int)
 
     A buffer change operation.
 
 .. rubric:: DeleteOp
 
-.. py:class:: DeleteOp(lnum: int,end: int,added: int,col: int)
+.. py:class:: DeleteOp(lnum: int, end: int, added: int, col: int)
 
     A buffer deletion operation.
 
 .. rubric:: Operation
 
-.. py:class:: Operation(lnum: int,end: int,added: int,col: int)
+.. py:class:: Operation(lnum: int, end: int, added: int, col: int)
 
     Base for each type of a line buffer modification.
 
@@ -117,7 +117,15 @@ Types involved in tracking changes.
 
     **Class methods**
 
-        .. py:classmethod:: create(lnum: int,end: int,added: int,col: int = 1) -> Operation
+        .. py:classmethod:: create(...)
+
+            .. code::
+
+                create(
+                        lnum: int,
+                        end: int,
+                        added: int,
+                        col: int = 1
 
             Create the appropriate Operation subclass.
 
@@ -137,7 +145,15 @@ Types involved in tracking changes.
                 *col*: int
                     The starting column for a change.
 
-        .. py:classmethod:: from_vim_change(lnum: int,end: int,added: int,col: int = 1) -> Operation
+        .. py:classmethod:: from_vim_change(...)
+
+            .. code::
+
+                from_vim_change(
+                        lnum: int,
+                        end: int,
+                        added: int,
+                        col: int = 1
 
             Create the appropriate Operation subclass.
 
