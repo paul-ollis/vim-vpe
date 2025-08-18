@@ -9,6 +9,7 @@ import re
 import time
 
 # pylint: disable=unused-wildcard-import,wildcard-import
+from cleversheep3.Test.DataMaker import literalText2Text
 from cleversheep3.Test.Tester import *
 
 import support
@@ -845,7 +846,7 @@ class Log(support.Base):
                 res.raw_lines = list(res.shown_buf)
                 res.lines = clean_log_lines(res.shown_buf)
 
-                log(f'L8')
+                log('L8')
                 res.more_lines = clean_log_lines(res.shown_buf)
 
             dump(res)
@@ -942,6 +943,54 @@ class Log(support.Base):
         failUnlessEqual(['L3', 'L4', 'L5', 'L6', 'L7'], res.lines)
         failUnlessEqual(['L5', 'L6', 'L7'], res.trimmed_lines)
         failUnlessEqual(['L6', 'L7', 'L8'], res.more_lines)
+
+    @test(testID='log-wipeout')
+    def log_survives_buffer_wipeout(self):
+        """Issue #2. The log's buffer may be wiped out without problems.
+
+        A new buffer is created by show().
+
+        :<py>:
+
+            res = Struct()
+
+            name = 'test-log-3'
+            disp_name = get_disp_name(name)
+            res.init_buf_count = len(vim.buffers)
+            log = vpe.Log(name, maxlen=5)
+            res.init_buf = vpe.find_buffer_by_name(disp_name)   # Expect None
+
+            log('A line in the log')
+            log.show()
+            res.shown_buf = vpe.find_buffer_by_name(disp_name)
+            if res.shown_buf is not None:
+                vpe.commands.bwipeout(a=res.shown_buf.number)
+                log('Another line in the log')
+                res.dead_buf = vpe.find_buffer_by_name(disp_name) # Expect None
+                res.log_lines = clean_log_lines(log.lines)
+
+            log.show()
+            res.new_shown_buf = vpe.find_buffer_by_name(disp_name)
+            res.new_log_lines = clean_log_lines(res.new_shown_buf)
+
+            dump(res)
+        """
+        res = self.run_self()
+        failUnless(res.init_buf is None)
+        failUnless(res.dead_buf is None)
+        failIf(res.shown_buf is None)
+        failIf(res.new_shown_buf is None)
+        failIfEqual(res.new_shown_buf.number, res.shown_buf.number)
+        failUnlessEqualStrings(
+            literalText2Text('''
+            | A line in the log
+            | Another line in the log
+            '''), '\n'.join(res.log_lines))
+        failUnlessEqualStrings(
+            literalText2Text('''
+            | A line in the log
+            | Another line in the log
+            '''), '\n'.join(res.new_log_lines))
 
 
 class AutoCmdGroup(support.CommandsBase):
