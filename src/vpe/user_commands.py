@@ -607,7 +607,7 @@ class VimCommandHandler:
                     let g:_vpe_args_['arglead'] = a:ArgLead
                     let g:_vpe_args_['cmdline'] = a:CmdLine
                     let g:_vpe_args_['cursorpos'] = a:CursorPos
-                    let expr = 'vpe.argparse.VimCommandHandler.complete()'
+                    let expr = 'vpe.user_commands.VimCommandHandler.complete()'
                     return py3eval(expr)
                 endfunction
             """))

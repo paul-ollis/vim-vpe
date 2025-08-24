@@ -411,8 +411,8 @@ _timers = {}
 def timer_start(_time, _callback, _options):
     """Set up a timer.
 
-    This does not support time based callbacks, it simply invokes the callback
-    function.
+    This does not actually use the time parameter, it simply arranges
+    for callback to be invoked soon, by the test framework's main loop.
     """
     def cb(*args, **kwargs):
         _, saved_options = _timers[tid]

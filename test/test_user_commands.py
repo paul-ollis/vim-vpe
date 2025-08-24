@@ -1,4 +1,4 @@
-"""Tests for the VPE argparse based user command support."""
+"""Tests for the VPE user_commands based user command support."""
 
 # pylint: disable=unused-wildcard-import,wildcard-import
 # pylint: disable=deprecated-method
@@ -12,8 +12,8 @@ from cleversheep3.Test.Tester import *
 from cleversheep3.Test.Tester.PollTester import *
 
 import vpe
-from vpe import argparse
-from vpe.argparse import (
+from vpe import user_commands, common
+from vpe.user_commands import (
     CommandHandler, SimpleCommandHandler, SubcommandHandlerBase,
     TopLevelSubcommandHandler, VimCommandHandler)
 
@@ -25,7 +25,7 @@ class Struct:
 
 
 class CommandBase(PollSuite):
-    """Base for argparse module tests."""
+    """Base for user_commands module tests."""
     # pylint: disable=missing-class-docstring,missing-function-docstring
     # pylint: disable=attribute-defined-outside-init
 
@@ -89,14 +89,19 @@ class CommandBase(PollSuite):
     def setUp(self):
         """Per test init function."""
         self.help_dest[:] = []
-        argparse.help_dest = self.help_dest
+        user_commands.help_dest = self.help_dest
         self.commands = []
+
+        # TODO:
+        #     This clean up after non-poll manager tests, which may leave an
+        #     call_soon functions. I would prefe a cleaner way.
+        common._scheduled_soon_calls[:] = []
         ##self.saved_id_source = vpe.common.id_source
         #vpe.common.id_source = itertools.count(100)
 
     def tearDown(self):
         """Per test clean up."""
-        argparse.help_dest = None
+        user_commands.help_dest = None
         #vpe.common.id_source = self.saved_id_source
 
     #@pollAware
@@ -177,7 +182,7 @@ class SubCommandFormation(CommandBase):
 
         res = Struct()
         command = Command('Test')
-        command.handle_main_command(None, )
+        command.handle_main_command(None)
         yield self.delay(0.0)
         failUnlessEqual(
             'echomsg "Missing subcommand"', self.extract_command('Missing'))

@@ -1337,7 +1337,7 @@ def define_command(
 
     The *info* parameter is `CommandInfo` instance which carries all the meta
     information, such as the command name, range, modifiers, *etc*. The
-    *cmd_args* are those provided to the command; each a string.
+    *cmd_args* are those provided to the command; each is a string.
     The *args* and *kwargs* are those provided to this function.
 
     :name:      The command name; must follow the rules for :vim:`:command`.

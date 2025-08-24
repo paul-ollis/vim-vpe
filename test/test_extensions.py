@@ -919,7 +919,7 @@ class Log(support.Base):
         refect the change.
         :<py>:
 
-            name = 'test-log-5'
+            name = 'test-log-4'
             disp_name = get_disp_name(name)
             res = Struct()
             res.init_buf_count = len(vim.buffers)
@@ -954,7 +954,7 @@ class Log(support.Base):
 
             res = Struct()
 
-            name = 'test-log-3'
+            name = 'test-log-5'
             disp_name = get_disp_name(name)
             res.init_buf_count = len(vim.buffers)
             log = vpe.Log(name, maxlen=5)

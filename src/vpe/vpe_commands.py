@@ -18,7 +18,7 @@ from typing import TYPE_CHECKING
 
 import vpe
 from vpe import core, vim
-from vpe.argparse import (
+from vpe.user_commands import (
     CommandHandler, SubcommandHandlerBase, TopLevelSubcommandHandler)
 
 if TYPE_CHECKING:

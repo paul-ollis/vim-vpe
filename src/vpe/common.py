@@ -790,7 +790,7 @@ class Timer(Callback):
     def repeat(self) -> int:
         """The number of times the timer will still fire.
 
-        Note that prior to Patch 8.2.3768 this was 1 greater that one might
+        Note that prior to Vim patch 8.2.3768 this was 1 greater that one might
         expect. Now Vim's ``timer_info()`` returns the expected value except
         duruing the final callback, when we get ``None``. This is non-Pythonic,
         so ``None`` is converted to zero.
