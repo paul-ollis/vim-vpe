@@ -607,7 +607,7 @@ class VimCommandHandler:
                     let g:_vpe_args_['arglead'] = a:ArgLead
                     let g:_vpe_args_['cmdline'] = a:CmdLine
                     let g:_vpe_args_['cursorpos'] = a:CursorPos
-                    let expr = 'vpe.vpe_commands.VimCommandHandler.complete()'
+                    let expr = 'vpe.argparse.VimCommandHandler.complete()'
                     return py3eval(expr)
                 endfunction
             """))
@@ -693,6 +693,7 @@ class SimpleCommandHandler(VimCommandHandler, CommandHandler):
     def handle_main_command(
             self, cmd_info: common.CommandInfo, *vim_cmd_args: str):
         super().process_command(cmd_info, vim_cmd_args)
+
 
 class TopLevelSubcommandHandler(VimCommandHandler, SubcommandHandlerBase):
     """A top-level user defined Vim command, with subcommands.
