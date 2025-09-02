@@ -6,11 +6,13 @@ calls.
 
 import inspect
 from functools import partial
-from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
 
 import vpe
 from vpe import common, core
 from vpe.wrappers import Buffer, vim
+
+_debug_map: bool = False
 
 mode_to_map_command = {
     'normal': 'nnoremap',
@@ -92,7 +94,7 @@ class MappingInfo:
             self.end_cursor = tuple(end[1:3])        # type: ignore[assignment]
 
     @property
-    def line_range(self) -> Optional[Tuple[int, int]]:
+    def line_range(self) -> Optional[tuple[int, int]]:
         """The line range, if visual mode was active.
 
         This is a Python style range.
@@ -113,8 +115,8 @@ class MappingInfo:
 #   expr    - Probably should have a different function.
 def map(
         mode: str,
-        keys: Union[str, Iterable[str]],
-        func: Union[Callable, str],
+        keys: str | Iterable[str],
+        func: Callable | str,
         *,
         buffer: bool = True,
         silent: bool = True,
@@ -124,7 +126,7 @@ def map(
         pass_info=True,
         args=(),
         kwargs: Optional[dict] = None,
-        vim_exprs: Tuple[str, ...] = (),
+        vim_exprs: tuple[str, ...] = (),
     ) -> None:
     """Set up a key mapping that invokes a Python function.
 
@@ -220,15 +222,16 @@ def map(
                 raise NotImplementedError
 
         cmd = f'{map_cmd} <special> {" ".join(specials)} {key_seq} {rhs}'
-        print(f'CMD: {cmd!r}')
+        if _debug_map:
+            print(f'vim.command({cmd!r})')
         vim.command(cmd)
 
 
 def nmap(
-        keys: Union[str, Iterable[str]], func: Union[Callable, str],
+        keys: str | Iterable[str], func: Callable | str,
         *, buffer: bool = True, silent: bool = True, unique: bool = False,
         pass_info=True, nowait: bool = False, args=(),
-        kwargs: Optional[dict] = None, vim_exprs: Tuple[str, ...] = ()):
+        kwargs: Optional[dict] = None, vim_exprs: tuple[str, ...] = ()):
     """Set up a normal mode  mapping that invokes a Python function.
 
     See `map` for argument details.
@@ -241,10 +244,10 @@ def nmap(
 
 
 def xmap(
-        keys: Union[str, Iterable[str]], func: Union[Callable, str],
+        keys: str | Iterable[str], func: Callable | str,
         *, buffer: bool = True, silent: bool = True, unique: bool = False,
         pass_info=True, nowait: bool = False, args=(),
-        kwargs: Optional[dict] = None, vim_exprs: Tuple[str, ...] = ()):
+        kwargs: Optional[dict] = None, vim_exprs: tuple[str, ...] = ()):
     """Set up a visual mode mapping that invokes a Python function.
 
     See `map` for argument details.
@@ -257,10 +260,10 @@ def xmap(
 
 
 def omap(
-        keys: Union[str, Iterable[str]], func: Union[Callable, str],
+        keys: str | Iterable[str], func: Callable | str,
         *, buffer: bool = True, silent: bool = True, unique: bool = False,
         pass_info=True, nowait: bool = False, args=(),
-        kwargs: Optional[dict] = None, vim_exprs: Tuple[str, ...] = ()):
+        kwargs: Optional[dict] = None, vim_exprs: tuple[str, ...] = ()):
     """Set up an operator-pending mode mapping that invokes a Python function.
 
     See `map` for argument details.
@@ -273,11 +276,11 @@ def omap(
 
 
 def imap(
-        keys: Union[str, Iterable[str]], func: Union[Callable, str],
+        keys: str | Iterable[str], func: Callable | str,
         *, buffer: bool = True, silent: bool = True, unique: bool = False,
         pass_info=True, nowait: bool = False, command: bool = False,
         args=(), kwargs: Optional[dict] = None,
-        vim_exprs: Tuple[str, ...] = ()):
+        vim_exprs: tuple[str, ...] = ()):
     """Set up an insert mapping that invokes a Python function.
 
     See `map` for argument details.
@@ -312,8 +315,10 @@ class KeyHandler:
 
     @staticmethod
     def mapped(
-            mode: str, keyseq: Union[str, Iterable[str]],
-            **kwargs) -> Callable[[Callable], Callable]:
+            mode: str | Iterable[str],
+            keyseq: str | Iterable[str],
+            **kwargs,
+        ) -> Callable[[Callable], Callable]:
         """Decorator to make a keyboard mapping invoke a method.
 
         :mode:   The mode in which the mapping applies, one of normal,

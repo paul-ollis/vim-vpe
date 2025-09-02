@@ -53,7 +53,7 @@ def _create_vim_function(name: str) -> Optional[_vim.Function]:
 
 
 def register_wrapper(vim_type, wrapper):
-    """Add en entry to the set of wrapped Vim module types."""
+    """Add an entry to the set of wrapped Vim module types."""
     _wrappers[vim_type] = wrapper
 
 

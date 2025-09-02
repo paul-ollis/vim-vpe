@@ -363,10 +363,10 @@ class BufListener(common.Callback):
         end -= 1
         self.py_kwargs = {}
         vpe_args['args'] = self.buf, start, end, added
-        if self.ops: #?
+        if self.ops:
             vpe_changes = [diffs.Operation.create(**ch) for ch in changes]
             self.py_kwargs['ops'] = vpe_changes
-        if self.raw_changes: #?
+        if self.raw_changes:
             self.py_kwargs['raw_changes'] = changes
         super().invoke_cb(func, vpe_args)
 
@@ -400,7 +400,8 @@ class Range(common.MutableSequenceProxy):
 
 
 # TODO:
-#   This should sensibly cope when the underlying Vim buffer has been wiped out.
+#   This should sensibly cope when the underlying Vim buffer has been wiped
+#   out.
 class Buffer(common.MutableSequenceProxy):
     """Wrapper around a :vim:`python-buffer`.
 
@@ -422,7 +423,7 @@ class Buffer(common.MutableSequenceProxy):
         return self._number
 
     def store(self, key: Any) -> Struct:
-        """Return a `Struct` for a give key.
+        """Provide a `Struct` for a given key.
 
         This provides a mechanism to store arbitrary data associated with a
         given buffer. A new `Struct` is created the first time a given key is
@@ -454,16 +455,15 @@ class Buffer(common.MutableSequenceProxy):
         else:
             return None
 
-    # TODO: I think the docstring is wrong; 'a' is a line number, not an index.
     def range(self, a: int, b: int) -> Range:
         """Get a `Range` for the buffer.
 
         This is like getting a :vim:`python-range` object, except that it is
         wrapped in a `Range` instance.
 
-        :a: The start index of the range.
-        :b: The end index of the range. Note that this line is included in
-            the range; *i.e.* the range is inclusive, unlike Python ranges.
+        :a: The start line number of the range.
+        :b: The end line number of the range. Note that this line is included
+            in the range; *i.e.* the range is inclusive, unlike Python ranges.
         """
         return self._wrap_or_decode(self._proxied.range(a, b))
 
@@ -725,7 +725,11 @@ class Buffer(common.MutableSequenceProxy):
         vim.prop_clear(1, len(self), {'bufnr': self.number})
 
     def set_line_prop(
-            self, lidx: int, start_cidx: int, end_cidx: int, hl_group: str,
+            self,
+            lidx: int,
+            start_cidx: int,
+            end_cidx: int,
+            hl_group: str,
             name: str = ''):
         """Set a highlighting property on a single line.
 
@@ -734,9 +738,9 @@ class Buffer(common.MutableSequenceProxy):
         ``hl_group='Label'`` and 'name' is not provided then the property is
         called 'vpe:hl:Label'.
 
-        The text property is created, as a buffer specific property, if it does
-        not already exist. Apart from the ``bufnr`` option, default values are
-        used for the property's options.
+        The buffer specific text property is created if it does not already
+        exist. Apart from the ``bufnr`` option, default values are used for the
+        property's options.
 
         :lidx:        The index of the line to hold the property.
         :start_cidx:  The index within the line where the property starts.
@@ -897,7 +901,7 @@ class TabPage(common.Proxy):
     User code should not directly instantiate this class. VPE creates and
     manages instances of this class as required.
 
-    This is a proxy that extends the vim.Window behaviour in various ways.
+    This is a proxy that extends the vim.TabPage behaviour in various ways.
     """
     # pylint: disable=too-few-public-methods
     _writeable: set[str] = set()

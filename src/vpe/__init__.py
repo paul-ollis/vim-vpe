@@ -200,10 +200,12 @@ class Finish(Exception):
 
 
 def dot_vim_dir() -> str:
-    """Return the path to the ~/.vim directory or its equivalent.
+    """Provide the likely path to the ~/.vim directory or its equivalent.
 
-    :return:
-        This returns the first directory in the runtimepath option.
+    What this does in practice is return the first directory in the
+    :vim:`'runtimepath'` option. Since some users might modify the runtimepath
+    in unpredictable ways, this function should probably be avoided in plugins
+    that you wish to publish.
     """
     return vim.options.runtimepath.split(',')[0]
 

@@ -2,7 +2,7 @@ import os
 import sys
 sys.path.append(os.path.abspath(".."))
 needs_sphinx = '3.2'
-extensions = ['sphinx.ext.todo', 'cs_vimhelp', 'cs_vimhelp']
+extensions = ['sphinx.ext.todo', 'cs_vimhelp']
 todo_include_todos = True
 templates_path = ['_templates']
 source_suffix = '.rst'

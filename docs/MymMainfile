@@ -75,7 +75,6 @@ KeepEnviron("PYTHONPATH")
 path = EnvironPath("PATH")
 
 api_files = '''
-    guide/api/api.vpe.argparse.rst
     guide/api/api.vpe.app_ui_support.rst
     guide/api/api.vpe.channels.rst
     guide/api/api.vpe.config.rst
@@ -86,6 +85,7 @@ api_files = '''
     guide/api/api.vpe.rst
     guide/api/api.vpe.syntax.rst
     guide/api/api.vpe.ui.rst
+    guide/api/api.vpe.user_commands.rst
     guide/api/api.vpe.windows.rst
     guide/api/api.vpe.wrappers.rst
 '''.split()

@@ -30,4 +30,6 @@ User guide
     reacting.rst
     timers.rst
     plugins.rst
+    auto-commands
+    user-commands
     api/api.vpe.rst

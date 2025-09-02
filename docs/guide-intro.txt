@@ -6,7 +6,7 @@
                | |/ / ____/ /___     The Vim Python Extensions
                |___/_/   /_____/
 
-This is the documentation for version 0.7.0-a
+This is the documentation for version 0.7.0-a.
 
 VPE provides a toolkit of modules and classes aimed at making it easier to
 extend ``Vim`` using modern Pythonic code. Its key features are:

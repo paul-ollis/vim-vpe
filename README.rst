@@ -6,6 +6,7 @@
                 | |/ / ____/ /___
                 |___/_/   /_____/
 
+Welcome to the Vim Python Extensions (VPE).
 
 :status:
     This is version 0.7.0-a.
@@ -15,7 +16,7 @@
     Although it has not yet reached a version 1.0 release, I make heavy, daily
     use of VPE within my Vim environment without problems.
 
-    While the API should be considered unstable, it has actually proven fairly
+    While the API should be considered unstable, it has actually proven largely
     stable, with only a few, minor incompatible changes since version 0.1.
 
 
@@ -26,7 +27,7 @@ VPE provides a toolkit of modules and classes aimed at making it easier to
 extend ``Vim`` using modern Pythonic code. Its key features are:
 
 - A ``Vim`` class and corresponding ``vim`` singleton which provides an API
-  that is is extremely compatible with Vim's built-in ``vim`` module, but
+  that is as compatible as possible with Vim's built-in ``vim`` module, but
   includes extended capabilities.
 
 - The ``vpe`` package, containing additional modules and classes which provide:

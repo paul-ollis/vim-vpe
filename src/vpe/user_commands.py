@@ -28,7 +28,7 @@ SubcommandsTable: TypeAlias = dict[str, [Tuple['CommandHandler', str], str]]
 error_msg = functools.partial(core.error_msg, soon=True)
 
 #: Debug control flag, for development only.
-debug_completion: bool = True
+debug_completion: bool = False
 
 #: A destination for help messages, only for testing.
 help_dest: list[str] | None = None

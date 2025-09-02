@@ -1,4 +1,10 @@
-"""A Sphinx builder to generate Vim help files."""
+"""Sphinx extensions to work with Vim help files.
+
+This provides:
+
+- A Sphinx builder to generate Vim help files.
+- A transformer to convert vim help references to vimhelp.org URLs.
+"""
 
 import functools
 import os
@@ -72,7 +78,7 @@ class VimRefWalker(visitor.Visitor):
 
 
 class VimRefTransform(SphinxTransform):
-    """Add UIDs to doctree for versioning."""
+    """Convert :vim:`...` references to vimhelp.org URLs."""
     default_priority = 700
 
     def apply(self, **kwargs: Any) -> None:
@@ -116,6 +122,11 @@ def setLogPath(path):
 
 
 def load_vim_tags():
+    """Scan Vim's help tags to build a mapping from name to help file.
+
+    This is used to convert things RST text like :vim:`echo` to a vimhelp.org
+    URL.
+    """
     with tempfile.NamedTemporaryFile(mode='wt', delete=False) as f:
         out_path = f.name
     with tempfile.NamedTemporaryFile(mode='w+t', delete=False) as f:
@@ -126,14 +137,18 @@ def load_vim_tags():
         put(':quit!')
         script_path = f.name
 
+    # Run the above script to get a list fo Vim help tagfiles in a temporary
+    # file.
     subprocess.run(
         ['vim', '-u', 'NONE', '-s', script_path], stderr=subprocess.DEVNULL)
     os.unlink(script_path)
 
+    # Read the tag file names from the temporary file.
     with open(out_path,mode='rt') as f:
         lines = [line.strip() for line in f.read().split('^@')]
     os.unlink(out_path)
 
+    # Process the tag files to build a map from tag name to help file name.
     for path in lines:
         if '/share/' in path:
             with open(path, 'rt') as f:
