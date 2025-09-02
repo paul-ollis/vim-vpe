@@ -76,6 +76,7 @@ class LogSubCommand(SubcommandHandlerBase):
     subcommands = {
         'show': (':simple', 'Show the log file buffer.'),
         'hide': (':simple', 'Hide the log file buffer.'),
+        'clear': (':simple', 'lear the log contents.'),
         'length': (LogLengthCommand, 'Display/set the log file max length'),
         'redirect': (
             LogRedirectCommand, 'Display/set stdout/sterr redirection'),
@@ -88,6 +89,10 @@ class LogSubCommand(SubcommandHandlerBase):
     def handle_hide(self, _args: Namespace) -> None:
         """Handle the 'Vpe log hide' command."""
         core.log.hide()
+
+    def handle_clear(self, _args: Namespace) -> None:
+        """Handle the 'Vpe log clear' command."""
+        core.log.clear()
 
 
 class VPECommandProvider(TopLevelSubcommandHandler):

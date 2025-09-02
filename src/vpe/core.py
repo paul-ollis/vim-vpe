@@ -451,15 +451,19 @@ class Log:
         The FIFO is cleared and the corresponding buffer updated.
         """
         self.fifo.clear()
-        self._trim()
+        self._trim(full=True)
 
-    def _trim(self, debug=False) -> None:
+    def _trim(self, full: bool = False, debug: bool = False) -> None:
         buf = self.buf
         if buf:
-            d = len(buf) - len(self.fifo)
-            if d > self.allowed_extra_lines:
+            if full:
                 with buf.modifiable():
-                    del buf[:d]
+                    del buf[:]
+            else:
+                d = len(buf) - len(self.fifo)
+                if d > self.allowed_extra_lines:
+                    with buf.modifiable():
+                        del buf[:d]
             if debug:
                 print(f'Trim: {d=} {self.allowed_extra_lines=}')
 
