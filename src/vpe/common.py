@@ -252,6 +252,11 @@ class Proxy:
         return self._wrap_or_decode(getattr(self._proxied, name), name)
 
     def __setattr__(self, name, value):
+        setter = getattr(self, f'_set__{name}', None)
+        if setter is not None:
+            setter(value)
+            return
+
         if name in self._writeable:
             setattr(self._proxied, name, value)
         elif name in self.__dict__:
@@ -943,7 +948,7 @@ class func_reference_store:
             uid, (None, None, None))
         if dead_ref is not None:
             if not utils.exiting:
-                print(f'Dead function {uid} {_meta=}')
+                print(f'Dead function detected {uid} {_meta=}')
                 if cleanup is not None:
                     cleanup()
 

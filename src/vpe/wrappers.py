@@ -991,11 +991,95 @@ class TabPage(common.Proxy):
     This is a proxy that extends the vim.TabPage behaviour in various ways.
     """
     _writeable: set[str] = set()
+    _known: ClassVar[dict[_vim.TabPage, TabPage]] = {}
+
+    def __init__(self, tab_page: _vim.TabPage):
+        super().__init__(tab_page)
+        self.__dict__['_store'] = collections.defaultdict(Struct)
+
+        # Clean out any cached tab pages that have been closed.
+        to_del = [key for key, tab in self._known.items() if not tab.valid]
+        for key in to_del:
+            self._known.pop(key)
+        self._known[tab_page] = self
 
     @property
     def vars(self):
         """The buffer vars wrapped as a `Variables` instance."""
         return Variables(self._proxied.vars)
+
+    def store(self, key: Any) -> Struct | None:
+        """Provide a `Struct` for a given key.
+
+        This provides a mechanism to store arbitrary data associated with a
+        given tab page. A new `Struct` is created the first time a given key is
+        used. An example of how this can be used:<py>:
+
+            vim.current.tabpage.store['my-store'].processed = True
+            ...
+            for page in vim.buffers:
+                if page.store['my-store'].processed:
+                    # Treat already processed tab pages differently.
+                    ...
+
+        The :mod:`vpe` package arranges to return the same `TabPage` instance
+        for a given :vim:`python-tabpage` so this effectively allows you to
+        associated meta-data with individual Vim tab pages.
+
+        If the underlying tab page has been closed (`valid` is ``False``) then
+        this simply returns ``None``.
+        """
+        if self.valid:
+            return self._store[key]
+        else:
+            return None
+
+    def retrieve_store(self, key: Any) -> Struct | None:
+        """Retrieve a given tabpage store if it exists.
+
+        This is similar to `store`, but no new store is created.
+
+        :return:
+            The requested store `Struct` or ``None`` if it does not exist or
+            this tab page has been closed (`valid` is ``False``).
+        """
+        if self.valid:
+            if key in self._store:
+                return self._store[key]
+            else:
+                return None
+        else:
+            return None
+
+    @classmethod
+    def get_known(cls, tab_page: _vim.TabPage | TabPage) -> TabPage | None:
+        """Get the TabPage instance for a given vim.tab_page.
+
+        This is only intended for internal use.
+
+        :tab_page: A standard :vim:`python-tab_page` or a TabPage.
+        """
+        # pylint: disable=protected-access
+        key = tab_page._proxied if isinstance(tab_page, TabPage) else tab_page
+        return cls._known.get(key)
+
+    @property
+    def buffers(self) -> list[Buffer]:
+        """A list of the buffers visible in the tab page.
+
+        The list is in the same order as the tab page's windows, but does not
+        contain duplicates.
+        """
+        if not self.valid:
+            return []
+        seen: set[Buffer] = set()
+        buflist: list[Buffer] = []
+        for window in self.windows:
+            buf = window.buffer
+            if buf not in seen:
+                seen.add(buf)
+                buflist.append(buf)
+        return buflist
 
 
 class TabPages(common.ImmutableSequenceProxy):
@@ -1006,7 +1090,10 @@ class TabPages(common.ImmutableSequenceProxy):
 
     This is a proxy that extends the vim.TabPages behaviour in various ways.
     """
-    # pylint: disable=too-few-public-methods
+    def __init__(self):
+        self.__dict__['_cache'] = {}
+        super().__init__()
+
     @property
     def _proxied(self):
         return _vim.tabpages
@@ -1040,6 +1127,27 @@ class Current(common.Proxy):
     @property
     def _proxied(self):
         return _vim.current
+
+    def _set__buffer(self, value: _vim.Buffer | Buffer) -> None:
+        if isinstance(value, Buffer):
+            # pylint: disable=protected-access
+            _vim.current.buffer = value._proxied
+        else:
+            _vim.current.buffer = value
+
+    def _set__tabpage(self, value: _vim.TabPage | TabPage) -> None:
+        if isinstance(value, TabPage):
+            # pylint: disable=protected-access
+            _vim.current.tabpage = value._proxied
+        else:
+            _vim.current.tabpage = value
+
+    def _set__window(self, value: _vim.Window | Window) -> None:
+        if isinstance(value, Window):
+            # pylint: disable=protected-access
+            _vim.current.window = value._proxied
+        else:
+            _vim.current.window = value
 
 
 class ImmutableVariables(common.MutableMappingProxy):
@@ -1564,12 +1672,25 @@ def _get_wrapped_buffer(vim_buffer: _vim.Buffer) -> Buffer:
     return b
 
 
+def _get_wrapped_tab_page(tab_page: _vim.TabPage | TabPage) -> TabPage:
+    """Get a wrapped version of a vim tab page object.
+
+    This always returns the same `TabPage` for a given underlying tab page.
+
+    :vim_tabpage: A tab page object as, for example vim.current.tabpage.
+    """
+    t = TabPage.get_known(tab_page)
+    if t is None:
+        t = TabPage(tab_page)
+    return t
+
+
 common.register_wrapper(type(_vim.options), Options)
 common.register_wrapper(type(_vim.windows), Windows)
 common.register_wrapper(_vim.Buffer, _get_wrapped_buffer)
 common.register_wrapper(_vim.Dictionary, common.MutableMappingProxy)
 common.register_wrapper(_vim.Range, Range)
-common.register_wrapper(_vim.TabPage, TabPage)
+common.register_wrapper(_vim.TabPage, _get_wrapped_tab_page)
 common.register_wrapper(_vim.Window, Window)
 common.register_wrapper(_vim.List, common.MutableSequenceProxy)
 
