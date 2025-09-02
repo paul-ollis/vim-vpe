@@ -833,7 +833,13 @@ class Popup:
     _popups: dict = {}
     _create_func = 'popup_create'
 
-    def __init__(self, content, name: str = '', **p_options):
+    def __init__(
+            self,
+            content: str | list[str] | list[dict],
+            name: str = '',
+            rich: bool = False,
+            **p_options):
+        # pylint: disable=too-many-branches
         close_cb = common.Callback(self._on_close)
         filter_cb = common.Callback(self._on_key, pass_bytes=True)
         p_options['callback'] = close_cb.as_vim_function()
@@ -843,6 +849,22 @@ class Popup:
         self.p_options = p_options.copy()
         if name:
             self._buf = get_display_buffer(name)
+            if not content:
+                lines = ['']
+            elif isinstance(content, str):
+                lines = content.splitlines()
+            else:
+                if isinstance(content[0], dict):
+                    # TODO:
+                    #   We should also use the text properties ('props' key).
+                    lines = [el['text'] for el in content]
+                else:
+                    lines = content
+            with self._buf.modifiable():
+                if rich:
+                    self._buf.set_rich_like_lines(lines)
+                else:
+                    self._buf[:] = lines
         else:
             self._buf = None
 
@@ -850,11 +872,15 @@ class Popup:
         # timeout mechanism does not work with callbacks.
         timeout = p_options.pop('time', None)
         p_options['time'] = 0x7fffffff
-        self._id = getattr(wrappers.vim, self._create_func)(content, p_options)
+        popup_create_func = getattr(wrappers.vim, self._create_func)
+        if self._buf is None:
+            self._id = popup_create_func(content, p_options)
+        else:
+            self._id = popup_create_func(self._buf.number, p_options)
         self._popups[self._id] = weakref.ref(self, self._on_del)
         self._clean_up()
         self.result = -1
-        if name and content:
+        if name is None and content:
             self.settext(content)
 
         # Provide our own timeout mechanism, which does allow callbacks to be
