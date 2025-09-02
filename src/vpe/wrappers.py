@@ -8,6 +8,7 @@ from __future__ import annotations
 import collections
 import itertools
 import pathlib
+import re
 import weakref
 from typing import Any, Callable, ClassVar, Iterator, Type
 
@@ -763,6 +764,92 @@ class Buffer(common.MutableSequenceProxy):
         }
         vim.prop_add(lidx + 1, start_cidx + 1, args)
 
+    def set_rich_like_lines(self, lines: list[str]) -> None:
+        r"""Set highlighted buffer contents from Rich-like markup text.
+
+        This method is useful for non-edit buffers, such as obtained using
+        `get_display_buffer`.
+
+        - The entire contents of the buffer is updated.
+        - Each line is parsed for mark up that looks like '[Macro]' and '[]'.
+          Names within '[' and ']' define highlight groups that are used to
+          set text properties using `set_line_prop`. An empty '[]' reverts to
+          unmarked text. Use '\[' to insert a literal '['.
+
+        The markup style is modelled on (https://github.com/Textualize/rich)
+        (Rich). It is not compatible, but might possibly be extended to
+        support some subset of Rich markup in the future.
+        """
+        # pylint: disable=too-many-locals
+        self.clear_props()
+        r_markup = re.compile(r'''(?x)
+            (
+                \\\[                         # A '\['
+              |
+                \[                           # Opening [
+                [^]]*                        # Optional name
+                ]                            # And closing ]
+            )
+        ''')
+        rawlines = []
+        line_highlights = []
+        for line in lines:
+            highlights = []
+            line_highlights.append(highlights)
+            parts = r_markup.split(line)
+            offset = 0
+            s = []
+            for part in parts:
+                if part.startswith('['):
+                    name = part[1:-1]
+                    highlights.append((offset, name))
+                else:
+                    if part:
+                        if part == r'\[':
+                            part = '['
+                        s.append(part)
+                        offset += len(part)
+            rawlines.append(''.join(s))
+            highlights.append((len(rawlines[-1]), ''))
+        with self.list() as temp_lines:
+            temp_lines[:] = rawlines
+        for lidx, highlights in enumerate(line_highlights):
+            if len(highlights) < 2:
+                continue
+            for j, (offset, name) in enumerate(highlights[:-1]):
+                end = highlights[j + 1][0]
+                if name:
+                    self.set_line_prop(lidx, offset, end, name)
+
+    @staticmethod
+    def escape_rich_like(text: str) -> str:
+        r"""Escape rich-like markup in a string.
+
+        Use this for text that should not be interpreted when passed to the
+        `set_rich_like_lines` method. This replaces all '['
+        characters with '\['.
+        """
+        return text.replace('[', '\\[')
+
+    @staticmethod
+    def markup_text(
+            text: str, pat: str, markup: str, rep_all: bool = True) -> str:
+        """Find `pat` in `text` and apply richlike `markup`.
+
+        For exmaple if `text` is 'Press Q to quit', `pat` is 'Q` and
+        `markup` is 'Keyword' then this returns 'Press [Keyword]Q[] to quit'.
+
+        This is function is provide as a convenience for simple cases of
+        rich-like markup.
+
+        :return:
+            The marked up string.
+        """
+        if rep_all:
+            return text.replace(pat, f'[{markup}]{pat}[]')
+        else:
+            return text.replace(pat, f'[{markup}]{pat}[]', 1)
+
     def __getattr__(self, name):
         """Make the values from getbufinfo() available as attributes.
 
@@ -903,7 +990,6 @@ class TabPage(common.Proxy):
 
     This is a proxy that extends the vim.TabPage behaviour in various ways.
     """
-    # pylint: disable=too-few-public-methods
     _writeable: set[str] = set()
 
     @property
