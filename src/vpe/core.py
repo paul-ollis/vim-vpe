@@ -1283,20 +1283,28 @@ class AutoCmdGroup:
 
     @staticmethod
     def add(
-            event, func, *, pat='<buffer>', once=False, nested=False,
+            event, func,
+            *,
+            pat: str | wrappers.Buffer = '<buffer>',
+            once: bool = False,
+            nested: bool = False,
+            inc_event: bool = False,
             **kwargs):
         """Add a new auto command to the group.
 
-        :event:  The name of the event.
-        :func:   The Python function to invoke. Plain functions and instance
-                 methods are supported.
-        :pat:    The file pattern to match. If not supplied then the special
-                 '<buffer>' pattern is used. If the argument is a `Buffer` then
-                 the special pattern '<buffer=N> is used.
-        :once:   The standard ':autocmd' options.
-        :nested: The standard ':autocmd' options.
-        :kwargs: Additional keyword arguments to be passed the *func*.
+        :event:     The name of the event.
+        :func:      The Python function to invoke. Plain functions and instance
+                    methods are supported.
+        :pat:       The file pattern to match. If not supplied then the special
+                    '<buffer>' pattern is used. If the argument is a `Buffer`
+                    then the special pattern '<buffer=N> is used.
+        :once:      The standard ':autocmd' options.
+        :nested:    The standard ':autocmd' options.
+        :inc_event: Include ``event='event-name'`` in the callback invocation.
+        :kwargs:    Additional keyword arguments to be passed in the callback
+                    invocation.
         """
+        # pylint: disable=too-many-arguments
         if isinstance(pat, wrappers.Buffer):
             pat = f'<buffer={pat.number}>'
         cmd_seq = ['autocmd', event, pat]
@@ -1308,7 +1316,9 @@ class AutoCmdGroup:
                 cmd_seq.append('++nested')
             else:
                 cmd_seq.append('nested')                     # pragma: no cover
-        kwargs = kwargs or None
+        kwargs = kwargs or {}
+        if inc_event:
+            kwargs['event'] = event
         callback = AutoCmdCallback(func, once=once, py_kwargs=kwargs)
         cmd_seq.append(callback.as_call())
         common.vim_command(' '.join(cmd_seq))
