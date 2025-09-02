@@ -75,7 +75,9 @@ from vpe.core import *
 from vpe.wrappers import Vim, vim
 
 # pylint: disable=wrong-import-position
-from vpe import channels, mapping, syntax, vpe_commands as _vpe_commands
+from vpe import (
+    channels, mapping, message_bus, syntax, user_commands,
+    vpe_commands as _vpe_commands)
 from vpe.mapping import MapCallback
 from vpe.wrappers import (
     BufListener, Buffer, Buffers, Current, GlobalOptions, Options, Range,
@@ -93,6 +95,7 @@ __api__ = [
     'core',
     'diffs',
     'mapping',
+    'message_bus',
     'panels',
     'syntax',
     'ui',
