@@ -1,4 +1,4 @@
-*vpe.txt*                    For Vim version 8.0                     Aug 2025
+*vpe.txt*                    For Vim version 8.0                     Sep 2025
 
                                   Introduction                                 
 
@@ -171,9 +171,10 @@ class vpe.AutoCmdGroup(name)                  *AutoCmdGroup* *vpe.AutoCmdGroup*
         add(
                 event,
                 func,
-                pat='<buffer>',
-                once=False,
-                nested=False,
+                pat: str | wrappers.Buffer = '<buffer>',
+                once: bool = False,
+                nested: bool = False,
+                inc_event: bool = False,
 <
       Add a new auto command to the group.
 
@@ -186,19 +187,22 @@ class vpe.AutoCmdGroup(name)                  *AutoCmdGroup* *vpe.AutoCmdGroup*
           The Python function to invoke. Plain functions and instance methods
           are supported.
 
-        pat
+        pat: str | vpe.wrappers.Buffer
           The file pattern to match. If not supplied then the special
           ‘<buffer>’ pattern is used. If the argument is a |Buffer| then the
           special pattern ‘<buffer=N> is used.
 
-        once
+        once: bool
           The standard ‘:autocmd’ options.
 
-        nested
+        nested: bool
           The standard ‘:autocmd’ options.
+
+        inc_event: bool
+          Include event='event-name' in the callback invocation.
 
         kwargs
-          Additional keyword arguments to be passed the func.
+          Additional keyword arguments to be passed in the callback invocation.
 
     static delete_all()                           *vpe.AutoCmdGroup.delete_all*
       Delete all entries in the group.
@@ -206,7 +210,27 @@ class vpe.AutoCmdGroup(name)                  *AutoCmdGroup* *vpe.AutoCmdGroup*
 class vpe.BufEventHandler                                 *vpe.BufEventHandler*
   Mix-in to support mapping events to methods for buffers.
 
-  This differs from EventHandler by the use of self as the default pattern.
+  This ties mapped events to the buffer. This mixin is used by the
+  |ManagedIOBuffer| and may also be used for for classes derived from
+  |ScratchBuffer|.
+
+  Methods
+
+                               *vpe.BufEventHandler.auto_define_event_handlers*
+    auto_define_event_handlers(group_name: str, delete_all=False)
+      Set up mappings for event handling methods.
+
+      This appends _<self.number> to the provided group_name and then invokes
+      |vpe.EventHandler.auto_define_event_handlers|.
+
+      Parameters
+
+        group_name: str
+          A string that is uses to generate a (hopefully) unique autocmd group
+          name.
+
+        delete_all
+          If set then all previous auto commands in the group are deleted.
 
                                                 *BufListener* *vpe.BufListener*
 class vpe.BufListener(func, buf, ops: bool = True, raw_changes: bool = False)
@@ -368,7 +392,7 @@ class vpe.Buffer(buffer)                                  *Buffer* *vpe.Buffer*
       This is similar to the 'buftype' option, but normal buffers have the type
       ‘normal’.
 
-    property valid -> bool                                   *vpe.Buffer.valid*
+    property valid -> bool                           *valid* *vpe.Buffer.valid*
       Test of this buffer is valid.
 
       A buffer can become invalid if, for example, the underlying Vim buffer
@@ -527,11 +551,11 @@ class vpe.Buffer(buffer)                                  *Buffer* *vpe.Buffer*
       Parameters
 
         a: int
-          The start index of the range.
+          The start line number of the range.
 
         b: int
-          The end index of the range. Note that this line is included in the
-          range; i.e. the range is inclusive, unlike Python ranges.
+          The end line number of the range. Note that this line is included in
+          the range; i.e. the range is inclusive, unlike Python ranges.
 
     retrieve_store(key: Any) -> |Struct| | None     *vpe.Buffer.retrieve_store*
       Retrieve a given buffer store if it exists.
@@ -542,7 +566,7 @@ class vpe.Buffer(buffer)                                  *Buffer* *vpe.Buffer*
 
       The requested store |Struct| or None if it does not exist.
 
-    set_line_prop(...)                               *vpe.Buffer.set_line_prop*
+    set_line_prop(...)               *set_line_prop* *vpe.Buffer.set_line_prop*
         >
         set_line_prop(
                 lidx: int,
@@ -557,9 +581,9 @@ class vpe.Buffer(buffer)                                  *Buffer* *vpe.Buffer*
       hl_group='Label' and ‘name’ is not provided then the property is called
       ‘vpe:hl:Label’.
 
-      The text property is created, as a buffer specific property, if it does
-      not already exist. Apart from the bufnr option, default values are used
-      for the property’s options.
+      The buffer specific text property is created if it does not already
+      exist. Apart from the bufnr option, default values are used for the
+      property’s options.
 
       Parameters
 
@@ -578,8 +602,26 @@ class vpe.Buffer(buffer)                                  *Buffer* *vpe.Buffer*
         name: str
           An optional name for the property.
 
+                         *set_rich_like_lines* *vpe.Buffer.set_rich_like_lines*
+    set_rich_like_lines(lines: list[str]) -> None
+      Set highlighted buffer contents from Rich-like markup text.
+
+      This method is useful for non-edit buffers, such as obtained using
+      |get_display_buffer|.
+
+        - The entire contents of the buffer is updated.
+
+        - Each line is parsed for mark up that looks like ‘[Macro]’ and ‘[]’.
+          Names within ‘[’ and ‘]’ define highlight groups that are used to set
+          text properties using |set_line_prop|. An empty ‘[]’ reverts to
+          unmarked text. Use ‘[’ to insert a literal ‘[‘.
+
+      The markup style is modelled on (https://github.com/Textualize/rich)
+      (Rich). It is not compatible, but might possibly be extended to support
+      some subset of Rich markup in the future.
+
     store(key: Any) -> |Struct|                      *store* *vpe.Buffer.store*
-      Return a |Struct| for a give key.
+      Provide a |Struct| for a given key.
 
       This provides a mechanism to store arbitrary data associated with a given
       buffer. A new |Struct| is created the first time a given key is used. An
@@ -635,6 +677,34 @@ class vpe.Buffer(buffer)                                  *Buffer* *vpe.Buffer*
 
         buffer: Any
           A standard |python-buffer|.
+
+  Static methods
+
+    static escape_rich_like(text: str) -> str     *vpe.Buffer.escape_rich_like*
+      Escape rich-like markup in a string.
+
+      Use this for text that should not be interpreted when passed to the
+      |set_rich_like_lines| method. This replaces all ‘[’ characters with ‘[‘.
+
+    static markup_text(...)                            *vpe.Buffer.markup_text*
+        >
+        markup_text(
+                text: str,
+                pat: str,
+                markup: str,
+                rep_all: bool = True
+<
+      Find pat in text and apply richlike markup.
+
+      For exmaple if text is ‘Press Q to quit’, pat is ‘Q` and markup is
+      ‘Keyword’ then this returns ‘Press [Keyword]Q[] to quit’.
+
+      This is function is provide as a convenience for simple cases of rich-
+      like markup.
+
+      Return value
+
+      The marked up string.
 
 class vpe.Buffers(obj=None)                             *Buffers* *vpe.Buffers*
   Wrapper around the built-in vim.buffers.
@@ -1064,6 +1134,56 @@ class vpe.Log(name: str, maxlen: int = 500, timestamps: bool = True)
         s
           The string to write.
 
+                                        *ManagedIOBuffer* *vpe.ManagedIOBuffer*
+class vpe.ManagedIOBuffer(name, buffer, simple_name=None)
+  A buffer that does not map directly to a file.
+
+  This is useful when you neeed to control how the contents of an editable
+  buffer a read and written. An example of this might be if you were writing a
+  clone of the :vim:’pi_netrw’ plugin, where the buffer’s name does not
+  corresond to a name of a file on your computer’s storage.
+
+  To use this class you will typically need to subclass it and then override
+  the |load_contents| and |save_contents| methods. To create an instance of
+  your subclass you should use |get_managed_io_buffer|, passing your subclass
+  as the buf_class argument.
+
+  The underlying Vim buffer is configured with the following key option values:
+    >
+    buftype = acwrite
+    swapfile = False
+    bufhidden = hide
+    buflisted = True
+<
+  Methods
+
+                            *load_contents* *vpe.ManagedIOBuffer.load_contents*
+    load_contents() -> None
+      Load the buffer’s contents.
+
+      This will typically be overridden in your subclass. It can provide the
+      contents of the buffer by whatever means required. The buffer’s modified
+      option is cleared once this returns.
+
+    on_first_showing()                   *vpe.ManagedIOBuffer.on_first_showing*
+      Invoked when the buffer is first, successfully displayed.
+
+      Subclasses can implement this as required.
+
+                            *save_contents* *vpe.ManagedIOBuffer.save_contents*
+    save_contents() -> bool
+      Save the buffer’s contents.
+
+      This will typically be overridden in your subclass. It can store the
+      contents of the buffer by whatever means required.
+
+      Note: the buffer’s contents must not be modified by this method.
+
+      Return value
+
+      True to indicate that the contents have been successully stored, in which
+      case the buffer’s modified option is reset.
+
                                               *OneShotTimer* *vpe.OneShotTimer*
 class vpe.OneShotTimer(ms: int, func: Callable[[...], None])
   A version of |Timer| that can be used ‘set-and-forget’.
@@ -1090,7 +1210,13 @@ class vpe.Options(vim_options)                                    *vpe.Options*
   This extends the behaviour so that options appear as attributes. The standard
   dictionary style access still works.
 
-class vpe.Popup(content, name: str = '', **p_options)       *Popup* *vpe.Popup*
+class vpe.Popup(...)                                        *Popup* *vpe.Popup*
+    >
+    Popup(
+            content: str | list[str] | list[dict],
+            name: str = '',
+            rich: bool = False,
+<
   A Pythonic way to use Vim’s popup windows.
 
   This can be used as instead of the individual functions popup_create,
@@ -1131,7 +1257,7 @@ class vpe.Popup(content, name: str = '', **p_options)       *Popup* *vpe.Popup*
 
   Properties
 
-    property buffer -> vpe.wrappers.Buffer | None            *vpe.Popup.buffer*
+    property buffer -> wrappers.Buffer | None                *vpe.Popup.buffer*
       The buffer holding the window’s content.
 
       A |Buffer| or None.
@@ -1170,7 +1296,8 @@ class vpe.Popup(content, name: str = '', **p_options)       *Popup* *vpe.Popup*
           The value passed to |close|. This will be -1 if the user forcefully
           closed the popup.
 
-    on_key(key: str, byte_seq: bytes) -> bool       *on_key* *vpe.Popup.on_key*
+                                                    *on_key* *vpe.Popup.on_key*
+    on_key(key: str | bytes, byte_seq: bytes) -> bool
       Invoked when the popup receives a keypress.
 
       The default implementation does nothing, it is intended that this be
@@ -1195,9 +1322,11 @@ class vpe.Popup(content, name: str = '', **p_options)       *Popup* *vpe.Popup*
 
       Parameters
 
-        key: str
-          The pressed key. This is typically a single character such as ‘a’ or
-          a symbolic Vim keyname, such as ‘<F1>’.
+        key: str | bytes
+          The pressed key. This is typically a single character string such as
+          ‘a’ or a symbolic Vim keyname, such as ‘<F1>’. However, it can also
+          be a 3 byte sequence starting b’ý’, which occurs when Vim converts
+          internal events into special key sequences.
 
         byte_seq: bytes
           The unmodified byte sequence, as would be received for a filter
@@ -1234,20 +1363,35 @@ class vpe.Popup(content, name: str = '', **p_options)       *Popup* *vpe.Popup*
           If true then if the current window is a popup, it will also be
           closed.
 
-                                            *PopupAtCursor* *vpe.PopupAtCursor*
-class vpe.PopupAtCursor(content, name: str = '', **p_options)
+class vpe.PopupAtCursor(...)                *PopupAtCursor* *vpe.PopupAtCursor*
+    >
+    PopupAtCursor(
+            content: str | list[str] | list[dict],
+            name: str = '',
+            rich: bool = False,
+<
   Popup configured to appear near the cursor.
 
   This creates the popup using popup_atcursor().
 
-                                                  *PopupBeval* *vpe.PopupBeval*
-class vpe.PopupBeval(content, name: str = '', **p_options)
+class vpe.PopupBeval(...)                         *PopupBeval* *vpe.PopupBeval*
+    >
+    PopupBeval(
+            content: str | list[str] | list[dict],
+            name: str = '',
+            rich: bool = False,
+<
   Popup configured to appear near (v:beval_line, v:beval_col).
 
   This creates the popup using popup_beval().
 
-                                                *PopupDialog* *vpe.PopupDialog*
-class vpe.PopupDialog(content, name: str = '', **p_options)
+class vpe.PopupDialog(...)                      *PopupDialog* *vpe.PopupDialog*
+    >
+    PopupDialog(
+            content: str | list[str] | list[dict],
+            name: str = '',
+            rich: bool = False,
+<
   Popup configured as a dialogue.
 
   This creates the popup using popup_dialog(). It also provides a default
@@ -1258,8 +1402,13 @@ class vpe.PopupDialog(content, name: str = '', **p_options)
     on_key(key, byte_seq)                              *vpe.PopupDialog.on_key*
       Invoke popup_filter_yesno to handle keys for this popup.
 
-                                                    *PopupMenu* *vpe.PopupMenu*
-class vpe.PopupMenu(content, name: str = '', **p_options)
+class vpe.PopupMenu(...)                            *PopupMenu* *vpe.PopupMenu*
+    >
+    PopupMenu(
+            content: str | list[str] | list[dict],
+            name: str = '',
+            rich: bool = False,
+<
   Popup configured as a menu.
 
   This creates the popup using popup_menu(). It also provides a default
@@ -1382,13 +1531,14 @@ class vpe.ScratchBuffer(name, buffer, simple_name=None)
 
       Subclasses may over-ride this.
 
-    modifiable() -> TemporaryOptions             *vpe.ScratchBuffer.modifiable*
+                                                 *vpe.ScratchBuffer.modifiable*
+    modifiable() -> wrappers.TemporaryOptions
       Create a context that allows the buffer to be modified.
 
     on_first_showing()                     *vpe.ScratchBuffer.on_first_showing*
       Invoked when the buffer is first, successfully displayed.
 
-      This is expected to be extended (possibly over-ridden) by subclasses.
+      Subclasses can implement this as required.
 
     set_ext_name(name)                         *vpe.ScratchBuffer.set_ext_name*
       Set the extension name for this buffer.
@@ -1439,20 +1589,73 @@ class vpe.Struct                                          *Struct* *vpe.Struct*
     __setstate__(state)                               *vpe.Struct.__setstate__*
       Support pickling - only intended for testing.
 
-class vpe.TabPage(obj=None)                             *TabPage* *vpe.TabPage*
+class vpe.TabPage(tab_page: _vim.TabPage)               *TabPage* *vpe.TabPage*
   Wrapper around a |python-tabpage|.
 
   User code should not directly instantiate this class. VPE creates and manages
   instances of this class as required.
 
-  This is a proxy that extends the vim.Window behaviour in various ways.
+  This is a proxy that extends the vim.TabPage behaviour in various ways.
 
   Properties
+
+    property buffers -> list[|Buffer|]                    *vpe.TabPage.buffers*
+      A list of the buffers visible in the tab page.
+
+      The list is in the same order as the tab page’s windows, but does not
+      contain duplicates.
 
     property vars                                            *vpe.TabPage.vars*
       The buffer vars wrapped as a |Variables| instance.
 
-class vpe.TabPages(obj=None)                          *TabPages* *vpe.TabPages*
+  Methods
+
+                                                   *vpe.TabPage.retrieve_store*
+    retrieve_store(key: Any) -> |Struct| | None
+      Retrieve a given tabpage store if it exists.
+
+      This is similar to |store|, but no new store is created.
+
+      Return value
+
+      The requested store |Struct| or None if it does not exist or this tab
+      page has been closed (|valid| is False).
+
+    store(key: Any) -> |Struct| | None                      *vpe.TabPage.store*
+      Provide a |Struct| for a given key.
+
+      This provides a mechanism to store arbitrary data associated with a given
+      tab page. A new |Struct| is created the first time a given key is used.
+      An example of how this can be used:
+        >
+        vim.current.tabpage.store['my-store'].processed = True
+        ...
+        for page in vim.buffers:
+            if page.store['my-store'].processed:
+                # Treat already processed tab pages differently.
+                ...
+<
+      The |vpe| package arranges to return the same |TabPage| instance for a
+      given |python-tabpage| so this effectively allows you to associated meta-
+      data with individual Vim tab pages.
+
+      If the underlying tab page has been closed (|valid| is False) then this
+      simply returns None.
+
+  Class methods
+
+                                                        *vpe.TabPage.get_known*
+    classmethod get_known(tab_page: _vim.TabPage | |TabPage|) -> |TabPage| | None
+      Get the TabPage instance for a given vim.tab_page.
+
+      This is only intended for internal use.
+
+      Parameters
+
+        tab_page: vim.TabPage | vpe.wrappers.TabPage
+          A standard |python-tab_page| or a TabPage.
+
+class vpe.TabPages                                    *TabPages* *vpe.TabPages*
   Wrapper around the built-in vim.tabpages.
 
   User code should not directly instantiate this class. VPE creates and manages
@@ -1570,7 +1773,7 @@ class vpe.Timer(...)                                        *Timer* *vpe.Timer*
     property repeat -> int                          *repeat* *vpe.Timer.repeat*
       The number of times the timer will still fire.
 
-      Note that prior to Patch 8.2.3768 this was 1 greater that one might
+      Note that prior to Vim patch 8.2.3768 this was 1 greater that one might
       expect. Now Vim’s timer_info() returns the expected value except duruing
       the final callback, when we get None. This is non-Pythonic, so None is
       converted to zero.
@@ -1789,7 +1992,7 @@ class vpe.saved_current_window                       *vpe.saved_current_window*
 class vpe.saved_winview                                     *vpe.saved_winview*
   Context manager that saves and restores the current window’s view.
 
-class vpe.temp_active_window(win: |Window|)            *vpe.temp_active_window*
+class vpe.temp_active_window(win: wrappers.Window)     *vpe.temp_active_window*
   Context manager that temporarily changes the active window.
 
   Parameters
@@ -1869,7 +2072,7 @@ vpe.define_command(...)                                    *vpe.define_command*
 <
   The info parameter is |CommandInfo| instance which carries all the meta
   information, such as the command name, range, modifiers, etc. The cmd_args
-  are those provided to the command; each a string. The args and kwargs are
+  are those provided to the command; each is a string. The args and kwargs are
   those provided to this function.
 
   Parameters
@@ -1928,11 +2131,11 @@ vpe.define_command(...)                                    *vpe.define_command*
       Additional keyword arguments to pass to the mapped function.
 
 vpe.dot_vim_dir() -> str                                      *vpe.dot_vim_dir*
-  Return the path to the ~/.vim directory or its equivalent.
+  Provide the likely path to the ~/.vim directory or its equivalent.
 
-  Return value
-
-  This returns the first directory in the runtimepath option.
+  What this does in practice is return the first directory in the 'runtimepath'
+  option. Since some users might modify the runtimepath in unpredictable ways,
+  this function should probably be avoided in plugins that you wish to publish.
 
 vpe.echo_msg(*args, soon=False)                                  *vpe.echo_msg*
   Like |error_msg|, but for information.
@@ -1959,7 +2162,7 @@ vpe.error_msg(*args, soon=False)                    *error_msg* *vpe.error_msg*
       If set, delay invocation until the back in the Vim main loop.
 
                                                       *vpe.find_buffer_by_name*
-vpe.find_buffer_by_name(name: str) -> vpe.wrappers.Buffer | None
+vpe.find_buffer_by_name(name: str) -> wrappers.Buffer | None
   Find the buffer with a given name.
 
   The name must be an exact match.
@@ -1986,6 +2189,30 @@ vpe.get_display_buffer(...)       *get_display_buffer* *vpe.get_display_buffer*
       An identifying name for this buffer. This becomes the
       |vpe.ScratchBuffer.simple_name| attribute.
 
+                            *get_managed_io_buffer* *vpe.get_managed_io_buffer*
+vpe.get_managed_io_buffer(...)
+    >
+    get_managed_io_buffer(
+            buf_class: Type[ManagedIOBuffer],
+            name: str = '',
+            literal_name: str = ''
+<
+  Get a named managed I/O buffer.
+
+  The actual buffer name will be of the form ‘/[<name>]’ if name is provided
+  and simply the literal_name otherwise. The buffer is created if it does not
+  already exist.
+
+  Parameters
+
+    name: str
+      An identifying name for this buffer. This take precedence over the
+      literal_name.
+
+    literal_name: str
+      If this is provided and name has a false value then it is used as the
+      literal name for the buffer.
+
 vpe.highlight(...)                                              *vpe.highlight*
     >
     highlight(
@@ -1995,7 +2222,7 @@ vpe.highlight(...)                                              *vpe.highlight*
             link: str | None = None,
             disable: bool = False,
             debug: bool = False,
-            file: TextIO = None,
+            file: TextIO or None = None,
 <
   Execute a highlight command.
 
@@ -2211,331 +2438,7 @@ vpe.warning_msg(*args, soon=False)                            *vpe.warning_msg*
     Get information about the displays (screens).
 
   -----------------------------------------------------------------------------~
-  3.2. Module vpe.argparse~     *vpe.module-argparse* *vpe.module-vpe-argparse*
-
-  Support user commands based on Python’s argparse module.
-
-  This module makes it easy to implement user complex user commands. The
-  features provided are:
-
-    - Support for optional arguments.
-
-    - Clean implementation of subcommands.
-
-    - Subcommands, and options can be abbreviated.
-
-    - Automatic command line completion.
-
-                                                 *argparse.AmbiguousSubcommand*
-  class argparse.AmbiguousSubcommand(message, choices: list[str])
-    Exception raised when a subcommand is ambiguous.
-
-  class argparse.ArgumentError(message)                *argparse.ArgumentError*
-    Exception raised when a parse error occurs.
-
-                                     *ArgumentParser* *argparse.ArgumentParser*
-  class argparse.ArgumentParser(...)
-      >
-      ArgumentParser(
-              command_handler: CommandHandler,
-              command_name: str,
-              *args,
-<
-    A modified ArgumentParser designed to work with |CommandHandler|.
-
-    This is fairly thin wrapper around the standard library argparse’s
-    ArgumentParser. The changes are:
-
-      - The parse_args and parse_known_args methods do not try to invoke
-        sys.exit().
-
-      - It has support for partial command completions that work the way I
-        expect.
-
-      - The word ‘prog’ is generally replaced by ‘command_name’, just to be
-        consistent with |CommandHandler| and its subclasses.
-
-      - Parser defaults are not supported (those set by set_defaults). Defaults
-        have to be specified as part of add_argument.
-
-    Methods
-
-      add_argument(*args, **kwargs)      *argparse.ArgumentParser.add_argument*
-        Define how a single command-line argument should be parsed.
-
-        This wraps the standard method in order to support command completion.
-
-                                  *argparse.ArgumentParser.do_parse_known_args*
-      do_parse_known_args(args: Sequence[str]) -> tuple[Namespace, list[str]]
-        Parse known arguments, stopping at a subcommand.
-
-        This is a modified version from the Python 3.11 standard library. This
-        version stops processing arguments when a subcommand is encountered.
-        The upshot is that optional arguments are get properly associated with
-        the correct main command or subcommand.
-
-      error(message)                            *argparse.ArgumentParser.error*
-        Raise an ArgumentError.
-
-      exit(status=0, message=None)               *argparse.ArgumentParser.exit*
-        Raise ArgumentError.
-
-                                      *argparse.ArgumentParser.get_completions*
-      get_completions(arglead: str) -> list[str]
-        Get the possible completions for a partial command.
-
-        Parameters
-
-          arglead: str
-            The partial argument to be completed.
-
-        Return value
-
-        A list of possible completion strings.
-
-      parse_args(args: Sequence[str])      *argparse.ArgumentParser.parse_args*
-        Convert argument strings to attributes of the namespace.
-
-      parse_known_args(...)          *argparse.ArgumentParser.parse_known_args*
-          >
-          parse_known_args(
-                  args=None,
-                  namespace=None,
-                  no_help: bool = False
-<
-        Parse known arguments from the command line.
-
-        This version does not try to sys.exit().
-
-        As of Python 3.9.3, the exit_on_error initialisation argument does not
-        work in the way expect.
-
-      print_help(...)                      *argparse.ArgumentParser.print_help*
-          >
-          print_help(
-                  _file=None,
-                  cmd_info: common.CommandInfo | None = None
-<
-        Display the help message.
-
-                                     *CommandHandler* *argparse.CommandHandler*
-  class argparse.CommandHandler(command_name: str, parent: |CommandHandler| | None)
-    A class providing a Vim user command or subcommand.
-
-    Methods
-
-      add_arguments() -> None           *argparse.CommandHandler.add_arguments*
-        Add the arguments for this command.
-
-                                        *argparse.CommandHandler.create_parser*
-      create_parser() -> |ArgumentParser|
-        Create the argument parser for this command.
-
-                                    *argparse.CommandHandler.format_usage_head*
-      format_usage_head() -> str
-        Format the leading part of a usage message.
-
-      get_completions(...)            *argparse.CommandHandler.get_completions*
-          >
-          get_completions(
-                  _vim_args: list[str],
-                  _at_new_arg: bool,
-                  arglead: str
-<
-        Attempt command line completion for this command.
-
-        Parameters
-
-          vim_args
-            The vim command line arguments that are before the cursor.
-
-          at_new_arg
-            True if the cursor’s position is where a new argument/subcommand
-            should be inserted.
-
-        Return value
-
-        A list strings representing the possible completions.
-
-                                       *argparse.CommandHandler.handle_command*
-      handle_command(args: Namespace)
-        Handle this command.
-
-      process_command(...)            *argparse.CommandHandler.process_command*
-          >
-          process_command(
-                  cmd_info: common.CommandInfo,
-                  vim_cmd_args: tuple[str]
-<
-        Process this command or subcommand.
-
-        Parameters
-
-          cmd_info: CommandInfo
-            Information about the Vpe command, such as counts or line ranges.
-
-          subcommands
-            The sequence of subcommands leading to and in including this
-            subcommand. When the subclass is a SimpleCommandHandler this has
-            zero length.
-
-          vim_cmd_args: tuple
-            The command and arguments that Vim has parsed from the command
-            line.
-
-                                      *argparse.CommandHandler.subcommand_help*
-      subcommand_help() -> list[str]
-        Provide subcommand help as a list of strings.
-
-  class argparse.HelpAction(...)                          *argparse.HelpAction*
-      >
-      HelpAction(
-              option_strings,
-              dest='==SUPPRESS==',
-              default='==SUPPRESS==',
-<
-    A replacement for the standard argparse help action.
-
-    This version defers the help output using |call_soon| and sets the parser’s
-    stop_processing flag.
-
-                                                *argparse.SimpleCommandHandler*
-  class argparse.SimpleCommandHandler(command_name: str)
-    A top-level user defined Vim command.
-
-    This provides the main parser for a command that has subcommands.
-
-  class argparse.SubcommandAction(...)              *argparse.SubcommandAction*
-      >
-      SubcommandAction(
-              option_strings,
-              subcommands_table: SubcommandsTable,
-              dest=None,
-              default=None,
-              help=None,
-<
-    An action for subcommands.
-
-                       *SubcommandHandlerBase* *argparse.SubcommandHandlerBase*
-  class argparse.SubcommandHandlerBase(command_name: str, parent: |SubcommandHandlerBase| | None)
-    Base for a command that has subcommands.
-
-    Methods
-
-      get_completions(...)     *argparse.SubcommandHandlerBase.get_completions*
-          >
-          get_completions(
-                  vim_args: list[str],
-                  at_new_arg: bool,
-                  arglead: str
-<
-        Attempt command line completion for this command.
-
-        Parameters
-
-          vim_args: list
-            The vim command line arguments that are before the cursor.
-
-          at_new_arg: bool
-            True if the cursor’s position is where a new argument/subcommand
-            should be inserted.
-
-        Return value
-
-        A list strings representing the possible completions.
-
-                          *argparse.SubcommandHandlerBase.handle_no_subcommand*
-      handle_no_subcommand(cmd_info: common.CommandInfo, args: Namespace)
-        Handle the case of no subcommand being provided.
-
-      process_command(...)     *argparse.SubcommandHandlerBase.process_command*
-          >
-          process_command(
-                  cmd_info: common.CommandInfo,
-                  vim_cmd_args: tuple[str]
-<
-        Process this command or subcommand.
-
-        Parameters
-
-          cmd_info: CommandInfo
-            Information about the Vpe command, such as counts or line ranges.
-
-          vim_cmd_args: tuple
-            The command and arguments that Vim has parsed from the command
-            line.
-
-                               *argparse.SubcommandHandlerBase.subcommand_help*
-      subcommand_help() -> list[str]
-        Provide subcommand help as a list of strings.
-
-  class argparse.SubcommandReached(value: str)     *argparse.SubcommandReached*
-    Raised to indicate that a subcommand has been found.
-
-                                           *argparse.TopLevelSubcommandHandler*
-  class argparse.TopLevelSubcommandHandler(command_name: str)
-    A top-level user defined Vim command, with subcommands.
-
-    This provides the main parser for a command that has subcommands.
-
-    Methods
-
-                             *argparse.TopLevelSubcommandHandler.create_parser*
-      create_parser() -> |ArgumentParser|
-        Create the subcommand argument parser for this command.
-
-                                                   *argparse.VimCommandHandler*
-  class argparse.VimCommandHandler(command_name: str, *args, **kwargs)
-    Base for user defined Vim commands.
-
-    Methods
-
-                               *argparse.VimCommandHandler.handle_main_command*
-      handle_main_command(cmd_info: common.CommandInfo, *vim_cmd_args: str)
-        Parse and execute the main command.
-
-        This is invoked by Vim when the user enters this command plus one or
-        more arguments.
-
-        Parameters
-
-          cmd_info: CommandInfo
-            Information about the Vpe command, such as counts or line ranges.
-
-          vim_cmd_args: str
-            The command and arguments that Vim has parsed from the command
-            line.
-
-    Class methods
-
-                                          *argparse.VimCommandHandler.complete*
-      classmethod complete() -> list[str]
-        Attempt command line completion for a command.
-
-        Return value
-
-        A list strings representing the possible completions.
-
-                                                        *argparse.unique_match*
-  argparse.unique_match(text: str, choices: list[str]) -> tuple[str, list[str]]
-    Try to find a unique match within choices that starts with text.
-
-    Parameters
-
-      text: str
-        The text to match.
-
-      choices: list
-        The choices from which to select the match.
-
-    Return value
-
-    A tuple of (match, matches). The match is an empty string if no unique
-    match was found, in which case matches is a, possibly empty, list of
-    partial matches.
-
-  -----------------------------------------------------------------------------~
-  3.3. Module vpe.channels~     *vpe.module-channels* *vpe.module-vpe-channels*
+  3.2. Module vpe.channels~     *vpe.module-channels* *vpe.module-vpe-channels*
 
   Pythonic wrappers for Vim’s channels.
 
@@ -2808,7 +2711,7 @@ vpe.warning_msg(*args, soon=False)                            *vpe.warning_msg*
         Mark as closed and release the underlying reference variable.
 
   -----------------------------------------------------------------------------~
-  3.4. Module vpe.config~           *vpe.module-config* *vpe.module-vpe-config*
+  3.3. Module vpe.config~           *vpe.module-config* *vpe.module-vpe-config*
 
   Support for managing configuration information.
 
@@ -3037,7 +2940,7 @@ vpe.warning_msg(*args, soon=False)                            *vpe.warning_msg*
         Try to set this option’s value.
 
   -----------------------------------------------------------------------------~
-  3.5. Module vpe.core~                 *vpe.module-core* *vpe.module-vpe-core*
+  3.4. Module vpe.core~                 *vpe.module-core* *vpe.module-vpe-core*
 
   Enhanced module for using Python 3 in Vim.
 
@@ -3062,7 +2965,7 @@ vpe.warning_msg(*args, soon=False)                            *vpe.warning_msg*
         The argument as a string representing the Vim expression.
 
   -----------------------------------------------------------------------------~
-  3.6. Module vpe.diffs~              *vpe.module-diffs* *vpe.module-vpe-diffs*
+  3.5. Module vpe.diffs~              *vpe.module-diffs* *vpe.module-vpe-diffs*
 
   Types involved in tracking changes.
 
@@ -3213,7 +3116,7 @@ vpe.warning_msg(*args, soon=False)                            *vpe.warning_msg*
             The starting column for a change.
 
   -----------------------------------------------------------------------------~
-  3.7. Module vpe.mapping~        *vpe.module-mapping* *vpe.module-vpe-mapping*
+  3.6. Module vpe.mapping~        *vpe.module-mapping* *vpe.module-vpe-mapping*
 
   Python support for key sequence mapping.
 
@@ -3226,7 +3129,7 @@ vpe.warning_msg(*args, soon=False)                            *vpe.warning_msg*
     Methods
 
                                              *mapping.KeyHandler.auto_map_keys*
-      auto_map_keys(pass_info: bool = False, debug: bool = False)
+      auto_map_keys(pass_info: bool = False)
         Set up mappings for methods.
 
     Static methods
@@ -3234,17 +3137,25 @@ vpe.warning_msg(*args, soon=False)                            *vpe.warning_msg*
       static mapped(...)                            *mapping.KeyHandler.mapped*
           >
           mapped(
-                  mode: str,
+                  mode: Union[str, Iterable[str]],
                   keyseq: Union[str, Iterable[str]],
                   **kwargs
 <
         Decorator to make a keyboard mapping invoke a method.
 
+        This decorator supports the ‘<Leader>’ prefix in key sequences, in much
+        the same way as describled in |mapleader|. For example if g:mapleader
+        is set to ‘,’ then the key sequence ‘<Leader>q’ is equivalent to ‘,q’.
+        If g:mapleader is unset or blank then ‘' is used.
+
+        The interpretation of <Leader> occurs at the time of decoration, so
+        changing g:mapleader after plugin loading will typicallhave no effect.
+
         Parameters
 
-          mode: str
+          mode: Union
             The mode in which the mapping applies, one of normal, op-pending,
-            visual or insert.
+            visual or insert. Or an iterable sequence of modes.
 
           keyseq: Union
             A key sequence string or sequence thereof, as used by |map|.
@@ -3267,7 +3178,7 @@ vpe.warning_msg(*args, soon=False)                            *vpe.warning_msg*
     Methods
 
                                             *mapping.MapCallback.get_call_args*
-      get_call_args(_vpe_args: Dict[str, Any])
+      get_call_args(_vpe_args: dict[str, Any])
         Get the Python positional and keyword arguments.
 
         This makes the first positional argument a |MappingInfo| instance,
@@ -3288,6 +3199,9 @@ vpe.warning_msg(*args, soon=False)                            *vpe.warning_msg*
       keys                                           *mapping.MappingInfo.keys*
         The sequence of keys that triggered the mapping.
 
+      lidx                                           *mapping.MappingInfo.lidx*
+        The index of the current line.
+
       mode                                           *mapping.MappingInfo.mode*
         The mode in which the mapping was triggered (normal, visual, op-pending
         or insert).
@@ -3297,13 +3211,20 @@ vpe.warning_msg(*args, soon=False)                            *vpe.warning_msg*
         Both values are 1-based. Will be (-1, -1) when not applicable.
 
       vmode                                         *mapping.MappingInfo.vmode*
-        The visual mode (character, line or block). Will be None when not
+        The visual mode (‘character’, ‘line’ or ‘block’). Will be None when not
         applicable.
 
     Properties
 
-                                               *mapping.MappingInfo.line_range*
-      property line_range -> Tuple[int, int] | None
+                                     *mapping.MappingInfo.effective_line_range*
+      property effective_line_range -> tuple[int, int] | None
+        The effective line range.
+
+        If the mod is ‘visual’ then this is the same as |line_range| otherwise
+        it is lidx, lidx + 1.
+
+                                  *line_range* *mapping.MappingInfo.line_range*
+      property line_range -> tuple[int, int] | None
         The line range, if visual mode was active.
 
         This is a Python style range.
@@ -3340,7 +3261,7 @@ vpe.warning_msg(*args, soon=False)                            *vpe.warning_msg*
               pass_info=True,
               args=(),
               kwargs: Optional[dict] = None,
-              vim_exprs: Tuple[str, ...] = ()
+              vim_exprs: tuple[str, ...] = ()
 <
     Set up a key mapping that invokes a Python function.
 
@@ -3406,7 +3327,7 @@ vpe.warning_msg(*args, soon=False)                            *vpe.warning_msg*
       kwargs: Optional
         Additional keyword arguments to pass to the mapped function.
 
-      vim_exprs: Tuple
+      vim_exprs: tuple
         Vim expressions to be evaluated and passed to the callback function,
         when the mapping is triggered.
 
@@ -3460,6 +3381,125 @@ vpe.warning_msg(*args, soon=False)                            *vpe.warning_msg*
     Set up a visual mode mapping that invokes a Python function.
 
     See |map| for argument details.
+
+  -----------------------------------------------------------------------------~
+                          *vpe.module-message_bus* *vpe.module-vpe-message-bus*
+  3.7. Module vpe.message_bus~
+
+  A pub/sub style message bus.
+
+  This provides a mechanism for routing messages between Python objects within
+  a Vim session.
+
+  Client code retrieves a message bus using a suitable name, such as the name
+  of the plugin:
+    >
+    bus = message_bus.named_message_bus('my-plugin-name')
+<
+  The |message_bus.Bus.post|, |post_simple_message| and
+  |message_bus.Bus.subscribe| methods are used to send and receive messages.
+  Subscribers receive messages vai callbacks that invoked by |call_soon|.
+
+  Each messages is identified by a name, which is a simple string. Client code
+  subscribes to message using message names. All naming convention choices are
+  up to the client code, the message bus code simply uses message names as keys
+  that map to subscribers.
+
+  For most applications all messages can simply be instances of the
+  |SimpleMessage| class created and posted using |post_simple_message|.
+
+  class message_bus.Bus(name: str)                      *Bus* *message_bus.Bus*
+    A message bus.
+
+    This implements a form of pub/sub pattern.
+
+    Methods
+
+      post(message: |SimpleMessage|) -> None             *message_bus.Bus.post*
+        Post a message onto the bus.
+
+                    *post_simple_message* *message_bus.Bus.post_simple_message*
+      post_simple_message(name: str, *args: Any) -> None
+        Create and post a |SimpleMessage|.
+
+        This is basically a convience method for:
+          >
+          message = SimpleMessage(name, args)
+          bus.post(message)
+<
+
+      subscribe(...)                                *message_bus.Bus.subscribe*
+          >
+          subscribe(
+                  name: str,
+                  callback: MessageCallback,
+                  predicate: MessageMatcher | None = None
+<
+        Subscribe to a named message.
+
+        Parameters
+
+          name: str
+            The name of the message being subscribed to.
+
+          callback: Callable
+            The function to be invoked when a matching message is received. The
+            function is invoked with the matching message and the |Bus|
+            instance.
+
+          predicate: Optional
+            A function that is invoked to (further) filter which messages are
+            passed to the callback.
+
+                                    *SimpleMessage* *message_bus.SimpleMessage*
+  class message_bus.SimpleMessage(name: str, args: Any)
+    A simple message that carries arbitrary data.
+
+    It is typically easier to use |post_simple_message| rather than directly
+    contructing instances of this class.
+
+    Parameters
+
+      name
+        A name for the message.
+
+      args
+        An arbitrary object carrying the message’s argument. It is common to
+        make this a tuple, which is what |post_simple_message| does.
+
+    Attributes
+
+      args                                     *message_bus.SimpleMessage.args*
+        An arbitrary object carrying the message’s argument. It is common to
+        make this a tuple, which is what |post_simple_message| does.
+
+      name                                     *message_bus.SimpleMessage.name*
+        A name for the message.
+
+  message_bus.handle_message(name: str)            *message_bus.handle_message*
+    Mark a method as a message handler.
+
+    Parameters
+
+      name: str
+        The name of the message to be handled.
+
+                                         *message_bus.install_message_handlers*
+  message_bus.install_message_handlers(obj: object, bus_name: str) -> None
+    Install a handler for a given class instance.
+
+                                                *message_bus.named_message_bus*
+  message_bus.named_message_bus(name: str) -> |Bus|
+    Create or retrieve the message bus with a given name.
+
+    The first time this is invoked with a given name a new |Bus| instance is
+    created. Subsequent calls with the same name retrieve the same |Bus|
+    instance.
+
+    Parameters
+
+      name: str
+        The name of the bus.
 
   -----------------------------------------------------------------------------~
   3.8. Module vpe.panels~           *vpe.module-panels* *vpe.module-vpe-panels*
@@ -4894,7 +4934,338 @@ vpe.warning_msg(*args, soon=False)                            *vpe.warning_msg*
         right justified.
 
   -----------------------------------------------------------------------------~
-  3.11. Module vpe.windows~       *vpe.module-windows* *vpe.module-vpe-windows*
+                      *vpe.module-user_commands* *vpe.module-vpe-user-commands*
+  3.11. Module vpe.user_commands~
+
+  Support user commands based on Python’s argparse module.
+
+  This module makes it easy to implement complex user commands. The features
+  provided are:
+
+    - Support for optional arguments.
+
+    - Clean implementation of subcommands.
+
+    - Subcommands, and options can be abbreviated.
+
+    - Automatic command line completion.
+
+                                            *user_commands.AmbiguousSubcommand*
+  class user_commands.AmbiguousSubcommand(message, choices: list[str])
+    Exception raised when a subcommand is ambiguous.
+
+  class user_commands.ArgumentError(message)      *user_commands.ArgumentError*
+    Exception raised when a parse error occurs.
+
+                                *ArgumentParser* *user_commands.ArgumentParser*
+  class user_commands.ArgumentParser(...)
+      >
+      ArgumentParser(
+              command_handler: CommandHandler,
+              command_name: str,
+              *args,
+<
+    A modified ArgumentParser designed to work with |CommandHandler|.
+
+    This is fairly thin wrapper around the standard library argparse’s
+    ArgumentParser. The changes are:
+
+      - The parse_args and parse_known_args methods do not try to invoke
+        sys.exit().
+
+      - It has support for partial command completions that work the way I
+        expect.
+
+      - The word ‘prog’ is generally replaced by ‘command_name’, just to be
+        consistent with |CommandHandler| and its subclasses.
+
+      - Parser defaults are not supported (those set by set_defaults). Defaults
+        have to be specified as part of add_argument.
+
+    Methods
+
+                                    *user_commands.ArgumentParser.add_argument*
+      add_argument(*args, **kwargs)
+        Define how a single command-line argument should be parsed.
+
+        This wraps the standard method in order to support command completion.
+
+                             *user_commands.ArgumentParser.do_parse_known_args*
+      do_parse_known_args(args: Sequence[str]) -> tuple[Namespace, list[str]]
+        Parse known arguments, stopping at a subcommand.
+
+        This is a modified version from the Python 3.11 standard library. This
+        version stops processing arguments when a subcommand is encountered.
+        The upshot is that optional arguments are get properly associated with
+        the correct main command or subcommand.
+
+      error(message)                       *user_commands.ArgumentParser.error*
+        Raise an ArgumentError.
+
+      exit(status=0, message=None)          *user_commands.ArgumentParser.exit*
+        Raise ArgumentError.
+
+                                 *user_commands.ArgumentParser.get_completions*
+      get_completions(arglead: str) -> list[str]
+        Get the possible completions for a partial command.
+
+        Parameters
+
+          arglead: str
+            The partial argument to be completed.
+
+        Return value
+
+        A list of possible completion strings.
+
+                                      *user_commands.ArgumentParser.parse_args*
+      parse_args(args: Sequence[str])
+        Convert argument strings to attributes of the namespace.
+
+      parse_known_args(...)     *user_commands.ArgumentParser.parse_known_args*
+          >
+          parse_known_args(
+                  args=None,
+                  namespace=None,
+                  no_help: bool = False
+<
+        Parse known arguments from the command line.
+
+        This version does not try to sys.exit().
+
+        As of Python 3.9.3, the exit_on_error initialisation argument does not
+        work in the way expect.
+
+      print_help(...)                 *user_commands.ArgumentParser.print_help*
+          >
+          print_help(
+                  _file=None,
+                  cmd_info: common.CommandInfo | None = None
+<
+        Display the help message.
+
+                                *CommandHandler* *user_commands.CommandHandler*
+  class user_commands.CommandHandler(command_name: str, parent: |CommandHandler| | None)
+    A class providing a Vim user command or subcommand.
+
+    Methods
+
+      add_arguments() -> None      *user_commands.CommandHandler.add_arguments*
+        Add the arguments for this command.
+
+                                   *user_commands.CommandHandler.create_parser*
+      create_parser() -> |ArgumentParser|
+        Create the argument parser for this command.
+
+                               *user_commands.CommandHandler.format_usage_head*
+      format_usage_head() -> str
+        Format the leading part of a usage message.
+
+      get_completions(...)       *user_commands.CommandHandler.get_completions*
+          >
+          get_completions(
+                  _vim_args: list[str],
+                  _at_new_arg: bool,
+                  arglead: str
+<
+        Attempt command line completion for this command.
+
+        Parameters
+
+          vim_args
+            The vim command line arguments that are before the cursor.
+
+          at_new_arg
+            True if the cursor’s position is where a new argument/subcommand
+            should be inserted.
+
+        Return value
+
+        A list strings representing the possible completions.
+
+                                  *user_commands.CommandHandler.handle_command*
+      handle_command(args: Namespace)
+        Handle this command.
+
+      process_command(...)       *user_commands.CommandHandler.process_command*
+          >
+          process_command(
+                  cmd_info: common.CommandInfo,
+                  vim_cmd_args: tuple[str]
+<
+        Process this command or subcommand.
+
+        Parameters
+
+          cmd_info: CommandInfo
+            Information about the Vpe command, such as counts or line ranges.
+
+          subcommands
+            The sequence of subcommands leading to and in including this
+            subcommand. When the subclass is a SimpleCommandHandler this has
+            zero length.
+
+          vim_cmd_args: tuple
+            The command and arguments that Vim has parsed from the command
+            line.
+
+                                 *user_commands.CommandHandler.subcommand_help*
+      subcommand_help() -> list[str]
+        Provide subcommand help as a list of strings.
+
+  class user_commands.HelpAction(...)                *user_commands.HelpAction*
+      >
+      HelpAction(
+              option_strings,
+              dest='==SUPPRESS==',
+              default='==SUPPRESS==',
+<
+    A replacement for the standard argparse help action.
+
+    This version defers the help output using |call_soon| and sets the parser’s
+    stop_processing flag.
+
+                                           *user_commands.SimpleCommandHandler*
+  class user_commands.SimpleCommandHandler(command_name: str)
+    A top-level user defined Vim command.
+
+    This provides the main parser for a command that has subcommands.
+
+                                               *user_commands.SubcommandAction*
+  class user_commands.SubcommandAction(...)
+      >
+      SubcommandAction(
+              option_strings,
+              subcommands_table: SubcommandsTable,
+              dest=None,
+              default=None,
+              help=None,
+<
+    An action for subcommands.
+
+                  *SubcommandHandlerBase* *user_commands.SubcommandHandlerBase*
+  class user_commands.SubcommandHandlerBase(command_name: str, parent: |SubcommandHandlerBase| | None)
+    Base for a command that has subcommands.
+
+    Methods
+
+                          *user_commands.SubcommandHandlerBase.get_completions*
+      get_completions(...)
+          >
+          get_completions(
+                  vim_args: list[str],
+                  at_new_arg: bool,
+                  arglead: str
+<
+        Attempt command line completion for this command.
+
+        Parameters
+
+          vim_args: list
+            The vim command line arguments that are before the cursor.
+
+          at_new_arg: bool
+            True if the cursor’s position is where a new argument/subcommand
+            should be inserted.
+
+        Return value
+
+        A list strings representing the possible completions.
+
+                     *user_commands.SubcommandHandlerBase.handle_no_subcommand*
+      handle_no_subcommand(cmd_info: common.CommandInfo, args: Namespace)
+        Handle the case of no subcommand being provided.
+
+                          *user_commands.SubcommandHandlerBase.process_command*
+      process_command(...)
+          >
+          process_command(
+                  cmd_info: common.CommandInfo,
+                  vim_cmd_args: tuple[str]
+<
+        Process this command or subcommand.
+
+        Parameters
+
+          cmd_info: CommandInfo
+            Information about the Vpe command, such as counts or line ranges.
+
+          vim_cmd_args: tuple
+            The command and arguments that Vim has parsed from the command
+            line.
+
+                          *user_commands.SubcommandHandlerBase.subcommand_help*
+      subcommand_help() -> list[str]
+        Provide subcommand help as a list of strings.
+
+                                              *user_commands.SubcommandReached*
+  class user_commands.SubcommandReached(value: str)
+    Raised to indicate that a subcommand has been found.
+
+                                      *user_commands.TopLevelSubcommandHandler*
+  class user_commands.TopLevelSubcommandHandler(command_name: str)
+    A top-level user defined Vim command, with subcommands.
+
+    This provides the main parser for a command that has subcommands.
+
+    Methods
+
+                        *user_commands.TopLevelSubcommandHandler.create_parser*
+      create_parser() -> |ArgumentParser|
+        Create the subcommand argument parser for this command.
+
+                                              *user_commands.VimCommandHandler*
+  class user_commands.VimCommandHandler(command_name: str, *args, **kwargs)
+    Base for user defined Vim commands.
+
+    Methods
+
+                          *user_commands.VimCommandHandler.handle_main_command*
+      handle_main_command(cmd_info: common.CommandInfo, *vim_cmd_args: str)
+        Parse and execute the main command.
+
+        This is invoked by Vim when the user enters this command plus one or
+        more arguments.
+
+        Parameters
+
+          cmd_info: CommandInfo
+            Information about the Vpe command, such as counts or line ranges.
+
+          vim_cmd_args: str
+            The command and arguments that Vim has parsed from the command
+            line.
+
+    Class methods
+
+                                     *user_commands.VimCommandHandler.complete*
+      classmethod complete() -> list[str]
+        Attempt command line completion for a command.
+
+        Return value
+
+        A list strings representing the possible completions.
+
+                                                   *user_commands.unique_match*
+  user_commands.unique_match(text: str, choices: list[str]) -> tuple[str, list[str]]
+    Try to find a unique match within choices that starts with text.
+
+    Parameters
+
+      text: str
+        The text to match.
+
+      choices: list
+        The choices from which to select the match.
+
+    Return value
+
+    A tuple of (match, matches). The match is an empty string if no unique
+    match was found, in which case matches is a, possibly empty, list of
+    partial matches.
+
+  -----------------------------------------------------------------------------~
+  3.12. Module vpe.windows~       *vpe.module-windows* *vpe.module-vpe-windows*
 
   Window specific support.
 
@@ -5009,7 +5380,7 @@ vpe.warning_msg(*args, soon=False)                            *vpe.warning_msg*
 
   -----------------------------------------------------------------------------~
                                 *vpe.module-wrappers* *vpe.module-vpe-wrappers*
-  3.12. Module vpe.wrappers~
+  3.13. Module vpe.wrappers~
 
   Wrappers around the built-in Vim Python types.
 

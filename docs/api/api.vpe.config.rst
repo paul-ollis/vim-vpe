@@ -1,3 +1,5 @@
+.. IMPORTANT: This is an auto-generated file.
+
 Module vpe.config
 =================
 

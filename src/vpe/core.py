@@ -222,8 +222,13 @@ class BufEventHandler(EventHandler):
     def auto_define_event_handlers(self, group_name: str, delete_all=False):
         """Set up mappings for event handling methods.
 
-        This adds f'_{self.number} to the `group_name` and then invokes
-        `EventHandler.auto_define_event_handlers`.
+        This appends _<self.number> to the provided ``group_name`` and then
+        invokes `EventHandler.auto_define_event_handlers`.
+
+        :group_name: A string that is uses to generate a (hopefully) unique
+                     autocmd group name.
+        :delete_all: If set then all previous auto commands in the group are
+                     deleted.
         """
         super().auto_define_event_handlers(
             f'{group_name}_{self.number}', delete_all=delete_all)
@@ -532,10 +537,10 @@ def get_managed_io_buffer(
 
     :name:
         An identifying name for this buffer. This take precedence over the
-        `literal_name`.
+        ``literal_name``.
     :literal_name:
-        If this is provided and `name` has a false value then it is used as the
-        literal name for the buffer.
+        If this is provided and ``name`` has a false value then it is used as
+        the literal name for the buffer.
     """
     # pylint: disable=unsubscriptable-object
     b, buf_name = known_display_managed_io_buffer(name, literal_name)

@@ -141,10 +141,7 @@ python3 << trim EOF
                 section[leaf] = default_value
 
         if 'vpe_config' not in vim.vars:
-            print('Creating vpe_config!')
             vim.vars.vpe_config = {}
-        else:
-            print('The vpe_config already exists!')
         init_config_var('import.vpe', 1)
         init_config_var('import.vim', 1)
         init_config_var('import.vpe_into_builtins', 1)
@@ -172,7 +169,6 @@ python3 << trim EOF
 
     # Invoke initialisation functions.
     vpe.log.redirect()
-    print("START COMPAT")
     try:
         provide_backward_compatibilty()
     finally:

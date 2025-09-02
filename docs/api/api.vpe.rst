@@ -1,3 +1,5 @@
+.. IMPORTANT: This is an auto-generated file.
+
 Module vpe
 ==========
 
@@ -5,15 +7,16 @@ Module vpe
     :maxdepth: 1
 
     api.vpe.app_ui_support
-    api.vpe.argparse
     api.vpe.channels
     api.vpe.config
     api.vpe.core
     api.vpe.diffs
     api.vpe.mapping
+    api.vpe.message_bus
     api.vpe.panels
     api.vpe.syntax
     api.vpe.ui
+    api.vpe.user_commands
     api.vpe.windows
     api.vpe.wrappers
 
@@ -119,9 +122,10 @@ _vpe_args_
                 add(
                         event,
                         func,
-                        pat='<buffer>',
-                        once=False,
-                        nested=False,
+                        pat: str | wrappers.Buffer = '<buffer>',
+                        once: bool = False,
+                        nested: bool = False,
+                        inc_event: bool = False,
 
             Add a new auto command to the group.
 
@@ -135,16 +139,19 @@ _vpe_args_
                 *func*
                     The Python function to invoke. Plain functions and instance
                     methods are supported.
-                *pat*
+                *pat*: str | vpe.wrappers.Buffer
                     The file pattern to match. If not supplied then the special
-                    '<buffer>' pattern is used. If the argument is a `Buffer` then
-                    the special pattern '<buffer=N> is used.
-                *once*
+                    '<buffer>' pattern is used. If the argument is a `Buffer`
+                    then the special pattern '<buffer=N> is used.
+                *once*: bool
                     The standard ':autocmd' options.
-                *nested*
+                *nested*: bool
                     The standard ':autocmd' options.
+                *inc_event*: bool
+                    Include ``event='event-name'`` in the callback invocation.
                 *kwargs*
-                    Additional keyword arguments to be passed the *func*.
+                    Additional keyword arguments to be passed in the callback
+                    invocation.
 
         .. py:staticmethod:: delete_all()
 
@@ -156,8 +163,29 @@ _vpe_args_
 
     Mix-in to support mapping events to methods for buffers.
 
-    This differs from EventHandler by the use of ``self`` as the default
-    pattern.
+    This ties mapped events to the buffer. This mixin is used by the
+    `ManagedIOBuffer` and may also be used for for classes derived from
+    `ScratchBuffer`.
+
+    **Methods**
+
+        .. py:method:: auto_define_event_handlers(group_name: str, delete_all=False)
+
+            Set up mappings for event handling methods.
+
+            This appends _<self.number> to the provided ``group_name`` and then
+            invokes `EventHandler.auto_define_event_handlers`.
+
+            **Parameters**
+
+            .. container:: parameters itemdetails
+
+                *group_name*: str
+                    A string that is uses to generate a (hopefully) unique
+                    autocmd group name.
+                *delete_all*
+                    If set then all previous auto commands in the group are
+                    deleted.
 
 .. rubric:: BufListener
 
@@ -537,10 +565,10 @@ _vpe_args_
             .. container:: parameters itemdetails
 
                 *a*: int
-                    The start index of the range.
+                    The start line number of the range.
                 *b*: int
-                    The end index of the range. Note that this line is included in
-                    the range; *i.e.* the range is inclusive, unlike Python ranges.
+                    The end line number of the range. Note that this line is included
+                    in the range; *i.e.* the range is inclusive, unlike Python ranges.
 
         .. py:method:: retrieve_store(key: Any) -> Struct | None
 
@@ -571,9 +599,9 @@ _vpe_args_
             ``hl_group='Label'`` and 'name' is not provided then the property is
             called 'vpe:hl:Label'.
 
-            The text property is created, as a buffer specific property, if it does
-            not already exist. Apart from the ``bufnr`` option, default values are
-            used for the property's options.
+            The buffer specific text property is created if it does not already
+            exist. Apart from the ``bufnr`` option, default values are used for the
+            property's options.
 
             **Parameters**
 
@@ -590,9 +618,26 @@ _vpe_args_
                 *name*: str
                     An optional name for the property.
 
+        .. py:method:: set_rich_like_lines(lines: list[str]) -> None
+
+            Set highlighted buffer contents from Rich-like markup text.
+
+            This method is useful for non-edit buffers, such as obtained using
+            `get_display_buffer`.
+
+            - The entire contents of the buffer is updated.
+            - Each line is parsed for mark up that looks like '[Macro]' and '[]'.
+              Names within '[' and ']' define highlight groups that are used to
+              set text properties using `set_line_prop`. An empty '[]' reverts to
+              unmarked text. Use '\[' to insert a literal '['.
+
+            The markup style is modelled on (https://github.com/Textualize/rich)
+            (Rich). It is not compatible, but might possibly be extended to
+            support some subset of Rich markup in the future.
+
         .. py:method:: store(key: Any) -> Struct
 
-            Return a `Struct` for a give key.
+            Provide a `Struct` for a given key.
 
             This provides a mechanism to store arbitrary data associated with a
             given buffer. A new `Struct` is created the first time a given key is
@@ -659,6 +704,40 @@ _vpe_args_
 
                 *buffer*: Any
                     A standard :vim:`python-buffer`.
+
+    **Static methods**
+
+        .. py:staticmethod:: escape_rich_like(text: str) -> str
+
+            Escape rich-like markup in a string.
+
+            Use this for text that should not be interpreted when passed to the
+            `set_rich_like_lines` method. This replaces all '['
+            characters with '\['.
+
+        .. py:staticmethod:: markup_text(...)
+
+            .. code::
+
+                markup_text(
+                        text: str,
+                        pat: str,
+                        markup: str,
+                        rep_all: bool = True
+
+            Find ``pat`` in ``text`` and apply richlike ``markup``.
+
+            For exmaple if ``text`` is 'Press Q to quit', ``pat`` is 'Q` and
+            ``markup`` is 'Keyword' then this returns 'Press [Keyword]Q[] to quit'.
+
+            This is function is provide as a convenience for simple cases of
+            rich-like markup.
+
+            **Return value**
+
+            .. container:: returnvalue itemdetails
+
+                The marked up string.
 
 .. rubric:: Buffers
 
@@ -1190,6 +1269,64 @@ _vpe_args_
                 *s*
                     The string to write.
 
+.. rubric:: ManagedIOBuffer
+
+.. py:class:: ManagedIOBuffer(name, buffer, simple_name=None)
+
+    A buffer that does not map directly to a file.
+
+    This is useful when you neeed to control how the contents of an editable
+    buffer a read and written. An example of this might be if you were writing
+    a clone of the :vim:'pi_netrw' plugin, where the buffer's name does not
+    corresond to a name of a file on your computer's storage.
+
+    To use this class you will typically need to subclass it and then override
+    the `load_contents` and `save_contents` methods. To create an instance of
+    your subclass you should use `get_managed_io_buffer`, passing your subclass
+    as the ``buf_class`` argument.
+
+    The underlying Vim buffer is configured with the following key option
+    values:
+
+    ::
+
+        buftype = acwrite
+        swapfile = False
+        bufhidden = hide
+        buflisted = True
+
+    **Methods**
+
+        .. py:method:: load_contents() -> None
+
+            Load the buffer's contents.
+
+            This will typically be overridden in your subclass. It can provide the
+            contents of the buffer by whatever means required. The buffer's
+            modified option is cleared once this returns.
+
+        .. py:method:: on_first_showing()
+
+            Invoked when the buffer is first, successfully displayed.
+
+            Subclasses can implement this as required.
+
+        .. py:method:: save_contents() -> bool
+
+            Save the buffer's contents.
+
+            This will typically be overridden in your subclass. It can store the
+            contents of the buffer by whatever means required.
+
+            Note: the buffer's contents must not be modified by this method.
+
+            **Return value**
+
+            .. container:: returnvalue itemdetails
+
+                ``True`` to indicate that the contents have been successully
+                stored, in which case the buffer's modified option is reset.
+
 .. rubric:: OneShotTimer
 
 .. py:class:: OneShotTimer(ms: int, func: Callable[[...], None])
@@ -1226,7 +1363,14 @@ _vpe_args_
 
 .. rubric:: Popup
 
-.. py:class:: Popup(content, name: str = '', **p_options)
+.. py:class:: Popup(...)
+
+    .. code::
+
+        Popup(
+                content: str | list[str] | list[dict],
+                name: str = '',
+                rich: bool = False,
 
     A Pythonic way to use Vim's popup windows.
 
@@ -1274,7 +1418,7 @@ _vpe_args_
 
     **Properties**
 
-        .. py:property:: buffer() -> vpe.wrappers.Buffer | None
+        .. py:property:: buffer() -> wrappers.Buffer | None
 
             The buffer holding the window's content.
 
@@ -1325,7 +1469,7 @@ _vpe_args_
                     The value passed to `close`. This will be -1 if the user
                     forcefully closed the popup.
 
-        .. py:method:: on_key(key: str, byte_seq: bytes) -> bool
+        .. py:method:: on_key(key: str | bytes, byte_seq: bytes) -> bool
 
             Invoked when the popup receives a keypress.
 
@@ -1350,9 +1494,12 @@ _vpe_args_
 
             .. container:: parameters itemdetails
 
-                *key*: str
-                    The pressed key. This is typically a single character
+                *key*: str | bytes
+                    The pressed key. This is typically a single character string
                     such as 'a' or a symbolic Vim keyname, such as '<F1>'.
+                    However, it can also be a 3 byte sequence starting
+                    b'ý', which occurs when Vim converts internal events
+                    into special key sequences.
                 *byte_seq*: bytes
                     The unmodified byte sequence, as would be received for
                     a filter callback using Vimscript.
@@ -1398,7 +1545,14 @@ _vpe_args_
 
 .. rubric:: PopupAtCursor
 
-.. py:class:: PopupAtCursor(content, name: str = '', **p_options)
+.. py:class:: PopupAtCursor(...)
+
+    .. code::
+
+        PopupAtCursor(
+                content: str | list[str] | list[dict],
+                name: str = '',
+                rich: bool = False,
 
     Popup configured to appear near the cursor.
 
@@ -1406,7 +1560,14 @@ _vpe_args_
 
 .. rubric:: PopupBeval
 
-.. py:class:: PopupBeval(content, name: str = '', **p_options)
+.. py:class:: PopupBeval(...)
+
+    .. code::
+
+        PopupBeval(
+                content: str | list[str] | list[dict],
+                name: str = '',
+                rich: bool = False,
 
     Popup configured to appear near (v:beval_line, v:beval_col).
 
@@ -1414,7 +1575,14 @@ _vpe_args_
 
 .. rubric:: PopupDialog
 
-.. py:class:: PopupDialog(content, name: str = '', **p_options)
+.. py:class:: PopupDialog(...)
+
+    .. code::
+
+        PopupDialog(
+                content: str | list[str] | list[dict],
+                name: str = '',
+                rich: bool = False,
 
     Popup configured as a dialogue.
 
@@ -1429,7 +1597,14 @@ _vpe_args_
 
 .. rubric:: PopupMenu
 
-.. py:class:: PopupMenu(content, name: str = '', **p_options)
+.. py:class:: PopupMenu(...)
+
+    .. code::
+
+        PopupMenu(
+                content: str | list[str] | list[dict],
+                name: str = '',
+                rich: bool = False,
 
     Popup configured as a menu.
 
@@ -1572,7 +1747,7 @@ _vpe_args_
 
             Subclasses may over-ride this.
 
-        .. py:method:: modifiable() -> TemporaryOptions
+        .. py:method:: modifiable() -> wrappers.TemporaryOptions
 
             Create a context that allows the buffer to be modified.
 
@@ -1580,7 +1755,7 @@ _vpe_args_
 
             Invoked when the buffer is first, successfully displayed.
 
-            This is expected to be extended (possibly over-ridden) by subclasses.
+            Subclasses can implement this as required.
 
         .. py:method:: set_ext_name(name)
 
@@ -1646,24 +1821,85 @@ _vpe_args_
 
 .. rubric:: TabPage
 
-.. py:class:: TabPage(obj=None)
+.. py:class:: TabPage(tab_page: _vim.TabPage)
 
     Wrapper around a :vim:`python-tabpage`.
 
     User code should not directly instantiate this class. VPE creates and
     manages instances of this class as required.
 
-    This is a proxy that extends the vim.Window behaviour in various ways.
+    This is a proxy that extends the vim.TabPage behaviour in various ways.
 
     **Properties**
+
+        .. py:property:: buffers() -> list[Buffer]
+
+            A list of the buffers visible in the tab page.
+
+            The list is in the same order as the tab page's windows, but does not
+            contain duplicates.
 
         .. py:property:: vars()
 
             The buffer vars wrapped as a `Variables` instance.
 
+    **Methods**
+
+        .. py:method:: retrieve_store(key: Any) -> Struct | None
+
+            Retrieve a given tabpage store if it exists.
+
+            This is similar to `store`, but no new store is created.
+
+            **Return value**
+
+            .. container:: returnvalue itemdetails
+
+                The requested store `Struct` or ``None`` if it does not exist or
+                this tab page has been closed (`valid` is ``False``).
+
+        .. py:method:: store(key: Any) -> Struct | None
+
+            Provide a `Struct` for a given key.
+
+            This provides a mechanism to store arbitrary data associated with a
+            given tab page. A new `Struct` is created the first time a given key is
+            used. An example of how this can be used:
+
+            .. code-block:: py
+
+                vim.current.tabpage.store['my-store'].processed = True
+                ...
+                for page in vim.buffers:
+                    if page.store['my-store'].processed:
+                        # Treat already processed tab pages differently.
+                        ...
+
+            The :mod:`vpe` package arranges to return the same `TabPage` instance
+            for a given :vim:`python-tabpage` so this effectively allows you to
+            associated meta-data with individual Vim tab pages.
+
+            If the underlying tab page has been closed (`valid` is ``False``) then
+            this simply returns ``None``.
+
+    **Class methods**
+
+        .. py:classmethod:: get_known(tab_page: _vim.TabPage | TabPage) -> TabPage | None
+
+            Get the TabPage instance for a given vim.tab_page.
+
+            This is only intended for internal use.
+
+            **Parameters**
+
+            .. container:: parameters itemdetails
+
+                *tab_page*: vim.TabPage | vpe.wrappers.TabPage
+                    A standard :vim:`python-tab_page` or a TabPage.
+
 .. rubric:: TabPages
 
-.. py:class:: TabPages(obj=None)
+.. py:class:: TabPages
 
     Wrapper around the built-in vim.tabpages.
 
@@ -1804,7 +2040,7 @@ _vpe_args_
 
             The number of times the timer will still fire.
 
-            Note that prior to Patch 8.2.3768 this was 1 greater that one might
+            Note that prior to Vim patch 8.2.3768 this was 1 greater that one might
             expect. Now Vim's ``timer_info()`` returns the expected value except
             duruing the final callback, when we get ``None``. This is non-Pythonic,
             so ``None`` is converted to zero.
@@ -2103,7 +2339,7 @@ _vpe_args_
 
 .. rubric:: temp_active_window
 
-.. py:class:: temp_active_window(win: Window)
+.. py:class:: temp_active_window(win: wrappers.Window)
 
     Context manager that temporarily changes the active window.
 
@@ -2198,7 +2434,7 @@ _vpe_args_
 
     The *info* parameter is `CommandInfo` instance which carries all the meta
     information, such as the command name, range, modifiers, *etc*. The
-    *cmd_args* are those provided to the command; each a string.
+    *cmd_args* are those provided to the command; each is a string.
     The *args* and *kwargs* are those provided to this function.
 
     **Parameters**
@@ -2254,14 +2490,12 @@ _vpe_args_
 
 .. py:function:: dot_vim_dir() -> str
 
-    Return the path to the ~/.vim directory or its equivalent.
+    Provide the likely path to the ~/.vim directory or its equivalent.
 
-
-    **Return value**
-
-    .. container:: returnvalue itemdetails
-
-        This returns the first directory in the runtimepath option.
+    What this does in practice is return the first directory in the
+    :vim:`'runtimepath'` option. Since some users might modify the runtimepath
+    in unpredictable ways, this function should probably be avoided in plugins
+    that you wish to publish.
 
 .. rubric:: echo_msg
 
@@ -2298,7 +2532,7 @@ _vpe_args_
 
 .. rubric:: find_buffer_by_name
 
-.. py:function:: find_buffer_by_name(name: str) -> vpe.wrappers.Buffer | None
+.. py:function:: find_buffer_by_name(name: str) -> wrappers.Buffer | None
 
     Find the buffer with a given name.
 
@@ -2334,6 +2568,34 @@ _vpe_args_
             An identifying name for this buffer. This becomes the
             `ScratchBuffer.simple_name` attribute.
 
+.. rubric:: get_managed_io_buffer
+
+.. py:function:: get_managed_io_buffer(...)
+
+    .. code::
+
+        get_managed_io_buffer(
+                buf_class: Type[ManagedIOBuffer],
+                name: str = '',
+                literal_name: str = ''
+
+    Get a named managed I/O buffer.
+
+    The actual buffer name will be of the form '/[<name>]' if ``name`` is
+    provided and simply the ``literal_name`` otherwise. The buffer is created
+    if it does not already exist.
+
+    **Parameters**
+
+    .. container:: parameters itemdetails
+
+        *name*: str
+            An identifying name for this buffer. This take precedence over the
+            ``literal_name``.
+        *literal_name*: str
+            If this is provided and ``name`` has a false value then it is used as
+            the literal name for the buffer.
+
 .. rubric:: highlight
 
 .. py:function:: highlight(...)
@@ -2347,7 +2609,7 @@ _vpe_args_
                 link: str | None = None,
                 disable: bool = False,
                 debug: bool = False,
-                file: TextIO = None,
+                file: TextIO or None = None,
 
     Execute a highlight command.
 

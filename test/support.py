@@ -320,7 +320,6 @@ class CodeSource:
                 code = extract_code(getattr(method, '__doc__', ''))
                 if code is not None:
                     if fields:
-                        print(">>>", fields)
                         return code.format(**fields), adjust_info
                     else:
                         return code, adjust_info

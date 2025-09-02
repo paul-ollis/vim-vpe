@@ -144,4 +144,10 @@ This is a brief list of VPE's features.
 
 - Pythonic support for `channels <https://vimhelp.org/channel.txt.html>`_.
 
+- Powerful support for implement user commands and subcommands with auto
+  generated help and <Tab> key completion.
+
+- The use of Python decorator syntax to handle key mappings and Vim autocmd
+  events.
+
 - Logging to a buffer. Useful when developing and debugging plug-ins.

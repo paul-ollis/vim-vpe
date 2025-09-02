@@ -1,6 +1,6 @@
 """Support user commands based on Python's argparse module.
 
-This module makes it easy to implement user complex user commands. The features
+This module makes it easy to implement complex user commands. The features
 provided are:
 
 - Support for optional arguments.

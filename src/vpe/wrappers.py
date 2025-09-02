@@ -834,10 +834,10 @@ class Buffer(common.MutableSequenceProxy):
     @staticmethod
     def markup_text(
             text: str, pat: str, markup: str, rep_all: bool = True) -> str:
-        """Find `pat` in `text` and apply richlike `markup`.
+        """Find ``pat`` in ``text`` and apply richlike ``markup``.
 
-        For exmaple if `text` is 'Press Q to quit', `pat` is 'Q` and
-        `markup` is 'Keyword' then this returns 'Press [Keyword]Q[] to quit'.
+        For exmaple if ``text`` is 'Press Q to quit', ``pat`` is 'Q` and
+        ``markup`` is 'Keyword' then this returns 'Press [Keyword]Q[] to quit'.
 
         This is function is provide as a convenience for simple cases of
         rich-like markup.

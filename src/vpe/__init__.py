@@ -154,6 +154,7 @@ __api__ = [
     'Function',
     'GlobalOptions',
     'Options',
+    'ManagedIOBuffer',
     'Range',
     'ScratchBuffer',
     'Struct',

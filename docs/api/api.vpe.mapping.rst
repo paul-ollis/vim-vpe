@@ -1,3 +1,5 @@
+.. IMPORTANT: This is an auto-generated file.
+
 Module vpe.mapping
 ==================
 
@@ -17,7 +19,7 @@ calls.
 
     **Methods**
 
-        .. py:method:: auto_map_keys(pass_info: bool = False, debug: bool = False)
+        .. py:method:: auto_map_keys(pass_info: bool = False)
 
             Set up mappings for methods.
 
@@ -28,20 +30,28 @@ calls.
             .. code::
 
                 mapped(
-                        mode: str,
+                        mode: Union[str, Iterable[str]],
                         keyseq: Union[str, Iterable[str]],
                         **kwargs
 
             Decorator to make a keyboard mapping invoke a method.
 
+            This decorator supports the '<Leader>' prefix in key sequences, in much
+            the same way as describled in :vim:`mapleader`. For example if
+            g:mapleader is set to ',' then the key sequence '<Leader>q' is
+            equivalent to ',q'. If g:mapleader is unset or blank then '\' is used.
+
+            The interpretation of <Leader> occurs at the time of decoration, so
+            changing g:mapleader after plugin loading will typicallhave no effect.
 
             **Parameters**
 
             .. container:: parameters itemdetails
 
-                *mode*: str
+                *mode*: Union
                     The mode in which the mapping applies, one of normal,
-                    op-pending, visual or insert.
+                    op-pending, visual or insert. Or an iterable sequence of
+                    modes.
                 *keyseq*: Union
                     A key sequence string or sequence thereof, as used by `map`.
                 *kwargs*
@@ -66,7 +76,7 @@ calls.
 
     **Methods**
 
-        .. py:method:: get_call_args(_vpe_args: Dict[str, Any])
+        .. py:method:: get_call_args(_vpe_args: dict[str, Any])
 
             Get the Python positional and keyword arguments.
 
@@ -93,6 +103,10 @@ calls.
 
             The sequence of keys that triggered the mapping.
 
+        .. py:attribute:: lidx
+
+            The index of the current line.
+
         .. py:attribute:: mode
 
             The mode in which the mapping was triggered (normal, visual,
@@ -106,12 +120,19 @@ calls.
 
         .. py:attribute:: vmode
 
-            The visual mode (character, line or block). Will be ``None``
-            when not applicable.
+            The visual mode ('character', 'line' or 'block'). Will be
+            ``None`` when not applicable.
 
     **Properties**
 
-        .. py:property:: line_range() -> Optional[Tuple[int, int]]
+        .. py:property:: effective_line_range() -> Optional[tuple[int, int]]
+
+            The effective line range.
+
+            If the mod is 'visual' then this is the same as `line_range` otherwise
+            it is lidx, lidx + 1.
+
+        .. py:property:: line_range() -> Optional[tuple[int, int]]
 
             The line range, if visual mode was active.
 
@@ -157,7 +178,7 @@ calls.
                 pass_info=True,
                 args=(),
                 kwargs: Optional[dict] = None,
-                vim_exprs: Tuple[str, ...] = ()
+                vim_exprs: tuple[str, ...] = ()
 
     Set up a key mapping that invokes a Python function.
 
@@ -216,7 +237,7 @@ calls.
             Additional arguments to pass to the mapped function.
         *kwargs*: Optional
             Additional keyword arguments to pass to the mapped function.
-        *vim_exprs*: Tuple
+        *vim_exprs*: tuple
             Vim expressions to be evaluated and passed to the callback
             function, when the mapping is triggered.
 

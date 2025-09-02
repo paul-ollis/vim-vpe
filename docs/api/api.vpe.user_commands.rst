@@ -1,12 +1,14 @@
-Module vpe.argparse
-===================
+.. IMPORTANT: This is an auto-generated file.
+
+Module vpe.user_commands
+========================
 
 
-.. py:module:: argparse
+.. py:module:: user_commands
 
 Support user commands based on Python's argparse module.
 
-This module makes it easy to implement user complex user commands. The features
+This module makes it easy to implement complex user commands. The features
 provided are:
 
 - Support for optional arguments.
