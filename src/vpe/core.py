@@ -34,15 +34,36 @@ __shadow_api__ = [
     '_VimDesc',
 ]
 __all__ = [
-    'AutoCmdGroup', 'Popup', 'PopupAtCursor', 'PopupBeval',
-    'PopupNotification', 'PopupDialog', 'PopupMenu', 'ScratchBuffer',
-    'Log', 'error_msg', 'warning_msg', 'echo_msg', 'log',
-    'saved_winview', 'highlight', 'pedit', 'popup_clear',
-    'find_buffer_by_name', 'feedkeys', 'get_display_buffer',
-    'define_command', 'temp_active_window', 'CommandHandler',
-    'EventHandler', 'BufEventHandler', 'temp_active_buffer',
-    'saved_current_window',
+    'AutoCmdGroup',
+    'BufEventHandler',
+    'CommandHandler',
+    'define_command',
+    'echo_msg',
+    'error_msg',
+    'EventHandler',
     'expr_arg',
+    'feedkeys',
+    'find_buffer_by_name',
+    'get_display_buffer',
+    'get_managed_io_buffer',
+    'highlight',
+    'log',
+    'Log',
+    'ManagedIOBuffer',
+    'pedit',
+    'Popup',
+    'PopupAtCursor',
+    'PopupBeval',
+    'popup_clear',
+    'PopupDialog',
+    'PopupMenu',
+    'PopupNotification',
+    'saved_current_window',
+    'saved_winview',
+    'ScratchBuffer',
+    'temp_active_buffer',
+    'temp_active_window',
+    'warning_msg',
 ]
 
 _std_vim_colours = set((
@@ -118,7 +139,7 @@ def _clean_ident(s):
 
     The returned value can be used in group names.
     """
-    valid_chars = set(string.ascii_letters + string.digits)
+    valid_chars = set(string.ascii_letters + string.digits + '_')
     def fold_to_ident_char(c):
         if c not in valid_chars:
             return 'x'                                       # pragma: no cover
@@ -127,6 +148,85 @@ def _clean_ident(s):
     if ident != s:
         return ident
     return s                                                 # pragma: no cover
+
+
+class EventHandler:
+    """Mix-in to support mapping events to methods.
+
+    This provides a convenient alternative to direct use of `AutoCmdGroup`.
+    The default pattern (see :vim:`autocmd-patterns`) is '*' unless explicitly
+    set by the `handle` decorator.
+    """
+    _default_event_pattern: str | None = '*'
+
+    def auto_define_event_handlers(self, group_name: str, delete_all=False):
+        """Set up mappings for event handling methods.
+
+        :group_name: The name for the auto command group (see :vim:`augrp`).
+                     This will be converted to a valid Vim identifier.
+        :delete_all: If set then all previous auto commands in the group are
+                     deleted.
+        """
+        def is_method(obj):
+            return inspect.ismethod(obj) or inspect.isfunction(obj)
+
+        group_ident = _clean_ident(group_name)
+        if group_ident in ('', '_', '__'):
+            vpe.error_msg(
+                f'{group_name} cannot be converted to a sensible Vim'
+                ' identifier', soon=True)
+            return
+
+        with AutoCmdGroup(group_ident) as grp:
+            if delete_all:
+                grp.delete_all()
+            for _, method in inspect.getmembers(self, is_method):
+                info = getattr(method, '_eventmappings_', None)
+                if info is not None:
+                    for name, kwargs in info:
+                        kw = kwargs.copy()
+                        if 'pat' not in kw:
+                            kw['pat'] = self._default_event_pattern or self
+                        grp.add(name, method, **kw)
+
+    @staticmethod
+    def handle(name: str, **kwargs) -> Callable[[Callable], Callable]:
+        """Decorator to make an event invoke a method.
+
+        :name:   The name of the event (see :vim:`autocmd-events`.
+        :kwargs: See `AutoCmdGroup.add` for the supported arguments.
+                 Note that the ``pat`` argument defaults to '*', not
+                 '<buffer>'.
+        """
+        def wrapper(func: Callable) -> Callable:
+            info = getattr(func, '_eventmappings_', None)
+            if info is None:
+                setattr(func, '_eventmappings_', [])
+                info = getattr(func, '_eventmappings_')
+            info.append((name, kwargs))
+            return func
+
+        return wrapper
+
+
+class BufEventHandler(EventHandler):
+    """Mix-in to support mapping events to methods for buffers.
+
+    This ties mapped events to the buffer. This mixin is used by the
+    `ManagedIOBuffer` and may also be used for for classes derived from
+    `ScratchBuffer`.
+    """
+    _default_event_pattern = None
+    number: int
+
+    def auto_define_event_handlers(self, group_name: str, delete_all=False):
+        """Set up mappings for event handling methods.
+
+        This adds f'_{self.number} to the `group_name` and then invokes
+        `EventHandler.auto_define_event_handlers`.
+        """
+        super().auto_define_event_handlers(
+            f'{group_name}_{self.number}', delete_all=delete_all)
 
 
 class ScratchBuffer(wrappers.Buffer):
@@ -267,6 +367,84 @@ class ScratchBuffer(wrappers.Buffer):
         return self.temp_options(modifiable=True, readonly=False)
 
 
+class ManagedIOBuffer(wrappers.Buffer, BufEventHandler):
+    """A buffer that does not map directly to a file.
+
+    This is useful when you neeed to control how the contents of an editable
+    buffer a read and written. An example of this might be if you were writing
+    a clone of the :vim:'pi_netrw' plugin, where the buffer's name does not
+    corresond to a name of a file on your computer's storage.
+
+    To use this class you will typically need to subclass it and then override
+    the `load_contents` and `save_contents` methods. To create an instance of
+    your subclass you should use `get_managed_io_buffer`, passing your subclass
+    as the ``buf_class`` argument.
+
+    The underlying Vim buffer is configured with the following key option
+    values::
+
+        buftype = acwrite
+        swapfile = False
+        bufhidden = hide
+        buflisted = True
+    """
+    def __init__(self, name, buffer, simple_name=None):
+        super().__init__(buffer)
+        self.name = name
+        self.__dict__['simple_name'] = _clean_ident(simple_name or name)
+        options = self.options
+        options.buftype = 'acwrite'
+        options.swapfile = False
+        options.bufhidden = 'hide'
+        options.buflisted = True
+        self.auto_define_event_handlers(group_name='VPE_ManagedIOBuffer')
+
+    def on_first_showing(self):
+        """Invoked when the buffer is first, successfully displayed.
+
+        Subclasses can implement this as required.
+        """
+
+    @EventHandler.handle('BufWinEnter', once=True)
+    def _handle_first_showing(self) -> None:
+        """Invoked when the buffer is first, successfully displayed.
+
+        Subclasses can extend this as required.
+        """
+        self.on_first_showing()
+
+    @EventHandler.handle('BufWriteCmd')
+    def _handle_buffer_write(self) -> None:
+        if self.save_contents():
+            self.options.modified = False
+
+    @EventHandler.handle('BufReadCmd')
+    def _handle_buffer_read(self) -> None:
+        self.load_contents()
+        self.options.modified = False
+
+    def load_contents(self) -> None:
+        """Load the buffer's contents.
+
+        This will typically be overridden in your subclass. It can provide the
+        contents of the buffer by whatever means required. The buffer's
+        modified option is cleared once this returns.
+        """
+
+    def save_contents(self) -> bool:
+        """Save the buffer's contents.
+
+        This will typically be overridden in your subclass. It can store the
+        contents of the buffer by whatever means required.
+
+        Note: the buffer's contents must not be modified by this method.
+
+        :return:
+            ``True`` to indicate that the contents have been successully
+            stored, in which case the buffer's modified option is reset.
+        """
+
+
 def known_display_buffer(name: str) -> tuple[ScratchBuffer | None, str]:
     r"""Get a named display-only buffer if it is already known and exists."""
     # pylint: disable=unsubscriptable-object
@@ -310,6 +488,70 @@ def get_display_buffer(
 
     # Wrap the buffer and save in the table of known display buffers.
     b = buf_class(buf_name, b, name)
+    _known_special_buffers[buf_name] = b
+
+    return b
+
+
+def known_display_managed_io_buffer(
+        name: str = '', literal_name: str = '',
+    ) -> tuple[ScratchBuffer | None, str]:
+    r"""Get a named managed I/O buffer if it is already known and exists."""
+    # pylint: disable=unsubscriptable-object
+    if name:
+        if platform.system() == 'Windows': # pragma: no cover windows
+            buf_name = rf'C:\[<{name}>]'
+        else:
+            buf_name = f'/[<{name}>]'
+    elif literal_name:
+        buf_name = literal_name
+    else:
+        msg = 'You must provide either the name or the literal_name argument'
+        raise ValueError(msg)
+
+    # Return the already created buffer if possible.
+    b = _known_special_buffers.get(buf_name, None)
+    if b is not None and b.valid:
+        # Buffer has been deleted.
+        return b, buf_name
+    else:
+        return None, buf_name
+
+
+def get_managed_io_buffer(
+            buf_class: Type[ManagedIOBuffer],
+            *,
+            name: str = '',
+            literal_name: str = '',
+        ) -> ManagedIOBuffer:
+    """Get a named managed I/O buffer.
+
+    The actual buffer name will be of the form '/[<name>]' if ``name`` is
+    provided and simply the ``literal_name`` otherwise. The buffer is created
+    if it does not already exist.
+
+    :name:
+        An identifying name for this buffer. This take precedence over the
+        `literal_name`.
+    :literal_name:
+        If this is provided and `name` has a false value then it is used as the
+        literal name for the buffer.
+    """
+    # pylint: disable=unsubscriptable-object
+    b, buf_name = known_display_managed_io_buffer(name, literal_name)
+    if b is not None:
+        return b
+
+    # Find the matching buffer or create it.
+    for b in wrappers.vim.buffers:
+        if b.name == buf_name:
+            break
+    else:
+        n = wrappers.vim.bufnr(buf_name, True)
+        b = wrappers.vim.buffers[n]
+
+    # Wrap the buffer and save in the table of known display buffers.
+    b = buf_class(buf_name, b, name or literal_name)
     _known_special_buffers[buf_name] = b
 
     return b
@@ -1045,74 +1287,6 @@ class AutoCmdGroup:
         cmd_seq.append(callback.as_call())
         common.vim_command(' '.join(cmd_seq))
         callback.debug_meta = event, pat
-
-
-class EventHandler:
-    """Mix-in to support mapping events to methods.
-
-    This provides a convenient alternative to direct use of `AutoCmdGroup`.
-    The default pattern (see :vim:`autocmd-patterns`) is '*' unless explicitly
-    set by the `handle` decorator.
-    """
-    _default_event_pattern: str | None = '*'
-
-    def auto_define_event_handlers(self, group_name: str, delete_all=False):
-        """Set up mappings for event handling methods.
-
-        :group_name: The name for the auto command group (see :vim:`augrp`).
-                     This will be converted to a valid Vim identifier.
-        :delete_all: If set then all previous auto commands in the group are
-                     deleted.
-        """
-        def is_method(obj):
-            return inspect.ismethod(obj) or inspect.isfunction(obj)
-
-        group_ident = _clean_ident(group_name)
-        if group_ident in ('', '_', '__'):
-            vpe.error_msg(
-                f'{group_name} cannot be converted to a sensible Vim'
-                ' identifier', soon=True)
-            return
-
-        with AutoCmdGroup(group_ident) as grp:
-            if delete_all:
-                grp.delete_all()
-            for _, method in inspect.getmembers(self, is_method):
-                info = getattr(method, '_eventmappings_', None)
-                if info is not None:
-                    for name, kwargs in info:
-                        kw = kwargs.copy()
-                        if 'pat' not in kw:
-                            kw['pat'] = self._default_event_pattern or self
-                        grp.add(name, method, **kw)
-
-    @staticmethod
-    def handle(name: str, **kwargs) -> Callable[[Callable], Callable]:
-        """Decorator to make an event invoke a method.
-
-        :name:   The name of the event (see :vim:`autocmd-events`.
-        :kwargs: See `AutoCmdGroup.add` for the supported arguments.
-                 Note that the ``pat`` argument defaults to '*', not
-                 '<buffer>'.
-        """
-        def wrapper(func: Callable) -> Callable:
-            info = getattr(func, '_eventmappings_', None)
-            if info is None:
-                setattr(func, '_eventmappings_', [])
-                info = getattr(func, '_eventmappings_')
-            info.append((name, kwargs))
-            return func
-
-        return wrapper
-
-
-class BufEventHandler(EventHandler):
-    """Mix-in to support mapping events to methods for buffers.
-
-    This differs from EventHandler by the use of ``self`` as the default
-    pattern.
-    """
-    _default_event_pattern = None
 
 
 def highlight(

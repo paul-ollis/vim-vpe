@@ -87,16 +87,16 @@ __version__ = '0.7.0-a'
 __api__ = [
     # Modules documented as part of the API.
     'app_ui_support',
-    'argparse',
     'channels',
     'commands',
     'config',
-    'diffs',
     'core',
+    'diffs',
     'mapping',
     'panels',
     'syntax',
     'ui',
+    'user_commands',
     'windows',
     'wrappers',
 
@@ -114,6 +114,7 @@ __api__ = [
     'find_buffer_by_name',
     'Finish',
     'get_display_buffer',
+    'get_managed_io_buffer',
     'highlight',
     'log',
     'Log',
