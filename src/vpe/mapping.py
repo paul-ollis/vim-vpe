@@ -6,7 +6,7 @@ calls.
 
 import inspect
 from functools import partial
-from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
+from typing import Any, Callable, Final, Iterable, Optional
 
 import vpe
 from vpe import common, core
@@ -41,7 +41,7 @@ class MapCallback(common.Callback):    # pylint: disable=too-few-public-methods
         self.pass_info = kwargs.pop('pass_info', False)
         super().__init__(*args, **kwargs)
 
-    def get_call_args(self, _vpe_args: Dict[str, Any]):
+    def get_call_args(self, _vpe_args: dict[str, Any]):
         """Get the Python positional and keyword arguments.
 
         This makes the first positional argument a `MappingInfo` instance,
@@ -65,8 +65,9 @@ class MappingInfo:
     @mode:         The mode in which the mapping was triggered (normal, visual,
                    op-pending or insert).
     @keys:         The sequence of keys that triggered the mapping.
-    @vmode:        The visual mode (character, line or block). Will be ``None``
-                   when not applicable.
+    @lidx:         The index of the current line.
+    @vmode:        The visual mode ('character', 'line' or 'block'). Will be
+                   ``None`` when not applicable.
     @start_cursor: When mode=="visual", a tuple (line, column) of the selection
                    start. Both values are 1-based. Will be (-1, -1) when not
                    applicable.
@@ -77,9 +78,10 @@ class MappingInfo:
     def __init__(self, mode: str, keys: str):
         self.mode: str = mode
         self.keys: str = keys
-        self.vmode: Optional[str] = None
-        self.start_cursor: Tuple[int, int] = (-1, -1)
-        self.end_cursor: Tuple[int, int] = (-1, -1)
+        self.lidx = vim.line('.') - 1
+        self.vmode: str | None = None
+        self.start_cursor: tuple[int, int] = (-1, -1)
+        self.end_cursor: tuple[int, int] = (-1, -1)
         if self.mode == 'visual':
             v = vim.visualmode()
             if v == 'v':
@@ -88,8 +90,8 @@ class MappingInfo:
                 self.vmode = 'line'
             else:
                 self.vmode = 'block'
-            start: List[int] = vim.getpos("'<")
-            end: List[int] = vim.getpos("'>")
+            start: list[int] = vim.getpos("'<")
+            end: list[int] = vim.getpos("'>")
             self.start_cursor = tuple(start[1:3])    # type: ignore[assignment]
             self.end_cursor = tuple(end[1:3])        # type: ignore[assignment]
 
@@ -104,6 +106,18 @@ class MappingInfo:
             elidx, _ = self.end_cursor
             return slidx - 1, elidx
         return None
+
+    @property
+    def effective_line_range(self) -> Optional[tuple[int, int]]:
+        """The effective line range.
+
+        If the mod is 'visual' then this is the same as `line_range` otherwise
+        it is lidx, lidx + 1.
+        """
+        rng = self.line_range
+        if rng is None:
+            rng = self.lidx, self.lidx + 1
+        return rng
 
     def __str__(self):
         return f'{self.__class__.__name__}({self.mode},{self.keys})'
@@ -296,22 +310,25 @@ def imap(
 class KeyHandler:
     """Mix-in to support mapping key sequences to methods."""
 
-    def auto_map_keys(self, *, pass_info: bool = False, debug: bool = False):
+    #: A list of key sequences, mapping mode and docstring.
+    map_info: Final[list[tuple[str, str, str]]]
+
+    def auto_map_keys(self, *, pass_info: bool = False):
         """Set up mappings for methods."""
         def is_method(obj):
             return inspect.ismethod(obj) or inspect.isfunction(obj)
 
+        map_info = getattr(self, 'map_info', None)
+        if map_info is None:
+            setattr(self, 'map_info', [])
         kmap = partial(map, pass_info=pass_info)
         with vim.temp_options(cpoptions=vpe.VIM_DEFAULT):
             for _, method in inspect.getmembers(self, is_method):
                 info = getattr(method, '_keymappings_', None)
-                if debug:
-                    print("AM", info)
                 if info is not None:
-                    for mode, keyseq, kwargs in info:
-                        if debug:
-                            print("AM", (mode, keyseq, method, kwargs))
+                    for mode, keyseq, docstring, kwargs in info:
                         kmap(mode, keyseq, method, **kwargs)
+                        self.map_info.append((keyseq, mode, docstring))
 
     @staticmethod
     def mapped(
@@ -319,19 +336,44 @@ class KeyHandler:
             keyseq: str | Iterable[str],
             **kwargs,
         ) -> Callable[[Callable], Callable]:
-        """Decorator to make a keyboard mapping invoke a method.
+        r"""Decorator to make a keyboard mapping invoke a method.
+
+        This decorator supports the '<Leader>' prefix in key sequences, in much
+        the same way as describled in :vim:`mapleader`. For example if
+        g:mapleader is set to ',' then the key sequence '<Leader>q' is
+        equivalent to ',q'. If g:mapleader is unset or blank then '\' is used.
+
+        The interpretation of <Leader> occurs at the time of decoration, so
+        changing g:mapleader after plugin loading will typicallhave no effect.
 
         :mode:   The mode in which the mapping applies, one of normal,
-                 op-pending, visual or insert.
+                 op-pending, visual or insert. Or an iterable sequence of
+                 modes.
         :keyseq: A key sequence string or sequence thereof, as used by `map`.
         :kwargs: See `map` for the supported values.
         """
+        def replace_leader(s: str) -> str:
+            """Replace <Leader> sta start of string with g:mapleader."""
+            if s.startswith('<Leader>'):
+                mapleader = vim.vars.mapleader
+                if isinstance(mapleader, str) and mapleader:
+                    return mapleader + s[8:]
+                else:
+                    return '\\' + s[8:]
+            else:
+                return s
+
         def wrapper(func: Callable) -> Callable:
             info = getattr(func, '_keymappings_', None)
             if info is None:
                 setattr(func, '_keymappings_', [])
                 info = getattr(func, '_keymappings_')
-            info.append((mode, keyseq, kwargs))
+            modes = [mode] if isinstance(mode, str) else mode
+            keyseq_list = [keyseq] if isinstance(keyseq, str) else keyseq
+            keyseq_list = tuple(replace_leader(s) for s in keyseq_list)
+            for m in modes:
+                info.append(
+                    (m, keyseq_list, inspect.getdoc(func) or '', kwargs))
             return func
 
         return wrapper
@@ -340,7 +382,8 @@ class KeyHandler:
 def _remove_mapping(unmap_cmd: str, buffer: Buffer | None):
     """Function to remove a previously created mapping."""
     if buffer is not None:
-        with core.temp_active_buffer(buffer):
-            vim.command(unmap_cmd)
+        if buffer.valid:
+            with core.temp_active_buffer(buffer):
+                vim.command(unmap_cmd)
     else:
         vim.command(unmap_cmd)
