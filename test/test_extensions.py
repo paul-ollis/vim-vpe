@@ -1073,10 +1073,13 @@ class AutoCmdGroup(support.CommandsBase):
     def create_using_event_handler_mixin(self):
         """The EventHandler mixin provides decorators for event handling.
 
+        Invalid characters in autocmd groups are changed to 'x' 'under the
+        bonnet'.
+
         :<vim>:
 
             set cpoptions&vim
-            augroup testxxautocmds
+            augroup testx_autocmds
             autocmd BufReadPre * call VPE_Call("{uid_a}", "EH_Test.callback")
             augroup END
         """
@@ -1099,7 +1102,7 @@ class AutoCmdGroup(support.CommandsBase):
         :<vim>:
 
             set cpoptions&vim
-            augroup testxxautocmds
+            augroup testx_autocmds
             autocmd!
             autocmd BufReadPre * call VPE_Call("{uid_a}", "EH_Test.callback")
             augroup END

@@ -392,6 +392,11 @@ def win_gotoid(_win):
     """Goto a window with the given ID"""
 
 
+def getbufinfo(*args) -> list[dict]:
+    """Get (empty) bufinfo dict, inside a list"""
+    return [{}]
+
+
 def setreg(_name, _value):
     """Set a register's value."""
 

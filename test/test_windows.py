@@ -73,6 +73,7 @@ class WindowsList(support.Base):
 
             dump(res)
         """
+        # TODO: Vim -bug: I have seem Vim segfault when this test is run.
         res = self.run_self()
         failUnlessEqual(res.visited_ids, res.known_ids)
 

@@ -756,7 +756,7 @@ class Log:
             prev_content = list(self.fifo)
             self.fifo = collections.deque([], maxlen)
             self.fifo.extend(prev_content[-maxlen:])
-        self._trim(True)
+        self._trim(full=False)
 
 
 class _PopupOption:

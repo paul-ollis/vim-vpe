@@ -320,7 +320,13 @@ class KeyHandler:
 
         map_info = getattr(self, 'map_info', None)
         if map_info is None:
-            setattr(self, 'map_info', [])
+            try:
+                setattr(self, 'map_info', [])
+                map_info = self.map_info
+            except AttributeError:
+                # Attribute setting is not allowed. Everthing will work OK
+                # except that no key_map attribute will be available.
+                map_info = []
         kmap = partial(map, pass_info=pass_info)
         with vim.temp_options(cpoptions=vpe.VIM_DEFAULT):
             for _, method in inspect.getmembers(self, is_method):
@@ -328,7 +334,7 @@ class KeyHandler:
                 if info is not None:
                     for mode, keyseq, docstring, kwargs in info:
                         kmap(mode, keyseq, method, **kwargs)
-                        self.map_info.append((keyseq, mode, docstring))
+                        map_info.append((keyseq, mode, docstring))
 
     @staticmethod
     def mapped(
