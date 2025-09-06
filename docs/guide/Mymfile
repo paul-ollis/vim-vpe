@@ -19,8 +19,8 @@ sphinxConfig.conf["default_role"] = "any"
 sphinxConfig.conf['autodoc_typehints'] = "none"
 sphinxConfig.conf['master_doc'] = "index"
 sphinxConfig.conf['needs_sphinx'] = "3.2"
-sphinxConfig.conf['version'] = '0.7.0-a'
-sphinxConfig.conf['release'] = '0.7.0-a'
+sphinxConfig.conf['version'] = '0.7.0'
+sphinxConfig.conf['release'] = '0.7.0'
 sphinxConfig.conf['vim_link_map'] = {
     'vim': 'vpe.vim',
     'Vim': 'vpe.Vim',

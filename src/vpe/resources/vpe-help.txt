@@ -1138,6 +1138,11 @@ class vpe.Log(name: str, maxlen: int = 500, timestamps: bool = True)
 class vpe.ManagedIOBuffer(name, buffer, simple_name=None)
   A buffer that does not map directly to a file.
 
+  DO NOT DIRECTLY INSTANTIATE THIS CLASS.
+
+  Use |get_managed_io_buffer|, which creates a buffer with suitably formatted
+  names and, critically, ensures that it is added into the vim.buffers objects.
+
   This is useful when you neeed to control how the contents of an editable
   buffer a read and written. An example of this might be if you were writing a
   clone of the :vim:’pi_netrw’ plugin, where the buffer’s name does not
@@ -1480,12 +1485,14 @@ class vpe.Registers                                 *Registers* *vpe.Registers*
 class vpe.ScratchBuffer(name, buffer, simple_name=None)
   A scratch buffer.
 
+  DO NOT DIRECTLY INSTANTIATE THIS CLASS.
+
+  Use |get_display_buffer|, which creates a buffer with suitably formatted
+  names and, critically, ensures that it is added into the vim.buffers objects.
+
   A scratch buffer has no associated file, has no swap file, never gets written
   and never appears to be modified. The content of such a buffer is typically
   under the control of plugin code. Direct editing is disabled.
-
-  Direct instantiation is not recommended; use |get_display_buffer|, which
-  creates bufferes with suitably formatted names.
 
   Parameters
 
@@ -1774,7 +1781,7 @@ class vpe.Timer(...)                                        *Timer* *vpe.Timer*
       The number of times the timer will still fire.
 
       Note that prior to Vim patch 8.2.3768 this was 1 greater that one might
-      expect. Now Vim’s timer_info() returns the expected value except duruing
+      expect. Now Vim’s timer_info() returns the expected value except during
       the final callback, when we get None. This is non-Pythonic, so None is
       converted to zero.
 
@@ -2133,9 +2140,7 @@ vpe.define_command(...)                                    *vpe.define_command*
 vpe.dot_vim_dir() -> str                                      *vpe.dot_vim_dir*
   Provide the likely path to the ~/.vim directory or its equivalent.
 
-  What this does in practice is return the first directory in the 'runtimepath'
-  option. Since some users might modify the runtimepath in unpredictable ways,
-  this function should probably be avoided in plugins that you wish to publish.
+  All this does is lookup $MYVIMDIR.
 
 vpe.echo_msg(*args, soon=False)                                  *vpe.echo_msg*
   Like |error_msg|, but for information.

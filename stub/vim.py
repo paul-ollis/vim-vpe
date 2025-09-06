@@ -241,7 +241,8 @@ class _Function(Base):
     instances = {}
 
     def __init__(self, name: str, args: Optional[ListType[Any]] = None):
-        self.instances[name] = self
+        if not args:
+            self.instances[name] = self
         self.name = name
         self.args = args
         self.self = None
@@ -253,16 +254,19 @@ class _Function(Base):
             va['uid'] = self.args[0]
             va['args'] = args
             import vpe                # pylint: disable=import-outside-toplevel
+            #print('Stub: Callback.invoke()')
             ret = vpe.Callback.invoke()
             return ret
         else:
             func = builtins.eval(self.name)
             ret = func(*args)
+            #print(f'Stub: {func}({args})')
             return ret
 
 
 def Function(name, args=None) -> _Function:      # pylint: disable=invalid-name
     """Create or reuse a _Function."""
+    #print(f'Stub: Create function: {name=}')
     if name in _Function.instances:
         return _Function.instances[name]
     return _Function(name, args)
@@ -413,16 +417,17 @@ def popup_create(content, name, **p_options):
 _timers = {}
 
 
-def timer_start(_time, _callback, _options):
+def timer_start(_time, callback, _options):
     """Set up a timer.
 
     This does not actually use the time parameter, it simply arranges
     for callback to be invoked soon, by the test framework's main loop.
     """
     def cb(*args, **kwargs):
+        #print(f'Stub: timer.cb({args}, {kwargs})')
         _, saved_options = _timers[tid]
         saved_options['repeat'] -= 1
-        return _callback(*args, **kwargs)
+        return callback(*args, **kwargs)
 
     saved_options = dict(_options)
     tid = next(timer_id_source)

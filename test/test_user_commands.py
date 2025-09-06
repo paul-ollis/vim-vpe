@@ -4,7 +4,6 @@
 # pylint: disable=deprecated-method
 # pylint: disable=wrong-import-order
 
-import itertools
 import re
 
 from cleversheep3.Test.DataMaker import literalText2Text

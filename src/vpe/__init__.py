@@ -59,7 +59,7 @@ import sys
 import traceback
 from importlib.metadata import entry_points
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Tuple, Union
+from typing import Any, Callable
 
 import vim as _vim
 
@@ -84,7 +84,7 @@ from vpe.wrappers import (
     Registers, Struct, TabPage, TabPages, VIM_DEFAULT, VI_DEFAULT, Variables,
     Window, Windows, commands)
 
-__version__ = '0.7.0-a'
+__version__ = '0.7.0'
 
 __api__ = [
     # Modules documented as part of the API.
@@ -169,16 +169,16 @@ __api__ = [
 
 PLUGIN_SUBDIR = 'vpe_plugins'
 
-_plugin_hooks: Dict[str, List[Callable[[], None]]] = {}
+_plugin_hooks: dict[str, list[Callable[[], None]]] = {}
 
 
 class Namespace:
     """Just an object that acts as an arbitrary namespace."""
 
 
-# TODO: Discard this BEFORE release. It makes linting hard without providing
-#       enough of an advantage; especially now I am transitioning to ``pip``
-#       installed plugins.
+# TODO: Discard this BEFORE release 1.0. It makes linting hard without
+#       providing enough of an advantage; especially now I am transitioning to
+#       ``pip`` installable plugins.
 #: A place to store globally available information.
 #:
 #: Each plugin must choose a suitably unique name, e.g. 'zippy'. Then it can
@@ -207,12 +207,9 @@ class Finish(Exception):
 def dot_vim_dir() -> str:
     """Provide the likely path to the ~/.vim directory or its equivalent.
 
-    What this does in practice is return the first directory in the
-    :vim:`'runtimepath'` option. Since some users might modify the runtimepath
-    in unpredictable ways, this function should probably be avoided in plugins
-    that you wish to publish.
+    All this does is lookup $MYVIMDIR.
     """
-    return vim.options.runtimepath.split(',')[0]
+    return os.environ.get('MYVIMDIR', '')
 
 
 def script_py_path() -> str:
@@ -367,9 +364,9 @@ class temp_log:                                              # pragma: no cover
     This is only intended to be used for ad-hoc debugging.
     """
     f: Any
-    saved: Tuple[Any, Any]
+    saved: tuple[Any, Any]
 
-    def __init__(self, file_path: Union[Path, str]):
+    def __init__(self, file_path: Path | str):
         self.path = Path(file_path)
 
     def __enter__(self):

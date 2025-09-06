@@ -7,6 +7,7 @@ import os
 import platform
 import re
 import time
+from pathlib import Path
 
 # pylint: disable=unused-wildcard-import,wildcard-import
 from cleversheep3.Test.DataMaker import literalText2Text
@@ -34,7 +35,7 @@ class TestInfo(support.Base):
             dump(res)
         """
         res = self.run_self()
-        failUnlessEqual('0.7.0-a', res.version)
+        failUnlessEqual('0.7.0', res.version)
 
 
 class DisplayBuffer(support.Base):
@@ -1391,10 +1392,18 @@ class Miscellaneous(support.CommandsBase):
             dump(res)
         """
         res = self.run_self()
+
+        vimrc_path = Path('~/.vimrc').expanduser()
+        vim_dir_path = Path('~/.vim').expanduser()
+        if not (vimrc_path.exists() or vim_dir_path.exists()):
+            xdg_vim_dir_path = Path('~/.config/vim').expanduser()
+            if xdg_vim_dir_path.exists():
+                vim_dir_path = xdg_vim_dir_path
+
         if platform.platform().startswith('CYGWIN'):
             failUnlessEqual(f'{res.home}/vimfiles', res.dirname)
         else:
-            failUnlessEqual(os.path.expanduser('~/.vim'), res.dirname)
+            failUnlessEqual(str(vim_dir_path), res.dirname)
 
 
 class DefineCommand(support.Base):

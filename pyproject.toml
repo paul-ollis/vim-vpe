@@ -1,6 +1,6 @@
 [project]
 name = 'vpe'
-version = '0.7.0-a'
+version = '0.7.0'
 authors = [
   { name='Paul Ollis', email='paul@cleversheep.org' },
 ]

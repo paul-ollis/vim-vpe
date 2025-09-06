@@ -101,6 +101,7 @@ class VPECommandProvider(TopLevelSubcommandHandler):
     subcommands = {
         'log': (LogSubCommand, 'Log file management.'),
         'insert_config': (':simple', 'Insert the vpe_config global variable.'),
+        'install': (':simple', 'Install Vim plugin and help files.'),
         'version': (':simple', 'Display the VPE version number.'),
     }
     range = True
@@ -152,6 +153,14 @@ class VPECommandProvider(TopLevelSubcommandHandler):
             else:
                 lines.append(f'let g:vpe_config.{name} = 1')
         buf[row-1:row-1] = lines
+
+    def handle_install(self, _args: Namespace) -> None:
+        """Execute the 'Vpe install' command."""
+        # pylint: disable=import-outside-toplevel
+        import vpe.install as vpe_install
+
+        vpe_install.run()
+        vpe.commands.messages()
 
     def handle_version(self, _args: Namespace) -> None:
         """Execute the 'Vpe version' command."""

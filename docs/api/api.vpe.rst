@@ -1275,6 +1275,12 @@ _vpe_args_
 
     A buffer that does not map directly to a file.
 
+    DO NOT DIRECTLY INSTANTIATE THIS CLASS.
+
+    Use `get_managed_io_buffer`, which creates a buffer with suitably formatted
+    names and, critically, ensures that it is added into the ``vim.buffers``
+    objects.
+
     This is useful when you neeed to control how the contents of an editable
     buffer a read and written. An example of this might be if you were writing
     a clone of the :vim:'pi_netrw' plugin, where the buffer's name does not
@@ -1694,12 +1700,15 @@ _vpe_args_
 
     A scratch buffer.
 
+    DO NOT DIRECTLY INSTANTIATE THIS CLASS.
+
+    Use `get_display_buffer`, which creates a buffer with suitably formatted
+    names and, critically, ensures that it is added into the ``vim.buffers``
+    objects.
+
     A scratch buffer has no associated file, has no swap file, never gets
     written and never appears to be modified. The content of such a buffer is
     typically under the control of plugin code. Direct editing is disabled.
-
-    Direct instantiation is not recommended; use `get_display_buffer`, which
-    creates bufferes with suitably formatted names.
 
     **Parameters**
 
@@ -2042,7 +2051,7 @@ _vpe_args_
 
             Note that prior to Vim patch 8.2.3768 this was 1 greater that one might
             expect. Now Vim's ``timer_info()`` returns the expected value except
-            duruing the final callback, when we get ``None``. This is non-Pythonic,
+            during the final callback, when we get ``None``. This is non-Pythonic,
             so ``None`` is converted to zero.
 
         .. py:property:: time() -> int
@@ -2492,10 +2501,7 @@ _vpe_args_
 
     Provide the likely path to the ~/.vim directory or its equivalent.
 
-    What this does in practice is return the first directory in the
-    :vim:`'runtimepath'` option. Since some users might modify the runtimepath
-    in unpredictable ways, this function should probably be avoided in plugins
-    that you wish to publish.
+    All this does is lookup $MYVIMDIR.
 
 .. rubric:: echo_msg
 

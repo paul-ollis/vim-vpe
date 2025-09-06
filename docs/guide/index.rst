@@ -10,18 +10,13 @@ Requirements
 .. include:: ../reqs.txt
 
 
-Installation
-------------
-
-.. include:: ../inst.txt
-
-
 User guide
 ----------
 
 .. toctree::
     :maxdepth: 2
 
+    installation.rst
     first-steps.rst
     buffers.rst
     windows.rst

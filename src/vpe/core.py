@@ -237,12 +237,15 @@ class BufEventHandler(EventHandler):
 class ScratchBuffer(wrappers.Buffer):
     """A scratch buffer.
 
+    DO NOT DIRECTLY INSTANTIATE THIS CLASS.
+
+    Use `get_display_buffer`, which creates a buffer with suitably formatted
+    names and, critically, ensures that it is added into the ``vim.buffers``
+    objects.
+
     A scratch buffer has no associated file, has no swap file, never gets
     written and never appears to be modified. The content of such a buffer is
     typically under the control of plugin code. Direct editing is disabled.
-
-    Direct instantiation is not recommended; use `get_display_buffer`, which
-    creates bufferes with suitably formatted names.
 
     :name:         The name for the buffer.
     :buffer:       The :vim:`python-buffer` that this wraps.
@@ -374,6 +377,12 @@ class ScratchBuffer(wrappers.Buffer):
 
 class ManagedIOBuffer(wrappers.Buffer, BufEventHandler):
     """A buffer that does not map directly to a file.
+
+    DO NOT DIRECTLY INSTANTIATE THIS CLASS.
+
+    Use `get_managed_io_buffer`, which creates a buffer with suitably formatted
+    names and, critically, ensures that it is added into the ``vim.buffers``
+    objects.
 
     This is useful when you neeed to control how the contents of an editable
     buffer a read and written. An example of this might be if you were writing

@@ -1,9 +1,8 @@
 " Initialisation for VPE - Vim Python Extensions.
 "
 " Warning:
-"     This file is created by the vpe-install script. You should not need to
-"     edit this file and, if you do, re-running vpe-install will lose your
-"     changes.
+"     This file is created by the vpe-install script. Any edits to the file
+"     will be over-written the next time you start a Vim session.
 
 " Only run once.
 if exists('g:loaded_vpe')
@@ -20,14 +19,70 @@ let g:loaded_vpe = 1
 " mechanisms.
 command! VPERunThisAsPy call py3eval('VPE_run_this_as_py()')
 
-
-" ----------------------------------------------------------------------------
-" The rest of this run's as Python code.
-" ----------------------------------------------------------------------------
-
+" Check for and enable code in vritual environment installation in
+" $HOME/.vim/lib/python or its equivalent.
+"
+" This provides support for the recommended way of installing VPE; i.e. within
+" a virtual environment within Vim's configuration directory tree.
 python3 << trim EOF
 
-    # Import the vpe package. This preforms most of the initialisation...
+    def _update_sys_path():
+        # Do imports inside the function to minimise namespace pollution.
+        import os
+        import platform
+        import sys
+        from pathlib import Path
+
+        vimdir_pathname = os.environ.get('MYVIMDIR', '')
+        if not vimdir_pathname:
+            # This should mean that there is no Vim configuration directory
+            # tree, according to the documents. However, I have seen this
+            # unset when a ~/.vim tree exists. So, the strategy here is to
+            # check for actual existence of candidate Vim configuration
+            # directories.
+            if platform.system() == 'Windows':
+                vimdir = Path('~/vimfiles').expanduser()
+            elif platform.system() == 'Linux':
+                vimdir = Path('~/.vim').expanduser()
+                if not vimdir.is_dir():
+                    vimdir = Path('~/.config/vim').expanduser()
+            else:
+                # Assume a Linux style environment.
+                vimdir = Path('~/.vim').expanduser()
+                if not vimdir.is_dir():
+                    vimdir = Path('~/.config/vim').expanduser()
+        else:
+            vimdir = Path(vimdir_pathname)
+        if not vimdir.is_dir():
+            # Now this is uber-unlikely, but were it ever to occur then
+            # we should just give up.
+            return
+
+        vim_pylib_path = vimdir / 'lib' / 'python'
+        if not vim_pylib_path.is_dir():
+            return
+        config_path = vim_pylib_path / 'pyvenv.cfg'
+        if not config_path.is_file():
+            return
+
+        x, y = sys.version_info[:2]
+        site_path = vim_pylib_path / 'lib' / f'python{x}.{y}' / 'site-packages'
+        if not site_path.is_dir():
+            return
+
+        site_pathname = str(site_path)
+        if site_pathname not in sys.path:
+            sys.path[0:0] = [site_pathname]
+
+    _update_sys_path()
+    del _update_sys_path
+
+EOF
+
+" Now import and initialise VPE.
+python3 << trim EOF
+
+    # Import the vpe package. This performs most of the initialisation...
     import vpe
 
     # ...and vpe.post_init() finishes off, including loading plugins. Enable
@@ -39,7 +94,7 @@ python3 << trim EOF
     finally:
         vpe.log.unredirect()
 
-    # Mapping to capture python files that have already impported by
+    # Mapping to capture python files that have already imported by
     # `VPE_run_this_as_py`.
     VPE_run_as_imports = {}
 

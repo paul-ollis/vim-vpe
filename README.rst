@@ -9,7 +9,7 @@
 Welcome to the Vim Python Extensions (VPE).
 
 :status:
-    This is version 0.7.0-a.
+    This is version 0.7.0.
 
     The Version 0.7 line is intended to be the stepping stone for version 1.0.
 
@@ -43,44 +43,18 @@ extend ``Vim`` using modern Pythonic code. Its key features are:
 - Buffer based logging support with optional stdout/stderr redirection, which
   can be invaluable for debugging your code.
 
-
-Quick start
------------
-
 This is just a brief introduction. For more complete documentation see the
 `online documentation`_.
 
 
 Installation
-~~~~~~~~~~~~
+------------
 
-If you have a pre 0.7 VPE installation then head on over to
-
-    https://vim-vpe.readthedocs.io/en/latest/#installation
-
-for details on removing that version.
-
-.. code-block:: bash
-
-    python -m pip install --user git+https://github.com/paul-ollis/vim-vpe.git
-
-On some systems you may have to add the ``--break-system-packages`` option.
-(VPE does not pull in other Python packages, so your system is safe.)
-
-At this point you should be able to run Vim and enter the command ``Vpe
-version`` to verify the basic installation has worked.
-
-Then install Vim initialisation support code and the Vim help file. From within
-Vim run the commands:
-
-.. code-block:: vim
-
-    py3 import vpe.install
-    py3 vpe.install.run()
+Read the online documentation <HERE>.
 
 
 Using VPE
-~~~~~~~~~
+---------
 
 The quickest way to start using VPE is to import the `vim` object:
 
@@ -88,9 +62,9 @@ The quickest way to start using VPE is to import the `vim` object:
 
     from vpe import vim
 
-The `vim``` object is an instance of the `Vim` designed as a drop in
-replacement for Vim's standard `python-vim`_ module, but with a number of
-enhancements.
+The ``vim`` object is an instance of the ``Vim`` class, which is designed as a
+drop in replacement for Vim's standard `python-vim`_ module, but with a number
+of enhancements, including:
 
 - Most of Vim's functions appear as members, for example:
 

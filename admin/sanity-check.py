@@ -174,7 +174,7 @@ def check_version(info: Info, fix: bool) -> tuple[int, int]:
     path = Path('pyproject.toml')
     search_text = 'version = '
     problem, fixed = check_version_in_file(
-        info.version_with_stop, fix, path,
+        info.version, fix, path,
         extract=lambda s: s.split()[-1][1:-1],
         build_fixed=lambda s: f"{s}'{info.version}'",
         search_text=search_text,
