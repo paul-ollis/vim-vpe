@@ -487,8 +487,10 @@ class Callback:
             **kwargs):
         # pylint: disable=too-many-arguments
         uid = self.uid = id_source.alloc()
-        log_death = partial(
-            print, f'uid={uid} is dead! {func}({py_args} {py_kwargs})')
+        #-log_death = partial(
+        #-    print, f'uid={uid} is dead! {func}({py_args} {py_kwargs})')
+        def log_death():
+            pass
         func_reference_store.add(
             uid, func, cleanup=Cleaner(cleanup, log_death), meta=self)
 
@@ -768,8 +770,8 @@ class Timer(Callback):
         super().__init__(
             func, py_args=args, py_kwargs=kwargs, meta=meta, cleanup=cleanup)
         repeat = 1 if repeat is None else repeat
-        ms = int(ms)
-        if ms == 0:
+        self.ms = int(ms)
+        if self.ms == 0:
             # This is for a delayed-until-vim-mainloop call. Make sure it only
             # runs once.
             repeat = 1
@@ -777,7 +779,7 @@ class Timer(Callback):
         if pass_timer:
             self.py_args = (self,) + self.py_args
         vopts = {'repeat': repeat}
-        self._id = _timer_start(ms, self.as_vim_function(), vopts)
+        self._id = _timer_start(self.ms, self.as_vim_function(), vopts)
         self.fire_count = 0
         self.dead = False
 
@@ -797,7 +799,7 @@ class Timer(Callback):
 
         Note that prior to Vim patch 8.2.3768 this was 1 greater that one might
         expect. Now Vim's ``timer_info()`` returns the expected value except
-        duruing the final callback, when we get ``None``. This is non-Pythonic,
+        during the final callback, when we get ``None``. This is non-Pythonic,
         so ``None`` is converted to zero.
         """
         v = self._get_info('repeat')
@@ -852,6 +854,7 @@ class Timer(Callback):
     def finish(self):
         """Take action when a timer is finished."""
         self.dead = True
+        func_reference_store.drop(self.uid)
 
 
 class OneShotTimer(Timer):
@@ -919,13 +922,23 @@ class func_reference_store:
         :func:    The function/method, which will be weakly referenced.
         :cleanup: A function invoked if the weak reference to the function
                   dies.
-        :meta:    Any additional data to be stored agains this UID.
+        :meta:    Any additional data to be stored against this UID.
         """
         try:
             ref = QuietWeakMethod(func, partial(cls.handle_finalize, uid))
         except TypeError:
             ref = weakref.ref(func, partial(cls.handle_finalize, uid))
         cls.registrations[uid] = ref, cleanup, meta
+
+    @classmethod
+    def drop(cls, uid: str) -> None:
+        """Drop the entry for a given UID.
+
+        This removes the entry and invokes any clean up actions.
+        """
+        ref, _cleanup, _meta = cls.registrations.get(uid, (None, None, None))
+        if ref is not None:
+            cls.handle_finalize(uid, None)
 
     @classmethod
     def retrieve(cls, uid: str) -> tuple[Callable, Any] | tuple[None, None]:
@@ -948,7 +961,7 @@ class func_reference_store:
             uid, (None, None, None))
         if dead_ref is not None:
             if not utils.exiting:
-                print(f'Dead function detected {uid} {_meta=}')
+                # print(f'Dead function detected {uid} {_meta=}')
                 if cleanup is not None:
                     cleanup()
 
