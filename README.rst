@@ -9,7 +9,7 @@
 Welcome to the Vim Python Extensions (VPE).
 
 :status:
-    This is version 0.7.0.
+    This is version 0.7.0
 
     The Version 0.7 line is intended to be the stepping stone for version 1.0.
 
@@ -24,37 +24,27 @@ Introduction
 ============
 
 VPE provides a toolkit of modules and classes aimed at making it easier to
-extend ``Vim`` using modern Pythonic code. Its key features are:
+extend ``Vim`` using modern Pythonic code. The headline features are:
 
-- A ``Vim`` class and corresponding ``vim`` singleton which provides an API
-  that is as compatible as possible with Vim's built-in ``vim`` module, but
-  includes extended capabilities.
+- Instead of using the standard ``vim`` module you can use the ``vpe.vim``
+  object, which provides a greatly extended superset of the ``vim`` module's
+  features.
 
-- The ``vpe`` package, containing additional modules and classes which provide:
-
-  - More pythonic APIs for some Vim features.
-  - Extension modules and classes to help in writing plugins in Python.
-
-- You can extend Vim using much more Pythonic code than is possible using only
-  Vim's built-in ``vim`` module.
-
-- Support for plugins, using Python's standard library entry-point mechanism.
-
-- Buffer based logging support with optional stdout/stderr redirection, which
-  can be invaluable for debugging your code.
-
-This is just a brief introduction. For more complete documentation see the
-`online documentation`_.
+- Other extensions that, along with ``vpe.vim``, just make it easier to
+  write Pythonic plugin code for Vim.
 
 
 Installation
 ------------
 
-Read the online documentation <HERE>.
+Read the `installation instructions online`_.
 
 
 Using VPE
 ---------
+
+This is just a brief introduction. For more complete documentation see the
+`online documentation`_.
 
 The quickest way to start using VPE is to import the `vim` object:
 
@@ -75,7 +65,7 @@ of enhancements, including:
 
 - The attributes buffers, current, options, tabpages, vars, vvars and windows
   provide enhanced access to the corresponding Vim objects. For example
-  vim.current.buffer provides a `Buffer` instance in place of Vim's standard
+  vim.current.buffer provides a `Buffer`_ instance in place of Vim's standard
   `python-buffer`_. This supports things like easier access to buffer
   variables, more efficient buffer modification and per-buffer metadata
   storage.
@@ -89,7 +79,10 @@ of enhancements, including:
 
 .. _python-vim: https://vimhelp.org/if_pyth.txt.html#python-vim
 .. _python-buffer: https://vimhelp.org/if_pyth.txt.html#python-buffer
-.. _online documentation: https://vim-vpe.readthedocs.io
+.. _online documentation:
+     https://vim-vpe.readthedocs.io/en/latest
+.. _installation instructions online:
+     https://vim-vpe.readthedocs.io/en/latest/installation.html
 
 
 Features
@@ -97,31 +90,42 @@ Features
 
 This is a brief list of VPE's features.
 
-- A `Vim` class that provides an enhanced, drop-in replacement for the standard
-  `python-vim <https://vimhelp.org/if_pyth.txt.html#python-vim>`_ module.
+- The `vpe.vim`_ object - a much enhanced replacement for the standard ``vim``
+  module (`python-vim <https://vimhelp.org/if_pyth.txt.html#python-vim>`_).
+  This is an instance of the `Vim class`_.
 
-- Classes `Window`, `Buffer`, `TabPage` are enhanced wrappers around the
-  standard `vim <https://vimhelp.org/if_pyth.txt.html#python-vim>`_ versions.
+- Classes `Window`_, `Buffer`_, `TabPage`_ are enhanced wrappers around the
+  standard (`vim <https://vimhelp.org/if_pyth.txt.html#python-vim>`_) versions.
 
-- Support for cleanly invoking Python functions for keyboard `mappings
-  <https://vimhelp.org/map.txt.html#:nmap>`_.
+- `Key mappings`_ can cleanly be set up to invoke Python functions and methods.
 
-- Pythonic support for using `popup-windows
-  <https://vimhelp.org/popup.txt.html#popup-window>`_.
+- `User commands`_ can cleanly be set up to invoke Python functions and methods.
+  VPE also provides support for subcommands and automatic command line tab-key
+  completion.
 
-- Pythonic support for using
-  `timers <https://vimhelp.org/eval.txt.html#timers>`_.
+- `Timers`_ can cleanly be set up to invoke Python functions and methods.
 
-- Pythonic support for `autocommands
-  <https://vimhelp.org/autocmd.txt.html#autocommands>`_ that invoke Python
-  functions.
+- Autocmd `Events`_ can cleanly be set up to invoke Python functions and methods.
 
-- Pythonic support for `channels <https://vimhelp.org/channel.txt.html>`_.
+- A `built in log`_, which is useful for debugging plugin code.
 
-- Powerful support for implement user commands and subcommands with auto
-  generated help and <Tab> key completion.
+  - The log can be displayed in a dedicated Vim buffer.
+  - Printing can be redirected to the log.
+  - You can create your own plugin specific log(s).
 
-- The use of Python decorator syntax to handle key mappings and Vim autocmd
-  events.
+- Pythonic support for using `popup windows`_.
 
-- Logging to a buffer. Useful when developing and debugging plug-ins.
+- Pythonic support for `channels`_.
+
+.. _Buffer: https://vim-vpe.readthedocs.io/en/latest/api/api.vpe.html#vpe.Buffer
+.. _TabPage: https://vim-vpe.readthedocs.io/en/latest/api/api.vpe.html#vpe.TabPage
+.. _Vim class: https://vim-vpe.readthedocs.io/en/latest/api/api.vpe.html#vpe.Vim
+.. _vpe.vim: https://vim-vpe.readthedocs.io/en/latest/api/api.vpe.html#vpe.vim
+.. _Window: https://vim-vpe.readthedocs.io/en/latest/api/api.vpe.html#vpe.Window
+.. _Key mappings: https://vim-vpe.readthedocs.io/en/latest/mapping.html
+.. _User commands: https://vim-vpe.readthedocs.io/en/latest/user-commands.html
+.. _built in log: https://vim-vpe.readthedocs.io/en/latest/logging.html
+.. _Timers: https://vim-vpe.readthedocs.io/en/latest/timers.html
+.. _Events: https://vim-vpe.readthedocs.io/en/latest/auto-commands.html
+.. _popup windows: https://vim-vpe.readthedocs.io/en/latest/api/api.vpe.html#vpe.Popup
+.. _channels: https://vim-vpe.readthedocs.io/en/latest/api/api.vpe.channels.html
