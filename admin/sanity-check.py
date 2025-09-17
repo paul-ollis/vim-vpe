@@ -187,7 +187,7 @@ def check_version(info: Info, fix: bool) -> tuple[int, int]:
     problem, fixed = check_version_in_file(
         info.version_with_stop, fix, path,
         extract=lambda s: s.split()[-1],
-        build_fixed=lambda s: f'{s}{info.version}',
+        build_fixed=lambda s: f'{s}{info.version}.',
         search_text=search_text,
     )
     problem_count += problem

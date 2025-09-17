@@ -8,20 +8,29 @@ unpicked types will work as expected.
 """
 from __future__ import annotations
 
+import builtins
+import itertools
+import os
+import re
+from pathlib import Path
 from typing import (
     Any, Callable, ClassVar, Dict, Generator, List as ListType, Optional, Set,
     Tuple, Union)
-
-import builtins
-import itertools
-import re
-from pathlib import Path
 
 __name__ = 'vim'  # pylint: disable=redefined-builtin
 __qualname__ = 'vim'
 __TEST__ = True
 
 poll_man = None
+
+# We set $MYVIMDIR by emulating what Vim does, to a reasonable approximation.
+_vimrc_path = Path('~/.vimrc').expanduser()
+_vim_dir_path = Path('~/.vim').expanduser()
+if not (_vimrc_path.exists() or _vim_dir_path.exists()):
+    xdg_vim_dir_path = Path('~/.config/vim').expanduser()
+    if xdg_vim_dir_path.exists():
+        _vim_dir_path = xdg_vim_dir_path
+os.environ['MYVIMDIR'] = str(_vim_dir_path)
 
 
 class error(Exception):

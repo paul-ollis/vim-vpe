@@ -4987,6 +4987,12 @@ vpe.warning_msg(*args, soon=False)                            *vpe.warning_msg*
       - Parser defaults are not supported (those set by set_defaults). Defaults
         have to be specified as part of add_argument.
 
+    Properties
+
+                      *user_commands.ArgumentParser.parse_known_args_arg_count*
+      property parse_known_args_arg_count -> int
+        Number of arguments taken by _parse_known_args.
+
     Methods
 
                                     *user_commands.ArgumentParser.add_argument*

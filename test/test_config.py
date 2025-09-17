@@ -293,8 +293,7 @@ class ConfigSupport(support.Base):
         persistent values.
         """
         conf = config.Config('test_conf')
-        home = Path(__file__).resolve().parent / 'rt_test_data'
-        conf_path = home / '.vim/config.d/test_conf.ini'
+        conf_path = support.dot_vim_dir_path() / 'config.d/test_conf.ini'
         failUnlessEqual(conf_path, conf.ini_path_())
 
     @test(testID='conf-store-add')

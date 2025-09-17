@@ -53,6 +53,12 @@ provided are:
     - Parser defaults are not supported (those set by ``set_defaults``).
       Defaults have to be specified as part of ``add_argument``.
 
+    **Properties**
+
+        .. py:property:: parse_known_args_arg_count() -> int
+
+            Number of arguments taken by _parse_known_args.
+
     **Methods**
 
         .. py:method:: add_argument(*args, **kwargs)

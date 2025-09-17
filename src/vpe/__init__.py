@@ -84,7 +84,7 @@ from vpe.wrappers import (
     Registers, Struct, TabPage, TabPages, VIM_DEFAULT, VI_DEFAULT, Variables,
     Window, Windows, commands)
 
-__version__ = '0.7.0'
+__version__ = '0.7.1'
 
 __api__ = [
     # Modules documented as part of the API.

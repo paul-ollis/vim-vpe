@@ -35,7 +35,7 @@ class TestInfo(support.Base):
             dump(res)
         """
         res = self.run_self()
-        failUnlessEqual('0.7.0', res.version)
+        failUnlessEqual('0.7.1', res.version)
 
 
 class DisplayBuffer(support.Base):

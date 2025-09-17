@@ -137,6 +137,8 @@ class ArgumentParser(argparse.ArgumentParser):
       Defaults have to be specified as part of ``add_argument``.
     """
 
+    _parse_known_args_arg_count: ClassVar[int] = 0
+
     def __init__(
             self,
             command_handler: CommandHandler,
@@ -167,6 +169,28 @@ class ArgumentParser(argparse.ArgumentParser):
                 action='help', default=argparse.SUPPRESS,
                 help='Show this help message.')
             self.add_help = True
+
+    @property
+    def parse_known_args_arg_count(self) -> int:
+        """Number of arguments taken by _parse_known_args."""
+        # pylint: disable=protected-access
+        cls = ArgumentParser
+        if cls._parse_known_args_arg_count == 0:
+            try:
+                # Introspect the number of arguments if possible because it
+                # is more future proof.
+                sig = inspect.signature(self._parse_known_args)
+            except (ValueError, TypeError):
+                # But if introspection is prevented in some way. Use the Python
+                # version to select the arument count.
+                cls._parse_known_args_arg_count = 2
+                if sys.version_info[:3] >= (3, 12, 8):
+                    cls._parse_known_args_arg_count = 3
+                    if sys.version_info[:3] == (3, 13, 0):
+                        cls._parse_known_args_arg_count = 2
+            else:
+                cls._parse_known_args_arg_count = len(sig.parameters)
+        return cls._parse_known_args_arg_count
 
     def parse_args(self, args: Sequence[str]):
         """Convert argument strings to attributes of the namespace."""
@@ -209,7 +233,12 @@ class ArgumentParser(argparse.ArgumentParser):
                             setattr(namespace, action.dest, action.default)
 
             # Parse the arguments.
-            namespace, args = self._parse_known_args(args, namespace)
+            # pylint: disable=no-value-for-parameter
+            if self.parse_known_args_arg_count == 3:
+                namespace, args = self._parse_known_args(
+                    args, namespace, False)
+            else:
+                namespace, args = self._parse_known_args(args, namespace)
 
         except SubcommandReached as e:
             # The subcommand and preceding values need to be from the ``args``

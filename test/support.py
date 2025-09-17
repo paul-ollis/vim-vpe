@@ -1,12 +1,11 @@
 """Common test support."""
 
 import inspect
-import itertools
 import os
 import pathlib
 import pickle
 import platform
-
+from pathlib import Path
 from typing import Callable, ClassVar, Iterator, Optional
 
 # pylint: disable=unused-wildcard-import,wildcard-import
@@ -35,6 +34,17 @@ def fix_path(path: str) -> str:
     if path[1:2] == ':':
         path = path[2:]
     return path.replace('\\', '/')
+
+
+def dot_vim_dir_path() -> Path:
+    """Emulate, to a reasonable degree the VPE dot_vim_dir function."""
+    vimrc_path = Path('~/.vimrc').expanduser()
+    vim_dir_path = Path('~/.vim').expanduser()
+    if not (vimrc_path.exists() or vim_dir_path.exists()):
+        xdg_vim_dir_path = Path('~/.config/vim').expanduser()
+        if xdg_vim_dir_path.exists():
+            vim_dir_path = xdg_vim_dir_path
+    return vim_dir_path
 
 
 def clean_code_block(code):
