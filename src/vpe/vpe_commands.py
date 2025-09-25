@@ -17,7 +17,7 @@ from inspect import cleandoc
 from typing import TYPE_CHECKING
 
 import vpe
-from vpe import core, vim
+from vpe import core, user_commands, vim
 from vpe.user_commands import (
     CommandHandler, SubcommandHandlerBase, TopLevelSubcommandHandler)
 
@@ -29,6 +29,37 @@ error_msg = partial(core.error_msg, soon=True)
 
 # Function to print informational messages.
 echo_msg = partial(core.echo_msg, soon=True)
+
+
+class LogHelpModeCommand(CommandHandler):
+    """The 'log help_mode' command support."""
+
+    def add_arguments(self) -> None:
+        """Add the arguments for this command."""
+        self.parser.add_argument(
+            'mode', choices=('log', 'popup', 'echo'), nargs='?',
+            help="Choose how to display help when '-h/--help' is used.")
+
+    def handle_command(self, args: Namespace):
+        """Handle the 'Vpe help_mode' command."""
+        if args.mode is not None:
+            match args.mode:
+                case 'log':
+                    user_commands.help_mode = '--lhelp'
+                case 'popup':
+                    user_commands.help_mode = '--phelp'
+                case 'echo':
+                    user_commands.help_mode = '--ehelp'
+
+        else:
+            match user_commands.help_mode:
+                case '--lhelp':
+                    msg = 'writes to the log'
+                case '--phelp':
+                    msg = 'shows in popup window of possible'
+                case _:
+                    msg = 'echos to the screen'
+            echo_msg(f"User commands '-h/--help' {msg}.")
 
 
 class LogLengthCommand(CommandHandler):
@@ -76,7 +107,7 @@ class LogSubCommand(SubcommandHandlerBase):
     subcommands = {
         'show': (':simple', 'Show the log file buffer.'),
         'hide': (':simple', 'Hide the log file buffer.'),
-        'clear': (':simple', 'lear the log contents.'),
+        'clear': (':simple', 'Clear the log contents.'),
         'length': (LogLengthCommand, 'Display/set the log file max length'),
         'redirect': (
             LogRedirectCommand, 'Display/set stdout/sterr redirection'),
@@ -99,6 +130,8 @@ class VPECommandProvider(TopLevelSubcommandHandler):
     """A class to provide some VPE support commands."""
 
     subcommands = {
+        'help_mode': (
+            LogHelpModeCommand, 'Define how user command help is displayed'),
         'log': (LogSubCommand, 'Log file management.'),
         'insert_config': (':simple', 'Insert the vpe_config global variable.'),
         'install': (':simple', 'Install Vim plugin and help files.'),

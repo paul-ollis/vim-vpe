@@ -19,6 +19,7 @@ import string
 import sys
 import time
 import weakref
+from contextlib import contextmanager
 from functools import partial
 from typing import Callable, TextIO, Type
 
@@ -647,6 +648,17 @@ class Log:
         """Disable stdout/stderr redirection."""
         if self.saved_out:
             sys.stdout, sys.stderr = self.saved_out.pop()
+
+    @contextmanager
+    def unredirected(self):
+        """Context manager that temporarily disables log rediection."""
+        saved_out = sys.stdout, sys.stderr
+        if self.saved_out:
+            sys.stdout, sys.stderr = self.saved_out[0]
+        try:
+            yield
+        finally:
+            sys.stdout, sys.stderr = saved_out
 
     def _flush_lines(self):                 # pylint: disable=too-many-branches
         t = time.time()

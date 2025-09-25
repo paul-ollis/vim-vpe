@@ -722,7 +722,7 @@ class Buffer(common.MutableSequenceProxy):
         return cb
 
     def clear_props(self):
-        """Remove all properties from all line in this buffer."""
+        """Remove all properties from all lines in this buffer."""
         vim.prop_clear(1, len(self), {'bufnr': self.number})
 
     def set_line_prop(

@@ -17,12 +17,15 @@ import sys
 from argparse import Namespace
 from typing import ClassVar, Final, TYPE_CHECKING, Tuple, TypeAlias
 
-from vpe import common, core, wrappers
+from vpe import common, core, log, vim, wrappers
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
 SubcommandsTable: TypeAlias = dict[str, [Tuple['CommandHandler', str], str]]
+
+#: The chosen way to present command help when the '-h/--help' option is used.
+help_mode: str = "--ehelp"
 
 #: Function to print single line error messages.
 error_msg = functools.partial(core.error_msg, soon=True)
@@ -82,7 +85,7 @@ class HelpAction(argparse.Action):
 
     def __call__(self, parser, namespace, values, option_string=None):
         if not parser.no_help:
-            parser.print_help(cmd_info=parser.command_handler.cmd_info)
+            parser.print_help(option_string=option_string)
             parser.stop_processing = True
 
 
@@ -165,9 +168,14 @@ class ArgumentParser(argparse.ArgumentParser):
         self.register('action', 'help', HelpAction)
         if add_help:
             self.add_argument(
-                '-h', '--help',
+                '-h', '--help', '--ehelp', '--lhelp', '--phelp',
                 action='help', default=argparse.SUPPRESS,
-                help='Show this help message.')
+                help='Show this help message.'
+                     ' Use --ehelp to echo to the terminal,'
+                     ' --lhelp to write help to the log and '
+                     ' --phelp for a popup window.'
+                     ' -h/--help output is controlled by the "VPE help_mode"'
+                     ' command')
             self.add_help = True
 
     @property
@@ -261,7 +269,7 @@ class ArgumentParser(argparse.ArgumentParser):
     def print_help(
             self,
             _file=None,
-            cmd_info: common.CommandInfo | None = None,
+            option_string: str = '-h',
         ) -> None:
         """Display the help message."""
         help_text = self.format_help()
@@ -271,16 +279,26 @@ class ArgumentParser(argparse.ArgumentParser):
 
         if help_dest is not None:
             help_dest[:] = help_text.splitlines()
-        elif cmd_info is not None and cmd_info.bang:         # pragma: no cover
-            print(help_text)
-            #print('\n'.join(self.format_help().splitlines()))
-        else:                                                # pragma: no cover
-            def make_popup():
-                self.popup = core.PopupNotification(
-                    help_text.splitlines(), 'Vpe_cmd_info',
-                    highlight='MessageWindow')
+            return
 
-            common.call_soon(make_popup)
+        if option_string in ('-h', '--help'):
+            option_string = help_mode
+
+        if option_string == '--lhelp':
+            log(help_text)
+            return
+
+        elif option_string == '--phelp':
+            if vim.has('popupwin'):
+                def make_popup():
+                    self.popup = core.PopupNotification(
+                        help_text.splitlines(), 'Vpe_cmd_info',
+                        highlight='MessageWindow')
+                common.call_soon(make_popup)
+                return
+
+        with log.unredirected():
+            print(help_text)
 
     def format_help(self):
         # pylint: disable=protected-access
