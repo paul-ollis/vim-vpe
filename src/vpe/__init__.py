@@ -78,13 +78,13 @@ from vpe.wrappers import Vim, vim
 from vpe import (
     channels, mapping, message_bus, syntax, user_commands,
     vpe_commands as _vpe_commands)
-from vpe.mapping import MapCallback
+from vpe.mapping import KeyHandler, MapCallback
 from vpe.wrappers import (
     BufListener, Buffer, Buffers, Current, GlobalOptions, Options, Range,
     Registers, Struct, TabPage, TabPages, VIM_DEFAULT, VI_DEFAULT, Variables,
     Window, Windows, commands)
 
-__version__ = '0.7.1'
+__version__ = '0.7.2'
 
 __api__ = [
     # Modules documented as part of the API.
@@ -153,6 +153,7 @@ __api__ = [
     'EventHandler',
     'Function',
     'GlobalOptions',
+    'KeyHandler',
     'Options',
     'ManagedIOBuffer',
     'Range',

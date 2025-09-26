@@ -9,7 +9,7 @@
 Welcome to the Vim Python Extensions (VPE).
 
 :status:
-    This is version 0.7.1.
+    This is version 0.7.2.
 
     The Version 0.7 line is intended to be the stepping stone for version 1.0.
 

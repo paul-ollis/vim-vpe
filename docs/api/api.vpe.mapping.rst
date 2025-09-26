@@ -17,11 +17,57 @@ calls.
 
     Mix-in to support mapping key sequences to methods.
 
+    This can be used as a simple base class, but also as a mix-in. For
+    example:
+
+    .. code-block:: py
+
+        class MyScratchBuffer(ScratchBuffer, KeyHandler):
+            def __init__(*args, **kwargs):
+                super().__init__(*args, **kwargs)
+                self.auto_map_keys()
+                ...
+
+    The `mapped` static method is used to decorate the methods that you wish to
+    handle mappings. Some examples:
+
+    .. code-block:: py
+
+        @KeyHandler.mapped('<C-F1>')
+        def show_general_help(self) -> None:
+            ...
+
+        @KeyHandler.mapped('<Leader>h')
+        def show_help_for_word_under_cursor(self) -> None:
+            ...
+
+        # This mapping is forced to be global by the ``buffer=False`` argument.
+        @KeyHandler.mapped('<F12>', buffer=False)
+        def list_buffers(self) -> None:
+            ...
+
+    The `auto_map_keys` method must be called to set up the mappings, typically
+    within the class ``__init__`` method. If the main class is a subclass of
+    `Buffer` (such as MyScratchBuffer above) then the mappings are set up just
+    for that buffer, unless ``buffer`` argument was specified for the `mapped`
+    method. Otherwise the mappings default to global.
+
     **Methods**
 
-        .. py:method:: auto_map_keys(pass_info: bool = False)
+        .. py:method:: auto_map_keys(pass_info: bool = False) -> None
 
             Set up mappings for methods.
+
+
+            **Parameters**
+
+            .. container:: parameters itemdetails
+
+                *pass_info*: bool
+                    If set then each key handler method will be invoked with a
+                    `MappingInfo` object. This is useful if you want a single method to
+                    handle several mappings, but behave differently depening on which
+                    mapping was triggered.
 
     **Static methods**
 
