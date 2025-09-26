@@ -1837,7 +1837,10 @@ def log_status():
     """
     # pylint: disable=protected-access
     log(f'Popup._popups = {len(Popup._popups)}')
-    log(f'Callback.callbacks = {common.func_reference_store.callback_count()}')
+    n_callbacks = common.func_reference_store.count_callbacks()
+    log(f'Callback.callbacks[active] = {n_callbacks}')
+    n_callbacks = common.func_reference_store.count_callbacks(dead=True)
+    log(f'Callback.callbacks[dead] = {n_callbacks}')
 
 
 def _setup_keys():

@@ -12,6 +12,7 @@ from typing import (
     Any, Callable, ClassVar, Dict, Final, List, Optional, Tuple, Union)
 
 import vim as _vim
+import vpe
 from vpe import utils
 from vpe.utils import QuietWeakMethod
 
@@ -906,7 +907,8 @@ class func_reference_store:
     operations when a referenced function is about to be finalized.
     """
     registrations: Final[ClassVar[
-        dict[str, tuple[weakref.ref, Callable[[], None], Any]]]] = {}
+        dict[str, tuple[weakref.ref, Callable[[], None, bool], Any]]]] = {}
+    missing: Final = None, None, None
 
     @classmethod
     def add(
@@ -918,11 +920,12 @@ class func_reference_store:
         ) -> None:
         """Add an object, storing a weak reference and cleanup function.
 
-        :uid:     The unique ID for this stored object.
-        :func:    The function/method, which will be weakly referenced.
-        :cleanup: A function invoked if the weak reference to the function
-                  dies.
-        :meta:    Any additional data to be stored against this UID.
+        :uid:             The unique ID for this stored object.
+        :func:            The function/method, which will be weakly referenced.
+        :cleanup:         A function invoked if the weak reference to the
+                          function dies.
+        :meta:            Any additional data to be stored against this UID.
+                          become dead. When it does no logging should occur.
         """
         try:
             ref = QuietWeakMethod(func, partial(cls.handle_finalize, uid))
@@ -936,14 +939,14 @@ class func_reference_store:
 
         This removes the entry and invokes any clean up actions.
         """
-        ref, _cleanup, _meta = cls.registrations.get(uid, (None, None, None))
+        ref, _cleanup, _meta = cls.registrations.get(uid, cls.missing)
         if ref is not None:
-            cls.handle_finalize(uid, None)
+            cls.handle_finalize(uid, None, quiet=True)
 
     @classmethod
     def retrieve(cls, uid: str) -> tuple[Callable, Any] | tuple[None, None]:
         """Retrieve a stored object."""
-        ref, _cleanup, meta = cls.registrations.get(uid, (None, None, None))
+        ref, _cleanup, meta = cls.registrations.get(uid, cls.missing)
         if ref is None:
             return None, None
 
@@ -955,23 +958,32 @@ class func_reference_store:
             return func, meta
 
     @classmethod
-    def handle_finalize(cls, uid: str, _ref: weakref.ref | None) -> None:
+    def handle_finalize(
+            cls, uid: str, _ref: weakref.ref | None, quiet: bool = False,
+        ) -> None:
         """Handle finalization of a stored object."""
-        dead_ref, cleanup, _meta = cls.registrations.pop(
-            uid, (None, None, None))
+        dead_ref, cleanup, meta = cls.registrations.pop(
+            uid, cls.missing)
         if dead_ref is not None:
             if not utils.exiting:
-                # print(f'Dead function detected {uid} {_meta=}')
+                if not quiet:
+                    vpe.log(f'Dead function detected {uid} {meta=}')
                 if cleanup is not None:
                     cleanup()
 
     @classmethod
-    def callback_count(cls) -> int:
-        """Count the number of callbacks stored."""
+    def count_callbacks(cls, dead: bool = False) -> int:
+        """Count the number of callbacks stored.
+
+        :dead: If set then only count dead callbacks.
+        """
         n = 0
         for ref, _, meta in cls.registrations.values():
-            if ref() is not None and isinstance(meta, Callback):
-                n += 1
+            if isinstance(meta, Callback):
+                if dead and ref() is None:
+                    n += 1
+                elif not dead and ref() is not None:
+                    n += 1
         return n
 
 

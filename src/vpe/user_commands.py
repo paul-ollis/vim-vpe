@@ -319,7 +319,7 @@ class ArgumentParser(argparse.ArgumentParser):
             for text in subcommands:
                 lines.append(f'   {text}')
 
-        formatter = self._get_formatter()
+        formatter = self.formatter_class(self.prog, width=80)
         for action_group in self._action_groups:
             formatter.start_section(action_group.title)
             formatter.add_text(action_group.description)

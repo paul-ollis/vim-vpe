@@ -1378,7 +1378,7 @@ class Miscellaneous(support.CommandsBase):
         # Perform a sanity check on the output.
         text = '\n'.join(res.lines)
         failUnless('Popup._popups =' in  text)
-        failUnless('Callback.callbacks =' in  text)
+        failUnless('Callback.callbacks[active] =' in  text)
 
     @test(testID='misc-add-dot-dir')
     def dot_vim_dir(self):
