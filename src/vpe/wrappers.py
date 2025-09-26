@@ -329,10 +329,10 @@ class BufListener(common.Callback):
         buf_num = buf.number
         lid = self.listen_id
 
-    def invoke_cb(self, func, vpe_args):
+    def _invoke_cb(self, func, vpe_args):
         """Invoke this Callback.
 
-        This extends the `Callback.invoke_cb` method.
+        This extends the `Callback._invoke_cb` method.
 
         The vpe_args['args'] are (From Vim's docs):
 
@@ -369,7 +369,7 @@ class BufListener(common.Callback):
             self.py_kwargs['ops'] = vpe_changes
         if self.raw_changes:
             self.py_kwargs['raw_changes'] = changes
-        super().invoke_cb(func, vpe_args)
+        super()._invoke_cb(func, vpe_args)
 
     def stop_listening(self):
         """Stop listening for changes.

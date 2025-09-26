@@ -522,7 +522,7 @@ class Callback:
         """
         return self.py_args, self.py_kwargs
 
-    def invoke_cb(self, func: Callable, vpe_args: dict):
+    def _invoke_cb(self, func: Callable, vpe_args: dict):
         """Invoke this Callback.
 
         This invokes the function as:<py>:
@@ -596,7 +596,7 @@ class Callback:
             return -1
 
         try:
-            return cb.invoke_cb(func, vpe_args)
+            return cb._invoke_cb(func, vpe_args)
 
         except Exception as e:                   # pylint: disable=broad-except
             # Log any exception, but do not allow it to disrupt normal Vim
@@ -825,7 +825,7 @@ class Timer(Callback):
         This invokes vim's timer_stop function.
         """
         _timer_stop(self.id)
-        self.finish()
+        self._finish()
 
     def pause(self):
         """Pause the timer.
@@ -841,17 +841,17 @@ class Timer(Callback):
         """
         _timer_pause(self.id, False)
 
-    def invoke_cb(self, func: Callable, vpe_args: dict):
+    def _invoke_cb(self, func: Callable, vpe_args: dict):
         """Invoke the callback as a result of the timer firing."""
         vpe_args['args'] = vpe_args['args'][1:]     # Drop the unused timer ID.
         self.fire_count += 1
         try:
-            super().invoke_cb(func, vpe_args)
+            super()._invoke_cb(func, vpe_args)
         finally:
             if self.repeat == 0:
-                self.finish()
+                self._finish()
 
-    def finish(self):
+    def _finish(self):
         """Take action when a timer is finished."""
         self.dead = True
         func_reference_store.drop(self.uid)
@@ -874,9 +874,9 @@ class OneShotTimer(Timer):
     def __init__(self, ms : int, func: Callable[[...], None]):
         super().__init__(ms, func, meta=func)
 
-    def invoke_cb(self, func: Callable, vpe_args: dict):
+    def _invoke_cb(self, func: Callable, vpe_args: dict):
         """Invoke the callback as a result of the timer firing."""
-        super().invoke_cb(func, vpe_args)
+        super()._invoke_cb(func, vpe_args)
 
         # Drop reference to the function allowing automatic cleanup to kick in.
         self.meta = None

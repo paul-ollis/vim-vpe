@@ -164,7 +164,12 @@ class SubCommandFormation(CommandBase):
           | Subcommands:
           |    hello - Say hello.
           | options:
-          |   -h, --help  Show this help message.
+          |   -h, --help, --ehelp, --lhelp, --phelp
+          |                         Show this help message. Use --ehelp to echo to the
+          |                         terminal, --lhelp to write help to the log and --phelp
+          |                         for a popup window. -h/--help output is controlled by
+          |                         the "VPE help_mode" command
+
         '''), self.help_str)
 
     @test(testID='commands-missing-subcommand-error')
@@ -363,11 +368,15 @@ class SubCommandFormation(CommandBase):
           | Usage: Test hello [-h] [--formal] [person]
           |
           | positional arguments:
-          |   person      Who to greet.
+          |   person                Who to greet.
           |
           | options:
-          |   -h, --help  Show this help message.
-          |   --formal    Be formal.
+          |   -h, --help, --ehelp, --lhelp, --phelp
+          |                         Show this help message. Use --ehelp to echo to the
+          |                         terminal, --lhelp to write help to the log and --phelp
+          |                         for a popup window. -h/--help output is controlled by
+          |                         the "VPE help_mode" command
+          |   --formal              Be formal.
         '''), self.help_str)
 
     @test(testID='commands-sub-subcommand')
@@ -437,7 +446,11 @@ class SubCommandFormation(CommandBase):
           |    greet - Several possible greetings.
           |    hello - Say hello.
           | options:
-          |   -h, --help  Show this help message.
+          |   -h, --help, --ehelp, --lhelp, --phelp
+          |                         Show this help message. Use --ehelp to echo to the
+          |                         terminal, --lhelp to write help to the log and --phelp
+          |                         for a popup window. -h/--help output is controlled by
+          |                         the "VPE help_mode" command
         '''), self.help_str)
 
         command.handle_main_command(None, 'greet', '--help')
@@ -448,7 +461,11 @@ class SubCommandFormation(CommandBase):
           |    hi - Informal.
           |    yo - Very informal.
           | options:
-          |   -h, --help  Show this help message.
+          |   -h, --help, --ehelp, --lhelp, --phelp
+          |                         Show this help message. Use --ehelp to echo to the
+          |                         terminal, --lhelp to write help to the log and --phelp
+          |                         for a popup window. -h/--help output is controlled by
+          |                         the "VPE help_mode" command
         '''), self.help_str)
 
         command.handle_main_command(None, 'greet', 'yo', '--help')
@@ -456,7 +473,11 @@ class SubCommandFormation(CommandBase):
           | Usage: Test greet yo [-h]
           |
           | options:
-          |   -h, --help  Show this help message.
+          |   -h, --help, --ehelp, --lhelp, --phelp
+          |                         Show this help message. Use --ehelp to echo to the
+          |                         terminal, --lhelp to write help to the log and --phelp
+          |                         for a popup window. -h/--help output is controlled by
+          |                         the "VPE help_mode" command
         '''), self.help_str)
 
 
@@ -612,12 +633,18 @@ class CommandCompletion(CommandBase):
         choices = self.emulate_vim_complete_call(
             cmdline='Test ', arglead='', cursorpos=5)
         self.assertNoErrorMessages()
-        failUnlessEqual(['--dog', '--duck', '--help', '-h'], choices)
+        failUnlessEqual(
+            ['--dog', '--duck', '--ehelp', '--help', '--lhelp',
+             '--phelp', '-h'],
+            choices)
 
         choices = self.emulate_vim_complete_call(
             cmdline='Test --', arglead='--', cursorpos=7)
         self.assertNoErrorMessages()
-        failUnlessEqual(['--dog', '--duck', '--help'], choices)
+        failUnlessEqual(
+            ['--dog', '--duck', '--ehelp', '--help', '--lhelp',
+             '--phelp'],
+            choices)
 
         choices = self.emulate_vim_complete_call(
             cmdline='Test --d', arglead='--d', cursorpos=8)
@@ -670,7 +697,9 @@ class CommandCompletion(CommandBase):
             cmdline='Test ', arglead='', cursorpos=5)
         self.assertNoErrorMessages()
         failUnlessEqual(
-            ['helios', 'hello', 'goodbye', '--help', '-h'], choices)
+            ['helios', 'hello', 'goodbye', '--ehelp', '--help', '--lhelp',
+             '--phelp', '-h'],
+            choices)
 
     @test(testID='commands-subcommand-option-completion')
     def command_subcommand_option_completion(self):
@@ -707,7 +736,9 @@ class CommandCompletion(CommandBase):
         choices = self.emulate_vim_complete_call(
             cmdline='Test hello ', arglead='', cursorpos=11)
         self.assertNoErrorMessages()
-        failUnlessEqual(['--formal', '--help', '-h'], choices)
+        failUnlessEqual(
+            ['--ehelp', '--formal', '--help', '--lhelp', '--phelp', '-h'],
+            choices)
 
     @test(testID='commands-subcommand-completion-cur-bad')
     def completion_while_malformed(self):
@@ -796,7 +827,9 @@ class CommandCompletion(CommandBase):
         choices = self.emulate_vim_complete_call(
             cmdline='Te gre ', arglead='', cursorpos=9)
         self.assertNoErrorMessages()
-        failUnlessEqual(['hi', 'yo', '--help', '-h'], choices)
+        failUnlessEqual(
+            ['hi', 'yo', '--ehelp', '--help', '--lhelp', '--phelp', '-h'],
+            choices)
 
     @test(testID='complete-unknown-command')
     def complete_unkown_command(self):

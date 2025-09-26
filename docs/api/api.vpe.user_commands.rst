@@ -122,13 +122,7 @@ provided are:
             As of Python 3.9.3, the exit_on_error initialisation argument does not
             work in the way expect.
 
-        .. py:method:: print_help(...)
-
-            .. code::
-
-                print_help(
-                        _file=None,
-                        cmd_info: common.CommandInfo | None = None
+        .. py:method:: print_help(_file=None, option_string: str = '-h') -> None
 
             Display the help message.
 

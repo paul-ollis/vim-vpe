@@ -231,37 +231,6 @@ _vpe_args_
 
     **Methods**
 
-        .. py:method:: invoke_cb(func, vpe_args)
-
-            Invoke this Callback.
-
-            This extends the `Callback.invoke_cb` method.
-
-            The vpe_args['args'] are (From Vim's docs):
-
-            bufnr
-                The buffer that was changed
-            start
-                First changed line number
-            end
-                First line number below the change
-            added
-                Number of lines added, negative if lines were deleted
-            changes
-                A List of items with details about the changes
-
-            The ``bufnr`` is ignored, since this is just self.buf.number.
-
-            Start and end are adjusted so they form a Python range.
-
-            If `ops` is True then a list of operations is provided to the callback
-            as an ``ops`` keyword argument. Each entry in the changes is converted
-            to one of an `AddOp`, `DeleteOp` or `ChangeOp`.
-
-            Similarly, if `raw_changes` is True
-            then the list of operations provided by Vim is provided to the callback
-            as a ``raw_changes`` keyword argument.
-
         .. py:method:: stop_listening()
 
             Stop listening for changes.
@@ -465,7 +434,7 @@ _vpe_args_
 
         .. py:method:: clear_props()
 
-            Remove all properties from all line in this buffer.
+            Remove all properties from all lines in this buffer.
 
         .. py:method:: find_active_windows(all_tabpages=False) -> list['Window']
 
@@ -909,32 +878,6 @@ _vpe_args_
 
             This may be over-ridden by subclasses.
 
-        .. py:method:: invoke_cb(func: Callable, vpe_args: dict)
-
-            Invoke this Callback.
-
-            This invokes the function as:
-
-            .. code-block:: py
-
-                func(*args, *vim_args, **kwargs)
-
-            Where args and kwargs are those provided when this instance was
-            created. The vim_args arr the 'args' from the vpe_args dictionary.
-
-            **Parameters**
-
-            .. container:: parameters itemdetails
-
-                *vpe_args*: dict
-                    A dictionary containing:
-
-                    uid
-                        The unique ID that is used to find the correct `Callback`
-                        instance.
-                    args
-                        Any additional arguments passed to the callback by Vim.
-
     **Class methods**
 
         .. py:classmethod:: invoke() -> Any
@@ -1257,6 +1200,10 @@ _vpe_args_
 
             Disable stdout/stderr redirection.
 
+        .. py:method:: unredirected()
+
+            Context manager that temporarily disables log rediection.
+
         .. py:method:: write(s)
 
             Write a string to the log buffer.
@@ -1351,12 +1298,6 @@ _vpe_args_
             OneShotTimer(1000, fire)
 
     The callback function is invoked without arguments.
-
-    **Methods**
-
-        .. py:method:: invoke_cb(func: Callable, vpe_args: dict)
-
-            Invoke the callback as a result of the timer firing.
 
 .. rubric:: Options
 
@@ -2059,14 +2000,6 @@ _vpe_args_
             The time value used to create the timer.
 
     **Methods**
-
-        .. py:method:: finish()
-
-            Take action when a timer is finished.
-
-        .. py:method:: invoke_cb(func: Callable, vpe_args: dict)
-
-            Invoke the callback as a result of the timer firing.
 
         .. py:method:: pause()
 

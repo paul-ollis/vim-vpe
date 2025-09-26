@@ -686,21 +686,7 @@ class Log:
             with buf.modifiable():
                 buf.append(lines)
         self._trim()
-        vpe_vim: wrappers.Vim = wrappers.vim
-        try:
-            win_execute = vpe_vim.win_execute
-        except AttributeError:                               # pragma: no cover
-            return
-        if buf:
-            for w in vpe_vim.windows:
-                if w.buffer.number == buf.number:
-                    # TODO: Figure out why this can cause:
-                    #           Vim(redraw):E315: ml_get: invalid lnum: 2
-                    try:
-                        win_execute(vpe_vim.win_getid(w.number), '$')
-                        win_execute(vpe_vim.win_getid(w.number), 'redraw')
-                    except _vim.error:                       # pragma: no cover
-                        pass
+        self._scroll_to_last_line()
 
     def flush(self):
         """File like I/O support."""
@@ -778,6 +764,34 @@ class Log:
             self.fifo = collections.deque([], maxlen)
             self.fifo.extend(prev_content[-maxlen:])
         self._trim(full=False)
+
+    def _scroll_to_last_line(self) -> None:
+        if self.buf is None:
+            return
+
+        vpe_vim: wrappers.Vim = wrappers.vim
+        try:
+            win_execute = vpe_vim.win_execute
+        except AttributeError:                               # pragma: no cover
+            return
+        for w in vpe_vim.windows:
+            if w.buffer.number == self.buf.number:
+                # TODO: Figure out why this can cause:
+                #           Vim(redraw):E315: ml_get: invalid lnum: 2
+                try:
+                    win_execute(vpe_vim.win_getid(w.number), '$')
+                    win_execute(vpe_vim.win_getid(w.number), 'redraw')
+                except _vim.error:                       # pragma: no cover
+                    pass
+
+
+class VPE_Log(Log):
+    """The default `Log` always provided by VPE."""
+
+    def show(self) -> None:
+        """Make sure the buffer is visible and scrolled to the last line."""
+        super().show()
+        self._scroll_to_last_line()
 
 
 class _PopupOption:
@@ -1859,6 +1873,6 @@ def _setup_keys():
         register_key(c, unmodified=False, modifiers=modifiers)
 
 
-log: Log = Log('VPE-log')
+log: VPE_Log = VPE_Log('VPE-log')
 _setup_keys()
 del _setup_keys

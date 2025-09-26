@@ -261,46 +261,13 @@ class vpe.BufListener(func, buf, ops: bool = True, raw_changes: bool = False)
     listen_id                                       *vpe.BufListener.listen_id*
       The unique ID from a |listener_add| invocation.
 
-    ops                                             *ops* *vpe.BufListener.ops*
+    ops                                                   *vpe.BufListener.ops*
       Include the |Operation| changes as an additional argument:
 
-    raw_changes                     *raw_changes* *vpe.BufListener.raw_changes*
+    raw_changes                                   *vpe.BufListener.raw_changes*
       Include the raw changes as an additional argument:
 
   Methods
-
-    invoke_cb(func, vpe_args)                       *vpe.BufListener.invoke_cb*
-      Invoke this Callback.
-
-      This extends the |vpe.Callback.invoke_cb| method.
-
-      The vpe_args[‘args’] are (From Vim’s docs):
-
-        bufnr
-          The buffer that was changed
-
-        start
-          First changed line number
-
-        end
-          First line number below the change
-
-        added
-          Number of lines added, negative if lines were deleted
-
-        changes
-          A List of items with details about the changes
-
-      The bufnr is ignored, since this is just self.buf.number.
-
-      Start and end are adjusted so they form a Python range.
-
-      If |ops| is True then a list of operations is provided to the callback as
-      an ops keyword argument. Each entry in the changes is converted to one of
-      an |AddOp|, |DeleteOp| or |ChangeOp|.
-
-      Similarly, if |raw_changes| is True then the list of operations provided
-      by Vim is provided to the callback as a raw_changes keyword argument.
 
     stop_listening()                           *vpe.BufListener.stop_listening*
       Stop listening for changes.
@@ -470,7 +437,7 @@ class vpe.Buffer(buffer)                                  *Buffer* *vpe.Buffer*
           If present then append after this line number.
 
     clear_props()                                      *vpe.Buffer.clear_props*
-      Remove all properties from all line in this buffer.
+      Remove all properties from all lines in this buffer.
 
                          *find_active_windows* *vpe.Buffer.find_active_windows*
     find_active_windows(all_tabpages=False) -> list['Window']
@@ -845,28 +812,6 @@ class vpe.Callback(...)                               *Callback* *vpe.Callback*
 
       This may be over-ridden by subclasses.
 
-    invoke_cb(func: Callable, vpe_args: dict)          *vpe.Callback.invoke_cb*
-      Invoke this Callback.
-
-      This invokes the function as:
-        >
-        func(*args, *vim_args, **kwargs)
-<
-      Where args and kwargs are those provided when this instance was created.
-      The vim_args arr the ‘args’ from the vpe_args dictionary.
-
-      Parameters
-
-        vpe_args: dict
-          A dictionary containing:
-
-            uid
-              The unique ID that is used to find the correct |Callback|
-              instance.
-
-            args
-              Any additional arguments passed to the callback by Vim.
-
   Class methods
 
     classmethod invoke() -> Any                  *invoke* *vpe.Callback.invoke*
@@ -1126,6 +1071,9 @@ class vpe.Log(name: str, maxlen: int = 500, timestamps: bool = True)
     unredirect()                                           *vpe.Log.unredirect*
       Disable stdout/stderr redirection.
 
+    unredirected()                                       *vpe.Log.unredirected*
+      Context manager that temporarily disables log rediection.
+
     write(s)                                                    *vpe.Log.write*
       Write a string to the log buffer.
 
@@ -1203,11 +1151,6 @@ class vpe.OneShotTimer(ms: int, func: Callable[[...], None])
         OneShotTimer(1000, fire)
 <
   The callback function is invoked without arguments.
-
-  Methods
-
-    invoke_cb(func: Callable, vpe_args: dict)      *vpe.OneShotTimer.invoke_cb*
-      Invoke the callback as a result of the timer firing.
 
 class vpe.Options(vim_options)                                    *vpe.Options*
   Wrapper for buffer.options, etc.
@@ -1789,12 +1732,6 @@ class vpe.Timer(...)                                        *Timer* *vpe.Timer*
       The time value used to create the timer.
 
   Methods
-
-    finish()                                                 *vpe.Timer.finish*
-      Take action when a timer is finished.
-
-    invoke_cb(func: Callable, vpe_args: dict)             *vpe.Timer.invoke_cb*
-      Invoke the callback as a result of the timer firing.
 
     pause()                                           *pause* *vpe.Timer.pause*
       Pause the timer.
@@ -5047,12 +4984,8 @@ vpe.warning_msg(*args, soon=False)                            *vpe.warning_msg*
         As of Python 3.9.3, the exit_on_error initialisation argument does not
         work in the way expect.
 
-      print_help(...)                 *user_commands.ArgumentParser.print_help*
-          >
-          print_help(
-                  _file=None,
-                  cmd_info: common.CommandInfo | None = None
-<
+                                      *user_commands.ArgumentParser.print_help*
+      print_help(_file=None, option_string: str = '-h') -> None
         Display the help message.
 
                                 *CommandHandler* *user_commands.CommandHandler*

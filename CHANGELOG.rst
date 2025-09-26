@@ -2,6 +2,20 @@
 Change Log
 ==========
 
+Version 0.7.2
+-------------
+
+- Commands created using the user_commands module now automatically have
+  '--ehelp', '--lhelp' and '--phelp' options, which output help by plain
+  printing, to the log or using a popup window. The '-h/--help' option's
+  behaviour is now controlled by the 'Vpe help_mode' command.
+
+- The VPE log now scrolls to the last line when it is gets shown in a buffer.
+  Previously it did not scroll until some text was added.
+
+- Work on the VPE API to remove some methods that should be private.
+
+
 Version 0.7.1
 -------------
 
