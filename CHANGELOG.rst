@@ -13,7 +13,12 @@ Version 0.7.2
 - The VPE log now scrolls to the last line when it is gets shown in a buffer.
   Previously it did not scroll until some text was added.
 
-- Work on the VPE API to remove some methods that should be private.
+- Clean up of the VPE API to remove some methods that should be private.
+
+- Make the ``KeyHandler`` class accessible as ``vpe.KeyHandler``.
+
+- The KeyHandler mix-in now automatically makes mappings global or buffer
+  specific depending on the type of class.
 
 
 Version 0.7.1
