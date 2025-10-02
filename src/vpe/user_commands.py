@@ -649,7 +649,7 @@ class VimCommandHandler:
         if not wrappers.vim.exists('*VPE_Command_Complete'):
             wrappers.commands.py3('import vpe.vpe_commands')
             wrappers.vim.command(inspect.cleandoc("""
-                function! VPE_Command_Complete(ArgLead, CmdLine, CursorPos)
+                function VPE_Command_Complete(ArgLead, CmdLine, CursorPos)
                     let g:_vpe_args_ = {}
                     let g:_vpe_args_['arglead'] = a:ArgLead
                     let g:_vpe_args_['cmdline'] = a:CmdLine

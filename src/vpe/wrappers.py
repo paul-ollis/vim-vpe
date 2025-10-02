@@ -305,12 +305,16 @@ class BufListener(common.Callback):
         Include the `diffs.Operation` changes as an additional argument:
     :@raw_changes:
         Include the raw changes as an additional argument:
+    :@unbuffered:
+        Each change is delivered immediately. Vim does not attempt to buffer
+        multiple changes.
 
     @listen_id: The unique ID from a :vim:`listener_add` invocation.
     """
 
     def __init__(
             self, func, buf, ops: bool = True, raw_changes: bool = False,
+            unbuffered: bool = False,
         ):
         # pylint: disable=too-many-arguments,too-many-positional-arguments
         def unlisten():
@@ -322,8 +326,14 @@ class BufListener(common.Callback):
         self.buf = weakref.proxy(buf)
         self.ops = ops
         self.raw_changes = raw_changes
-        self.listen_id: int = vim.listener_add(
-            self.as_vim_function(), buf.number)
+        if unbuffered and vim.has('patch-9.1.1782'):
+            self.listen_id: int = vim.listener_add(
+                self.as_vim_function(), buf.number, 1)
+            self.unbuffered = True
+        else:
+            self.listen_id: int = vim.listener_add(
+                self.as_vim_function(), buf.number)
+            self.unbuffered = False
 
         # Values for the unlisten closure.
         buf_num = buf.number
@@ -683,6 +693,7 @@ class Buffer(common.MutableSequenceProxy):
             func: ListenerCallbackFunc | ListenerCallbackMethod,
             ops: bool = True,
             raw_changes: bool = False,
+            unbuffered: bool = False,
         ) -> BufListener:
         """Add a callback for changes to this buffer.
 
@@ -704,12 +715,25 @@ class Buffer(common.MutableSequenceProxy):
         :ops:
             ``True`` by default. Include a list of the individual operations to
             the callback as the ``ops`` keyword argument. A list of
-            diffs.Operation instances with details about the changes.
+            diffs.Operation instances with details about the changes. When
+            unbuffered is true, this only ever contains a single entry and can
+            be ignored unless you need the start column value.
 
         :raw_changes:
             ``False`` by default. Include the unmodified changes as the
             ``raw_changes`` keyword argument (see :vim:`listener_add` for
-            details).
+            details). When unbuffered is true, this only ever contains a single
+            entry.
+
+        :unbuffered:
+            This defaults to ``True`` and, when this is set, unbuffered mode
+            will be used if possible. In this mode, every buffer change and the
+            buffer will be in a state that is consistent with the delivered
+            changes.
+
+            For older versions of Vim, only buffered mode is available. The
+            ``unbuffered`` attribute of the returned `BufListener` can be used
+            to check if unbuffered mode is actually being used.
 
         :return:
             A :py:obj:`BufListener` object.
@@ -718,7 +742,9 @@ class Buffer(common.MutableSequenceProxy):
         # delivered the listener that is about to be added.
         vim.listener_flush(self.number)
 
-        cb = BufListener(func, self, raw_changes=raw_changes, ops=ops)
+        cb = BufListener(
+            func, self, raw_changes=raw_changes, ops=ops,
+            unbuffered=unbuffered)
         return cb
 
     def clear_props(self):
@@ -836,7 +862,7 @@ class Buffer(common.MutableSequenceProxy):
             text: str, pat: str, markup: str, rep_all: bool = True) -> str:
         """Find ``pat`` in ``text`` and apply richlike ``markup``.
 
-        For exmaple if ``text`` is 'Press Q to quit', ``pat`` is 'Q` and
+        For example if ``text`` is 'Press Q to quit', ``pat`` is 'Q` and
         ``markup`` is 'Keyword' then this returns 'Press [Keyword]Q[] to quit'.
 
         This is function is provide as a convenience for simple cases of

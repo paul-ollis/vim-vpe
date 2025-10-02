@@ -11,6 +11,11 @@ Version 0.7.3
 
 - Correct key mapping clean up.
 
+- Support new unbuffered option for listener_add.
+
+  Buffered mode is the default, but unbuffered mode can be used if the Vim
+  version is new enough.
+
 
 Version 0.7.2
 -------------

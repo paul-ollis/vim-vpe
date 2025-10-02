@@ -1,6 +1,6 @@
 """Provider of VPE support commands.
 
-This module provied the Vpe command, which itself provides a number of
+This module provides the Vpe command, which itself provides a number of
 sub-commands.
 
 A summary of the commands::
