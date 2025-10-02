@@ -2,6 +2,12 @@
 Change Log
 ==========
 
+Version 0.7.3
+-------------
+
+- Prevent error when report Vim function invocation error.
+
+
 Version 0.7.2
 -------------
 

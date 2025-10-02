@@ -125,8 +125,11 @@ class Function:
                 args_lines = pprint.pformat(args).splitlines()
                 kwargs_lines = pprint.pformat(kwargs).splitlines()
                 s = [f'VPE: Function[{self._name}].__call__ failed: {e}']
-                s.append(f'    self.args={self._vim_function.args}')
-                s.append(f'    self.self={self._vim_function.self}')
+                # pylint: disable=isinstance-second-argument-not-valid-type
+                if isinstance(self._vim_function, _vim.Function):
+                    s.append(f'    self.args={self._vim_function.args}')
+                    s.append(f'    self.self={self._vim_function.self}')
+                # pylint: enable=isinstance-second-argument-not-valid-type
                 s.append(f'    args={args_lines[0]}')
                 for line in args_lines[1:]:
                     s.append(f'         {line}')
