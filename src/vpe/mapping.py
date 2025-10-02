@@ -25,6 +25,17 @@ mode_to_map_command = {
     'command': 'cnoremap',
     'select': 'snoremap',
 }
+mode_to_unmap_command = {
+    'normal': 'nunmap',
+    'visual': 'xunmap',
+    'op-pending': 'ounmap',
+    'insert': 'iunmap',
+
+    # These are not supported for mappings to functions unless (and until) a
+    # valid use-case presents itself.
+    'command': 'cunmap',
+    'select': 'sunmap',
+}
 
 
 # TODO: Should not need this Pylint suppression. Pylint bug?
@@ -205,12 +216,13 @@ def map(
     for key_seq in keys:
         undo = None
         map_cmd = mode_to_map_command[mode]
+        unmap_cmd = mode_to_unmap_command[mode]
         if buffer:
             vim_buf = vim.current.buffer
-            unmap_cmd = f'un{map_cmd} <buffer> {key_seq}'
+            unmap_cmd = f'{unmap_cmd} <buffer> {key_seq}'
         else:
             vim_buf = None
-            unmap_cmd = f'un{map_cmd} {key_seq}'
+            unmap_cmd = f'{unmap_cmd} {key_seq}'
         undo = partial(_remove_mapping, unmap_cmd, vim_buf)
 
         if isinstance(func, str):
@@ -343,7 +355,9 @@ class KeyHandler:
     #: A list of key sequences, mapping mode and docstring.
     map_info: Final[list[tuple[str, str, str]]]
 
-    def auto_map_keys(self, *, pass_info: bool = False) -> None:
+    def auto_map_keys(
+            self, *, pass_info: bool = False, buffer: Buffer | None = None,
+        ) -> None:
         """Set up mappings for methods.
 
         :pass_info:
@@ -351,11 +365,18 @@ class KeyHandler:
             `MappingInfo` object. This is useful if you want a single method to
             handle several mappings, but behave differently depening on which
             mapping was triggered.
+        :buffer:
+            The `Buffer` instance that should be used for the key mappings.
         """
-        if isinstance(self, Buffer):
-            with core.temp_active_buffer(self):
+        buf_inst = buffer or (self if isinstance(self, Buffer) else None)
+        if isinstance(buf_inst, Buffer):
+            with core.temp_active_buffer(buf_inst):
                 self._do_auto_map_keys(pass_info=pass_info, buffer=True)
         else:
+            if buf_inst is not None:
+                msg = f'The buffer argument is a {type(buffer)},'
+                msg += ' but should be a Buffer'
+                raise ValueError(msg)
             self._do_auto_map_keys(pass_info=pass_info, buffer=False)
 
     def _do_auto_map_keys(self, *, pass_info: bool, buffer: bool) -> None:
