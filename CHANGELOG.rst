@@ -7,6 +7,8 @@ Version 0.7.3
 
 - Prevent error when report Vim function invocation error.
 
+- Prevent error when the VPE log window cannot be scrolled.
+
 
 Version 0.7.2
 -------------

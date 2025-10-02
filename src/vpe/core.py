@@ -779,8 +779,9 @@ class Log:
                 # TODO: Figure out why this can cause:
                 #           Vim(redraw):E315: ml_get: invalid lnum: 2
                 try:
-                    win_execute(vpe_vim.win_getid(w.number), '$')
-                    win_execute(vpe_vim.win_getid(w.number), 'redraw')
+                    with common.suppress_vim_invocation_errors:
+                        win_execute(vpe_vim.win_getid(w.number), '$')
+                        win_execute(vpe_vim.win_getid(w.number), 'redraw')
                 except _vim.error:                       # pragma: no cover
                     pass
 
