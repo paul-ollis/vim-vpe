@@ -42,7 +42,8 @@ class Mapping(support.Base):
         :<py>:
 
             # Ensure normal mode is restored.
-            vpe.feedkeys(r'\<C-\>\<C-N>')
+            vpe.feedkeys(r' ', literal=True)
+            vpe.call_soon(vpe.feedkeys, r'\<C-\>\<C-N>')
         """
         return self.run_self()
 
@@ -91,7 +92,8 @@ class NormalMapping(Mapping):
 
             res = Struct()
             nmap('f', handle)
-            vpe.feedkeys(r'f', literal=True)
+            vpe.feedkeys(r' ', literal=True)
+            vpe.call_soon(vpe.feedkeys, r'f', literal=True)
         """
         res = self.run_mapping()
         info = res.info
@@ -115,7 +117,8 @@ class NormalMapping(Mapping):
             res.value = 0
             vim.vars.vpe_test_var = 0
             nmap('f', ':py3 res.value = 1<CR>')
-            vpe.feedkeys(r'f', literal=True)
+            vpe.feedkeys(r' ', literal=True)
+            vpe.call_soon(vpe.feedkeys, r'f', literal=True)
         """
         res = self.run_mapping()
         failUnlessEqual(1, res.value)
@@ -133,7 +136,8 @@ class NormalMapping(Mapping):
 
             res = Struct()
             nmap('<F4>', handle)
-            vpe.feedkeys(r'\<F4>')
+            vpe.feedkeys(r' ', literal=True)
+            vpe.call_soon(vpe.feedkeys, r'\<F4>')
         """
         res = self.run_mapping()
         info = res.info
@@ -157,7 +161,8 @@ class NormalMapping(Mapping):
 
             res = Struct()
             nmap('f', handle, pass_info=False)
-            vpe.feedkeys(r'f', literal=True)
+            vpe.feedkeys(r' ', literal=True)
+            vpe.call_soon(vpe.feedkeys, r'f', literal=True)
         """
         res = self.run_mapping()
         failUnlessEqual(1, res.called)
@@ -175,7 +180,8 @@ class NormalMapping(Mapping):
 
             res = Struct()
             nmap('f', handle, buffer=False)
-            vpe.feedkeys(r'f', literal=True)
+            vpe.feedkeys(r' ', literal=True)
+            vpe.call_soon(vpe.feedkeys, r'f', literal=True)
         """
         res = self.run_mapping()
         failUnlessEqual(1, res.called)
@@ -185,7 +191,8 @@ class NormalMapping(Mapping):
 
         :<py>:
             del handle
-            vpe.feedkeys(r'f', literal=True)
+            vpe.feedkeys(r' ', literal=True)
+            vpe.call_soon(vpe.feedkeys, r'f', literal=True)
             dump(res)
         """
         return self.run_mapping()
@@ -205,7 +212,8 @@ class NormalMapping(Mapping):
             res = Struct()
             res.called = 0
             nmap('f', handle)
-            vpe.feedkeys(r'f', literal=True)
+            vpe.feedkeys(r' h', literal=True)
+            vpe.call_soon(vpe.feedkeys, r'f', literal=True)
         """
         res = self.run_mapping()
         failUnlessEqual(1, res.called)
@@ -227,7 +235,8 @@ class NormalMapping(Mapping):
             res = Struct()
             res.called = 0
             nmap('f', handle, buffer=False)
-            vpe.feedkeys(r'f', literal=True)
+            vpe.feedkeys(r' h', literal=True)
+            vpe.call_soon(vpe.feedkeys, r'f', literal=True)
         """
         res = self.run_mapping()
         failUnlessEqual(1, res.called)
@@ -259,7 +268,8 @@ class VisualMapping(Mapping):
                 'Unused',
             ]
             vim.current.window.cursor = (2, 2)
-            vpe.feedkeys(''.join(('V', 'j', 'f')), literal=True)
+            vpe.feedkeys(r' ', literal=True)
+            vpe.call_soon(vpe.feedkeys, ''.join(('V', 'j', 'f')), literal=True)
         """
         res = self.run_mapping()
         info = res.info
@@ -291,7 +301,8 @@ class VisualMapping(Mapping):
                 'Worldxxx',
             ]
             vim.current.window.cursor = (2, 2)
-            vpe.feedkeys(''.join(('v', 'j', 'll', 'f')), literal=True)
+            vpe.feedkeys(r' h', literal=True)
+            vpe.call_soon(vpe.feedkeys, ''.join(('v', 'j', 'll', 'f')), literal=True)
         """
         res = self.run_mapping()
         info = res.info
@@ -326,7 +337,8 @@ class VisualMapping(Mapping):
                 'xxWorldxxx',
             ]
             vim.current.window.cursor = (2, 2)
-            vpe.feedkeys(''.join((r'\<C-V>', 'j', 'llll', 'f')))
+            vpe.feedkeys(r' h', literal=True)
+            vpe.call_soon(vpe.feedkeys, ''.join((r'\<C-V>', 'j', 'llll', 'f')))
         """
         res = self.run_mapping()
         info = res.info
@@ -359,7 +371,8 @@ class InsertMapping(Mapping):
             buf = vim.current.buffer
             buf[:] = []
 
-            vpe.feedkeys(r'if', literal=True)
+            vpe.feedkeys(r' ', literal=True)
+            vpe.call_soon(vpe.feedkeys, r'if', literal=True)
         """
         res = self.run_mapping()
         info = res.info
@@ -391,7 +404,8 @@ class InsertMapping(Mapping):
             buf = vim.current.buffer
             buf[:] = []
 
-            vpe.feedkeys(r'if', literal=True)
+            vpe.feedkeys(r' ', literal=True)
+            vpe.call_soon(vpe.feedkeys, r'if', literal=True)
         """
         res = self.run_mapping()
         info = res.info
@@ -420,7 +434,8 @@ class OpPendingMapping(Mapping):
 
             res = Struct()
             omap('f', handle)
-            vpe.feedkeys(r'yf', literal=True)
+            vpe.feedkeys(r' ', literal=True)
+            vpe.call_soon(vpe.feedkeys, r'yf', literal=True)
         """
         res = self.run_mapping()
         info = res.info
@@ -471,7 +486,8 @@ class ErrorConditions(Mapping):
             res = Struct()
             res.raised = None
             nmap('f', handle)
-            vpe.feedkeys('f', literal=True)
+            vpe.feedkeys(r' ', literal=True)
+            vpe.call_soon(vpe.feedkeys, 'f', literal=True)
 
         """
         # TODO: Need a machanism to verify the error was handled.
@@ -493,7 +509,8 @@ class ErrorConditions(Mapping):
             res.raised = None
             nmap('f', handle)
             del handle
-            vpe.feedkeys('f', literal=True)
+            vpe.feedkeys(r' ', literal=True)
+            vpe.call_soon(vpe.feedkeys, 'f', literal=True)
         """
         # TODO: Need a machanism to verify the error was handled.
         #       Currently this is just doing noddy code coverage.

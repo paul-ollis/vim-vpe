@@ -1552,8 +1552,8 @@ def feedkeys(keys, mode=None, literal=False):
 
     :keys:    The keys string.
     :mode:    The mode passed to Vim's feedkeys function.
-    :literal: If true then the *keys* is passed to feedkeys using single
-              quotes.
+    :literal: If true then the *keys* argument is passed to feedkeys using
+              single quotes.
     """
     if literal:
         keys = _single_quote(keys)
