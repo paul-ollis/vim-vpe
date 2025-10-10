@@ -402,6 +402,11 @@ class MutableMappingProxy(ContainerProxy):
         """
         return key in self._proxied
 
+    def update(self, other) -> None:
+        """Update from other."""
+        for key, value in other.items():
+            self[key] = value
+
     def __contains__(self, key):
         return key in self._proxied
 

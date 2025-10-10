@@ -5,6 +5,8 @@ Change Log
 Version 0.7.3
 -------------
 
+- Provide explicit update method for wrapped Vim dictionaries.
+
 - Prevent error when report Vim function invocation error.
 
 - Prevent error when the VPE log window cannot be scrolled.
