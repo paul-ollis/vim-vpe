@@ -5,6 +5,31 @@ Change Log
 Version 0.7.3
 -------------
 
+- Enhance the Buffer class's support for properties.
+
+  - Can now set single lines marked up using Rich-like styling.
+
+  - Can use regular expressions to apply Rich-like styling to text strings.
+
+  - Buffer methods that set properties handle multi-byte Unicode code points.
+    Unlike with direct use of the Vim ``prop_...()`` functions you do not need
+    to explicitly convert from character to byte offsets.
+
+  - Added methods that provide nice wrapping for several Vim ``prop_...()``
+    functions:
+
+    1. clear_line_props. Clear properties for a single line (uses prop_clear).
+
+    2. remove_line_props. Selectively remove properties from a single line
+       (uses prop_remove).
+
+    3. query_props. Effectively a wrapper for prop_list for the buffer.
+
+    4. add_line_props. Like existing set_line_prop, but can set multiple properties.
+
+    The add_line_prop and add_line_props can take an ID argument, which is useful
+    with the remove_line_props method.
+
 - Provide explicit update method for wrapped Vim dictionaries.
 
 - Provide toggle method for Log to toggle display in a buffer.

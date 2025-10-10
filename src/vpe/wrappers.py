@@ -10,7 +10,8 @@ import itertools
 import pathlib
 import re
 import weakref
-from typing import Any, Callable, ClassVar, Iterator, Type
+from functools import lru_cache
+from typing import Any, Callable, ClassVar, Iterator, Type, TypeAlias
 
 import vim as _vim
 
@@ -21,9 +22,14 @@ __all__ = ('tabpages', 'TabPage', 'Vim', 'Registers', 'vim',
            'buffers', 'Buffer', 'Range', 'Struct', 'VI_DEFAULT')
 __api__ = ('Function', 'Commands')
 
-# Type aliases
-ListenerCallbackFunc = Callable[['Buffer', int, int, int], None]
-ListenerCallbackMethod = Callable[[int, int, int], None]
+#: A callback function for Vim reported buffer changes.
+ListenerCallbackFunc: TypeAlias = Callable[['Buffer', int, int, int], None]
+
+#: A callback function for Vim reported buffer changes.
+ListenerCallbackMethod: TypeAlias = Callable[[int, int, int], None]
+
+#: A simple specification for a line property - start col, end_col, name.
+LinePropertySpec: TypeAlias = [int, int, str]
 
 # Special values used to reset represent Vi or Vim default values. Currently
 # only used to set options.
@@ -747,9 +753,85 @@ class Buffer(common.MutableSequenceProxy):
             unbuffered=unbuffered)
         return cb
 
+    def clear_line_props(self, lidx: int):
+        """Remove all properties from a single line in this buffer."""
+        if lidx < len(self):
+            vim.prop_clear(lidx + 1, lidx + 1, {'bufnr': self.number})
+
     def clear_props(self):
         """Remove all properties from all lines in this buffer."""
         vim.prop_clear(1, len(self), {'bufnr': self.number})
+
+    def remove_line_props(
+            self,
+            lidx: int,
+            types: list[str] | str = '',
+            id: int = -1,                   # pylint: disable=redefined-builtin
+            all: bool = True,               # pylint: disable=redefined-builtin
+        ) -> int:
+        """Remove properties from a given line.
+
+        This wraps Vim's prop_remove, but uses a zero based line index.
+
+        :lidx:
+            The index of the line.
+        :types:
+            This may be a string specifying the property type name to
+            match. Or is may be a list of property names to match.
+        :id:
+            A property ID (as provided to prop_add or `set_line_prop`).
+        :all:
+            By default all matching properties are removed from the line.
+            Pass ``False`` to remo just the first match.
+        :return: How many properties were removed.
+        """
+        kw = {}
+        if isinstance(types, str) and types:
+            kw['type'] = types
+        elif isinstance(types, list) and types:
+            kw['types'] = types
+        if id > 0:
+            kw['id'] = id
+        if all:
+            kw['all'] = 1
+        return vim.prop_remove(kw, lidx + 1)
+
+    def query_props(
+            self,
+            lidx: int,
+            end_lidx: int = -1,
+            types: list[str] | str = '',
+            ids: int = -1,
+        ) -> list[dict[str, int | str]]:
+        """Query properties for a range of lines.
+
+        This wraps Vim's prop_list, but uses a zero based line indices.
+
+        :lidx:
+            The index of the line.
+        :end_lidx:
+            The end of the line range to query (not inclusive).
+        :types:
+            This may be a string specifying the property type name to
+            match. Or is may be a list of property names to match.
+        :ids:
+            A property ID (as provided to prop_add or `set_line_prop`). May
+            also be a list of IDs.
+        :return: How many properties were removed.
+        """
+        kw = {}
+        if isinstance(types, str) and types:
+            kw['types'] = [types]
+        elif isinstance(types, list) and types:
+            kw['types'] = types
+        if isinstance(ids, int):
+            if ids > 0:
+                kw['ids'] = [ids]
+        elif isinstance(ids, list) and ids:
+            kw['ids'] = ids
+        if end_lidx > 0:
+            kw['end_lnum'] = end_lidx
+        return vim.prop_list(lidx + 1, kw)
 
     def set_line_prop(
             self,
@@ -757,8 +839,14 @@ class Buffer(common.MutableSequenceProxy):
             start_cidx: int,
             end_cidx: int,
             hl_group: str,
-            name: str = ''):
+            name: str = '',
+            id: int = -1,                   # pylint: disable=redefined-builtin
+        ):
         """Set a highlighting property on a single line.
+
+        Unlike Vim's ``prop_add`` function, this uses character (strictly
+        speaking codepoint) offsets rather than byte offsets. You do not have
+        to convert from character to byte offsets.
 
         The name of the text property is formed from the 'name' if provided and
         the 'hl_group' otherwise, by prefixing 'vpe:hl:'. For example if
@@ -774,9 +862,19 @@ class Buffer(common.MutableSequenceProxy):
         :end_cidx:    The index within the line where the property ends.
         :hl_group:    The name of the highlight group to use.
         :name:        An optional name for the property.
+        :id:          An ID to give this property.
         """
         # pylint: disable=too-many-positional-arguments
         # pylint: disable=too-many-arguments
+        if lidx >= len(self):
+            return
+
+        text = self[lidx]
+        end_cidx = min(end_cidx, len(text))
+        byte_map = build_codepoint_to_byte_dict(text)
+        start_bidx = byte_map[start_cidx]
+        end_bidx = byte_map[end_cidx]
+
         prop_type_name = f'vpe:hl:{name or hl_group}'
         args = {'bufnr': self.number}
         props = vim.prop_type_get(prop_type_name, args)
@@ -786,28 +884,88 @@ class Buffer(common.MutableSequenceProxy):
         args = {
             'type': prop_type_name,
             'bufnr': self.number,
-            'end_col': end_cidx + 1,
+            'end_col': end_bidx + 1,
         }
-        vim.prop_add(lidx + 1, start_cidx + 1, args)
+        if id > 0:
+            args['id'] = id
+        vim.prop_add(lidx + 1, start_bidx + 1, args)
 
-    def set_rich_like_lines(self, lines: list[str]) -> None:
-        r"""Set highlighted buffer contents from Rich-like markup text.
+    def set_line_props(
+            self,
+            lidx: int,
+            props: list[LinePropertySpec],
+            remove: bool = True,
+            id: int = -1,
+        ) -> None:
+        """Set a set of properties for a given line (highlight group names).
+
+        All previous properties on the line are cleared unless ``remove`` is
+        ``False``.
+
+        :lidx:   The line to update.
+        :props:  A list of LinePropertySpec tuples.
+        :remove: Pass ``False`` to prevent removal of existing properties.
+        :id:     An ID to give the properties.
+        """
+        if remove:
+            vim.prop_clear(lidx + 1, lidx + 1, {'bufnr': self.number})
+        for start_cidx, end_cidx, hl_group in props:
+            self.set_line_prop(lidx, start_cidx, end_cidx, hl_group, id=id)
+
+    def set_rich_like_line(self, lidx: int, marked_up_text: str) -> None:
+        r"""Set a single line from Rich-like markup text.
 
         This method is useful for non-edit buffers, such as obtained using
         `get_display_buffer`.
 
-        - The entire contents of the buffer is updated.
-        - Each line is parsed for mark up that looks like '[Macro]' and '[]'.
+        - All properties for the line are removed.
+        - The line is parsed for mark up that looks like '[Macro]' and '[]'.
           Names within '[' and ']' define highlight groups that are used to
           set text properties using `set_line_prop`. An empty '[]' reverts to
           unmarked text. Use '\[' to insert a literal '['.
 
-        The markup style is modelled on (https://github.com/Textualize/rich)
-        (Rich). It is not compatible, but might possibly be extended to
-        support some subset of Rich markup in the future.
+        The markup style is modelled on https://github.com/Textualize/rich
+        (Rich).
+        """
+        text, highlights = self._prepare_rich_like_line(marked_up_text)
+        if lidx >= len(self):
+            self.append([''] * (len(self) - lidx + 1))
+        self.clear_line_props(lidx)
+        self[lidx] = text
+        self.set_line_props(lidx, highlights)
+
+    def set_rich_like_lines(self, lines: list[str]) -> None:
+        r"""Set entire buffer contents from Rich-like markup text.
+
+        This method is useful for non-edit buffers, such as obtained using
+        `get_display_buffer`. See `set_rich_like_line` for more information.
+
+        - Eny existing properties are removed.
+        - The entire contents of the buffer is updated.
         """
         # pylint: disable=too-many-locals
         self.clear_props()
+        rawlines = []
+        line_highlights = []
+        for line in lines:
+            rawline, highlights = self._prepare_rich_like_line(line)
+            rawlines.append(rawline)
+            line_highlights.append(highlights)
+        with self.list() as temp_lines:
+            temp_lines[:] = rawlines
+        for lidx, highlights in enumerate(line_highlights):
+            if highlights:
+                self.set_line_props(lidx, highlights, remove=False)
+
+    def _prepare_rich_like_line(
+            self, marked_up_text: str,
+        ) -> tuple[str, list[LinePropertySpec]]:
+        """Prepare text and property info for a Rich-like maarked up line.
+
+        :return:
+            A tuple with plain text extracted from ``marked_up_text`` as the
+            first entry. The second entry is a list LinePropertySpec tuples.
+        """
         r_markup = re.compile(r'''(?x)
             (
                 \\\[                         # A '\['
@@ -817,35 +975,37 @@ class Buffer(common.MutableSequenceProxy):
                 ]                            # And closing ]
             )
         ''')
-        rawlines = []
-        line_highlights = []
-        for line in lines:
-            highlights = []
-            line_highlights.append(highlights)
-            parts = r_markup.split(line)
-            offset = 0
-            s = []
-            for part in parts:
-                if part.startswith('['):
-                    name = part[1:-1]
-                    highlights.append((offset, name))
-                else:
-                    if part:
-                        if part == r'\[':
-                            part = '['
-                        s.append(part)
-                        offset += len(part)
-            rawlines.append(''.join(s))
-            highlights.append((len(rawlines[-1]), ''))
-        with self.list() as temp_lines:
-            temp_lines[:] = rawlines
-        for lidx, highlights in enumerate(line_highlights):
-            if len(highlights) < 2:
-                continue
-            for j, (offset, name) in enumerate(highlights[:-1]):
-                end = highlights[j + 1][0]
+
+        highlights = []
+        parts = r_markup.split(marked_up_text)
+        offset = 0
+        s = []
+        prop_spec: list = []
+        for part in parts:
+            if part.startswith('['):
+                name = part[1:-1].strip()
                 if name:
-                    self.set_line_prop(lidx, offset, end, name)
+                    if prop_spec and prop_spec[0] < prop_spec[1]:
+                        highlights.append(prop_spec)
+                    prop_spec = [offset, offset, name]
+                elif prop_spec:
+                    prop_spec[1] = offset
+                    highlights.append(tuple(prop_spec))
+                    prop_spec = []
+            else:
+                if part:
+                    if part == r'\[':
+                        part = '['
+                    s.append(part)
+                    offset += len(part)
+
+        raw_text = ''.join(s)
+        offset = len(raw_text)
+        if prop_spec and prop_spec[0] < offset:
+            prop_spec[1] = offset
+            highlights.append(prop_spec)
+
+        return raw_text, highlights
 
     @staticmethod
     def escape_rich_like(text: str) -> str:
@@ -859,7 +1019,9 @@ class Buffer(common.MutableSequenceProxy):
 
     @staticmethod
     def markup_text(
-            text: str, pat: str, markup: str, rep_all: bool = True) -> str:
+            text: str, pat: str, markup: str, rep_all: bool = True,
+            is_re: bool = False
+        ) -> str:
         """Find ``pat`` in ``text`` and apply richlike ``markup``.
 
         For example if ``text`` is 'Press Q to quit', ``pat`` is 'Q` and
@@ -868,13 +1030,44 @@ class Buffer(common.MutableSequenceProxy):
         This is function is provide as a convenience for simple cases of
         rich-like markup.
 
-        :return:
-            The marked up string.
+        If ``is_re`` is set and ``pat`` contains a group then the group part of
+        each match is marked up rather than the entire match.
+
+        :text:    The input string.
+        :pat:     The pattern to search for.
+        :markup:  The markup highlight group name.
+        :rep_all: If True (the default) replace all non-overlapping occurrences
+                  of ``pat``.
+        :is_re:   Set this ``True`` to make the ``pat`` be treated asa a
+                  regular expression.
+
+        :return:  The marked up string.
+        :raise:   An re.error if ``re.compile()`` fails.
         """
-        if rep_all:
-            return text.replace(pat, f'[{markup}]{pat}[]')
-        else:
-            return text.replace(pat, f'[{markup}]{pat}[]', 1)
+        markup_str = f'[{markup}]'
+        if not is_re:
+            if rep_all:
+                return text.replace(pat, f'{markup_str}{pat}[]')
+            else:
+                return text.replace(pat, f'{markup_str}{pat}[]', 1)
+
+        r = re.compile(pat)
+        parts = []
+        idx = 0
+        for m in r.finditer(text):
+            gn = 1
+            try:
+                m.group(1)
+            except IndexError:
+                gn = 0
+            parts.append(text[idx:m.start(gn)])
+            parts.append(markup_str)
+            parts.append(text[m.start(gn):m.end(gn)])
+            parts.append('[]')
+            idx = m.end(gn)
+        parts.append(text[idx:])
+        return ''.join(parts)
+
 
     def __getattr__(self, name):
         """Make the values from getbufinfo() available as attributes.
@@ -1683,6 +1876,61 @@ class Vim:
             # pylint: disable=raise-missing-from
             raise AttributeError(
                 f'{self.__class__.__name__} object has no attribute {name!r}')
+
+
+@lru_cache(maxsize=50)
+def build_codepoint_to_byte_dict(text: str) -> dict[int, int]:
+    """Build a mapping of codepoint to utf-8 byte offsets for a string.
+
+    This is just inverts the output of `build_byte_to_codepoint_dict`.
+    """
+    m = build_byte_to_codepoint_dict(text)
+    return {v: k for k, v in reversed(m.items())}
+
+
+@lru_cache(maxsize=50)
+def build_byte_to_codepoint_dict(text: str) -> dict[int, int]:
+    """Build a mapping of utf-8 byte to codepoint offsets for a string.
+
+    Args:
+        text: The string.
+
+    Returns:
+        A `dict[int, int]` mapping byte indices to codepoint indices within
+        `data`.
+    """
+    if not text:
+        return {0: 0}
+
+    data = text.encode('utf-8')
+    if len(data) == len(text):
+        return one_to_one_mapping(len(text))
+
+    byte_to_codepoint: dict[int, int] = {}
+    i = k = 0
+    for c in text:
+        byte_to_codepoint[k] = i
+        k += 1
+        if ord(c) >= 0x80:
+            byte_to_codepoint[k] = i
+            k += 1
+            if ord(c) >= 0x800:
+                byte_to_codepoint[k] = i
+                k += 1
+                if ord(c) >= 0x10000:
+                    byte_to_codepoint[k] = i
+                    k += 1
+        i += 1
+
+    # Mapping for the end of the string
+    byte_to_codepoint[k] = i
+
+    return byte_to_codepoint
+
+
+@lru_cache(maxsize=128)
+def one_to_one_mapping(n: int) -> dict[int, int]:
+    return {i: i for i in range(n + 1)}
 
 
 def _get_wrapped_buffer(vim_buffer: _vim.Buffer) -> Buffer:
