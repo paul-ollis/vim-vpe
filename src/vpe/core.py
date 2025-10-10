@@ -751,6 +751,20 @@ class Log:
             if w.buffer.number == self.buf.number:
                 w.close()
 
+    def toggle_shown(self) -> None:
+        """Toggle whether the log is shown."""
+        b, _ = known_display_buffer(self.name)
+        if self.buf is None or b is None:
+            self.show()
+            return
+
+        for w in wrappers.vim.windows:
+            if w.buffer.number == self.buf.number:
+                self.hide()
+                return
+
+        self.show()
+
     def set_maxlen(self, maxlen: int) -> None:
         """Set the maximum length of the log's FIFO.
 
